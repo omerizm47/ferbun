@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useMemo } from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS } from '../theme';
+import { useOnboardingStore } from '../stores/onboardingStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { scheduleDailyReminder } from '../utils/notifications';
+import { useTheme } from '../theme/ThemeProvider';
+import { useLang } from '../i18n/LanguageProvider';
+import CraftedTabBar from '../components/ui/CraftedTabBar';
+import BrandSplash from '../components/ui/BrandSplash';
 
 import OnboardingScreen from '../screens/OnboardingScreen';
+import LanguagePickerScreen from '../screens/LanguagePickerScreen';
 import HomeScreen from '../screens/HomeScreen';
 import VocabScreen from '../screens/VocabScreen';
 import StoriesListScreen from '../screens/StoriesListScreen';
@@ -16,13 +21,11 @@ import UnitScreen from '../screens/UnitScreen';
 import FlashcardScreen from '../screens/FlashcardScreen';
 import StoryScreen from '../screens/StoryScreen';
 
-const ONBOARDING_KEY = '@ferbun_onboarded';
-
 export type RootStackParamList = {
   MainTabs: undefined;
   Lesson: { lessonId: string; unitId: string };
   Unit: { unitId: string; courseId: string };
-  Flashcard: { theme: string };
+  Flashcard: { theme?: string; mode?: 'review' };
   Story: { storyId: string };
 };
 
@@ -32,36 +35,8 @@ const Tab = createBottomTabNavigator();
 function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: COLORS.fire[500],
-        tabBarInactiveTintColor: COLORS.gray[400],
-        tabBarStyle: {
-          backgroundColor: COLORS.white,
-          borderTopWidth: 1,
-          borderTopColor: COLORS.gray[100],
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 70,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'home';
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Vocab') {
-            iconName = focused ? 'book' : 'book-outline';
-          } else if (route.name === 'Stories') {
-            iconName = focused ? 'document-text' : 'document-text-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
+      tabBar={(props) => <CraftedTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Learn' }} />
       <Tab.Screen name="Vocab" component={VocabScreen} options={{ tabBarLabel: 'Words' }} />
@@ -72,27 +47,60 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
-  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  const showOnboarding = useOnboardingStore((s) => s.showOnboarding);
+  const hydrate = useOnboardingStore((s) => s.hydrate);
+  const complete = useOnboardingStore((s) => s.complete);
+  const { chosen, t } = useLang();
+  const { colors: c, scheme } = useTheme();
 
+  // Match React Navigation's scene/window background to the active scheme so the
+  // default white background never shows through (e.g. behind the tab bar's
+  // rounded top corners) in dark mode.
+  const navTheme = useMemo(() => {
+    const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: c.cream[50],
+        card: c.cream[50],
+        text: c.midnight[800],
+        border: c.gray[200],
+        primary: c.fire[600],
+      },
+    };
+  }, [scheme, c]);
+
+  useEffect(() => { hydrate(); }, [hydrate]);
+
+  // Hydrate device settings on launch and (re)arm the daily reminder so it
+  // survives reinstalls / OS housekeeping. Cross-platform: scheduleDailyReminder
+  // ensures the Android channel and is a safe no-op where notifications aren't
+  // available (Expo Go / web).
   useEffect(() => {
-    AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
-      setShowOnboarding(val !== 'true');
-    }).catch(() => setShowOnboarding(true));
-  }, []);
+    (async () => {
+      await useSettingsStore.getState().loadFromStorage();
+      const { notificationsEnabled, reminderHour } = useSettingsStore.getState();
+      if (notificationsEnabled) {
+        await scheduleDailyReminder(reminderHour, { title: t.reminders.notifTitle, body: t.reminders.notifBody });
+      }
+    })();
+  }, [t]);
 
-  const handleOnboardingComplete = async () => {
-    try { await AsyncStorage.setItem(ONBOARDING_KEY, 'true'); } catch {}
-    setShowOnboarding(false);
-  };
+  if (showOnboarding === null) return <BrandSplash colors={c} />; // loading
 
-  if (showOnboarding === null) return null; // loading
+  // Brand-new users pick their base language before the intro carousel, so the
+  // onboarding copy is already in their language. Existing testers are past
+  // onboarding, so they never see this and stay on English until they switch
+  // it in Profile.
+  if (showOnboarding && !chosen) return <LanguagePickerScreen />;
 
   if (showOnboarding) {
-    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+    return <OnboardingScreen onComplete={complete} />;
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

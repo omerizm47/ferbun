@@ -1,5 +1,4 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import Svg, { Circle, Path, G, Defs, RadialGradient, Stop, Line } from 'react-native-svg';
 import { COLORS } from '../../theme';
 
@@ -74,6 +73,20 @@ export function KilimBorder({ width = 300, color = COLORS.fire[200] }: { width?:
           </G>
         );
       })}
+    </Svg>
+  );
+}
+
+// Kilim lozenge — the woven "eye/star" diamond motif of Kurdish textiles.
+// Concentric diamonds with hooked points; used as a refined accent.
+export function KilimDiamond({ size = 40, color = COLORS.fire[500] }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      <Path d="M20 1 L39 20 L20 39 L1 20 Z" fill="none" stroke={color} strokeWidth={1.4} />
+      <Path d="M2 14 L6 20 L2 26" fill="none" stroke={color} strokeWidth={1.2} strokeLinecap="round" />
+      <Path d="M38 14 L34 20 L38 26" fill="none" stroke={color} strokeWidth={1.2} strokeLinecap="round" />
+      <Path d="M20 9 L31 20 L20 31 L9 20 Z" fill="none" stroke={color} strokeWidth={1.4} />
+      <Path d="M20 15.5 L24.5 20 L20 24.5 L15.5 20 Z" fill={color} />
     </Svg>
   );
 }

@@ -1,12 +1,21 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { COLORS, SPACING, RADIUS, FONT_SIZE } from '../theme';
+import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { useLang } from '../i18n/LanguageProvider';
+import { unitTitle, unitDescription, lessonTitle } from '../i18n/content';
 import { useProgressStore } from '../stores/progressStore';
 import { getUnitById } from '../data/courses';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { haptics } from '../utils/haptics';
+import ScreenHeader from '../components/ui/ScreenHeader';
+import MotifTile from '../components/ui/MotifTile';
+import PressableScale from '../components/ui/PressableScale';
+import EmptyState from '../components/ui/EmptyState';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 type RP = RouteProp<RootStackParamList, 'Unit'>;
@@ -15,24 +24,35 @@ export default function UnitScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RP>();
   const unit = getUnitById(route.params.unitId);
+  const insets = useSafeAreaInsets();
   const { isLessonCompleted, getLessonScore } = useProgressStore();
+  const { colors: c, scheme } = useTheme();
+  const { t, lang } = useLang();
+  const s = useMemo(() => makeStyles(c), [c]);
 
-  if (!unit) return <View style={s.container}><Text>Unit not found</Text></View>;
+  if (!unit) return (
+    <View style={s.container}>
+      <EmptyState
+        icon="map-outline"
+        titleKu="Beş nehat dîtin"
+        title={t.unit.notFoundTitle}
+        message={t.unit.notFoundMessage}
+        actionLabel={t.common.goBack}
+        onAction={() => navigation.goBack()}
+      />
+    </View>
+  );
 
   return (
     <View style={s.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.cream[50]} />
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.back}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.midnight[800]} />
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>{unit.title}</Text>
-          <Text style={s.headerSub}>{unit.titleKu}</Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
-      <Text style={s.desc}>{unit.description}</Text>
+      <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={c.cream[50]} />
+      <ScreenHeader
+        titleEn={unitTitle(unit, lang)}
+        titleKu={unit.titleKu}
+        onBack={() => navigation.goBack()}
+        topInset={insets.top}
+      />
+      <Text style={s.desc}>{unitDescription(unit, lang)}</Text>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
         {unit.lessons.map((lesson, i) => {
@@ -43,53 +63,51 @@ export default function UnitScreen() {
           const isGrammar = lesson.type === 'grammar';
 
           return (
-            <TouchableOpacity key={lesson.id} style={[s.card, !open && s.cardLocked]} onPress={() => open && navigation.navigate('Lesson', { lessonId: lesson.id, unitId: unit.id })} activeOpacity={open ? 0.7 : 1}>
+            <PressableScale key={lesson.id} style={[s.card, !open && s.cardLocked]} disabled={!open} onPress={() => { haptics.selection(); navigation.navigate('Lesson', { lessonId: lesson.id, unitId: unit.id }); }}>
               <View style={s.cardLeft}>
-                <View style={[s.num, done && s.numDone, !open && s.numLocked]}>
-                  {done ? <Ionicons name="checkmark" size={16} color={COLORS.white} /> : open ? <Text style={s.numText}>{i + 1}</Text> : <Ionicons name="lock-closed" size={12} color={COLORS.gray[400]} />}
-                </View>
+                {done ? (
+                  <MotifTile icon="checkmark" color={c.kurdish[500]} size={40} />
+                ) : open ? (
+                  <MotifTile label={String(i + 1)} color={c.fire[500]} size={40} />
+                ) : (
+                  <View style={s.numLockedBox}>
+                    <Ionicons name="lock-closed" size={14} color={c.gray[400]} />
+                  </View>
+                )}
                 <View style={s.cardInfo}>
-                  <Text style={[s.cardTitle, !open && s.muted]}>{lesson.title}</Text>
+                  <Text style={[s.cardTitle, !open && s.muted]}>{lessonTitle(lesson, lang)}</Text>
                   <View style={s.meta}>
-                    <Text style={[s.tag, isGrammar ? s.tagGrammar : s.tagVocab]}>{isGrammar ? 'grammar' : 'vocabulary'}</Text>
+                    <Text style={[s.tag, isGrammar ? s.tagGrammar : s.tagVocab]}>{isGrammar ? t.unit.tagGrammar : t.unit.tagVocab}</Text>
                     <Text style={s.xp}>+{lesson.xpReward} XP</Text>
                   </View>
                 </View>
               </View>
               {done && <Text style={s.score}>{score}%</Text>}
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 24 + insets.bottom }} />
       </ScrollView>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.cream[50] },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.md, paddingTop: 56, paddingBottom: SPACING.sm },
-  back: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { alignItems: 'center', flex: 1 },
-  headerTitle: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.midnight[800] },
-  headerSub: { fontSize: FONT_SIZE.xs, color: COLORS.gray[500] },
-  desc: { fontSize: FONT_SIZE.sm, color: COLORS.gray[400], textAlign: 'center', paddingHorizontal: SPACING.xl, marginBottom: SPACING.lg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.cream[50] },
+  desc: { fontSize: FONT_SIZE.sm, color: c.gray[400], textAlign: 'center', paddingHorizontal: SPACING.xl, marginBottom: SPACING.lg },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg },
-  card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.white, padding: SPACING.md, borderRadius: RADIUS.md, marginBottom: 8, borderWidth: 1, borderColor: COLORS.gray[100] },
-  cardLocked: { backgroundColor: COLORS.gray[100], opacity: 0.5 },
+  card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.md, marginBottom: 8, borderWidth: 1, borderColor: c.gray[100], ...SHADOWS.sm },
+  cardLocked: { backgroundColor: c.gray[100], opacity: 0.5, elevation: 0, shadowOpacity: 0 },
   cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: SPACING.md },
-  num: { width: 32, height: 32, borderRadius: RADIUS.sm, backgroundColor: COLORS.fire[50], justifyContent: 'center', alignItems: 'center' },
-  numDone: { backgroundColor: COLORS.kurdish[500] },
-  numLocked: { backgroundColor: COLORS.gray[200] },
-  numText: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: COLORS.fire[600] },
+  numLockedBox: { width: 40, height: 40, borderRadius: 13, backgroundColor: c.gray[200], justifyContent: 'center', alignItems: 'center' },
   cardInfo: { flex: 1 },
-  cardTitle: { fontSize: FONT_SIZE.sm, fontWeight: '600', color: COLORS.midnight[800], marginBottom: 4 },
+  cardTitle: { fontSize: FONT_SIZE.sm, fontWeight: '600', color: c.midnight[800], marginBottom: 4 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   tag: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  tagVocab: { backgroundColor: COLORS.fire[50], color: COLORS.fire[600] },
-  tagGrammar: { backgroundColor: COLORS.kurdish[50], color: COLORS.kurdish[700] },
-  xp: { fontSize: 10, color: COLORS.gray[400] },
-  score: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: COLORS.kurdish[600] },
-  muted: { color: COLORS.gray[400] },
+  tagVocab: { backgroundColor: c.fireSoft, color: c.fire[600] },
+  tagGrammar: { backgroundColor: c.kurdishSoft, color: c.successText },
+  xp: { fontSize: 10, color: c.gray[400] },
+  score: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: c.kurdish[600] },
+  muted: { color: c.gray[400] },
 });

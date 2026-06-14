@@ -1,48 +1,66 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { COLORS, SPACING, RADIUS, FONT_SIZE } from '../theme';
+import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { useLang } from '../i18n/LanguageProvider';
+import { themeLabel } from '../i18n/content';
 import { getVocabByTheme, VOCAB_THEMES } from '../data/vocabulary';
+import { useProgressStore, selectDueVocabIds } from '../stores/progressStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { haptics } from '../utils/haptics';
+import { toIconName } from '../utils/icons';
+import ScreenHeader from '../components/ui/ScreenHeader';
+import MotifTile from '../components/ui/MotifTile';
+import PressableScale from '../components/ui/PressableScale';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
-const THEME_ICONS: Record<string, string> = {
-  greetings: 'chatbubble-outline', family: 'people-outline', body: 'body-outline',
-  home: 'home-outline', food: 'restaurant-outline', nature: 'leaf-outline',
-  animals: 'paw-outline', description: 'color-palette-outline', numbers: 'calculator-outline',
-  time: 'time-outline', verbs: 'flash-outline', emotions: 'heart-outline',
-  places: 'map-outline', education: 'school-outline', culture: 'flag-outline',
-  function: 'text-outline',
-};
-
 export default function VocabScreen() {
   const navigation = useNavigation<NavProp>();
+  const insets = useSafeAreaInsets();
+  const { colors: c, scheme } = useTheme();
+  const { t, lang } = useLang();
+  const s = useMemo(() => makeStyles(c), [c]);
+  const vocabMastery = useProgressStore((st) => st.vocabMastery);
+  const dueCount = useMemo(() => selectDueVocabIds(vocabMastery).length, [vocabMastery]);
 
   return (
     <View style={s.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.cream[50]} />
-      <View style={s.header}>
-        <Text style={s.title}>Vocabulary</Text>
-        <Text style={s.subtitle}>Peyvên Kurdî</Text>
-      </View>
+      <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={c.cream[50]} />
+      <ScreenHeader titleEn={t.vocab.title} titleKu="Peyvên Kurdî" topInset={insets.top} emblem />
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
+        {dueCount > 0 && (
+          <PressableScale
+            style={s.reviewBanner}
+            onPress={() => { haptics.selection(); navigation.navigate('Flashcard', { mode: 'review' }); }}
+            accessibilityRole="button"
+            accessibilityLabel={t.review.a11y}
+          >
+            <View style={s.reviewIconWrap}>
+              <Ionicons name="albums" size={20} color="#FFFFFF" />
+            </View>
+            <View style={s.reviewInfo}>
+              <Text style={s.reviewTitle}>{t.review.title}</Text>
+              <Text style={s.reviewSub}>{t.review.due(dueCount)}</Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </PressableScale>
+        )}
         {VOCAB_THEMES.map((theme) => {
           const words = getVocabByTheme(theme.id);
-          const iconName = THEME_ICONS[theme.id] || 'book-outline';
           return (
-            <TouchableOpacity key={theme.id} style={s.card} onPress={() => navigation.navigate('Flashcard', { theme: theme.id })} activeOpacity={0.7}>
-              <View style={[s.iconCircle, { backgroundColor: theme.color + '15' }]}>
-                <Ionicons name={iconName as any} size={20} color={theme.color} />
-              </View>
+            <PressableScale key={theme.id} style={s.card} onPress={() => { haptics.selection(); navigation.navigate('Flashcard', { theme: theme.id }); }}>
+              <MotifTile icon={toIconName(theme.icon)} color={theme.color} size={54} />
               <View style={s.info}>
-                <Text style={s.label}>{theme.label}</Text>
-                <Text style={s.count}>{words.length} words</Text>
+                <Text style={s.labelKu}>{theme.labelKu}</Text>
+                <Text style={s.labelEn}>{themeLabel(theme, lang)} · {words.length} {t.vocab.words}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.gray[300]} />
-            </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={18} color={c.gray[300]} />
+            </PressableScale>
           );
         })}
         <View style={{ height: 40 }} />
@@ -51,16 +69,19 @@ export default function VocabScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.cream[50] },
-  header: { paddingHorizontal: SPACING.lg, paddingTop: 56, paddingBottom: SPACING.md },
-  title: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: COLORS.midnight[800], letterSpacing: -0.5 },
-  subtitle: { fontSize: FONT_SIZE.xs, color: COLORS.gray[500], marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.cream[50] },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: SPACING.lg },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, padding: SPACING.md, borderRadius: RADIUS.md, marginBottom: 8, borderWidth: 1, borderColor: COLORS.gray[100] },
-  iconCircle: { width: 42, height: 42, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.lg, marginBottom: 10, borderWidth: 1, borderColor: c.gray[100], ...SHADOWS.sm },
   info: { flex: 1, marginLeft: SPACING.md },
-  label: { fontSize: FONT_SIZE.sm, fontWeight: '600', color: COLORS.midnight[800] },
-  count: { fontSize: FONT_SIZE.xs, color: COLORS.gray[400], marginTop: 1 },
+  labelKu: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.midnight[800], letterSpacing: -0.2 },
+  labelEn: { fontSize: FONT_SIZE.xs, color: c.gray[400], marginTop: 2 },
+
+  // Review banner (spaced-repetition deck)
+  reviewBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, backgroundColor: c.kurdish[600], borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: 12, ...SHADOWS.md },
+  reviewIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
+  reviewInfo: { flex: 1 },
+  reviewTitle: { fontSize: FONT_SIZE.md, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.2 },
+  reviewSub: { fontSize: FONT_SIZE.xs, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
 });

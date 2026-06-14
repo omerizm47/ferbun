@@ -2,9 +2,13 @@ const { createCanvas } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
-// === APP ICON (512x512) ===
-function generateAppIcon() {
-  const size = 512;
+// === APP ICON ===
+// Rendered at a parameterized size so we can emit a crisp 1024×1024 source for
+// the stores (Apple's App Store marketing icon must be 1024²) alongside the
+// 512² Play Store listing icon. All fixed pixel values scale by k = size/512 so
+// the proportions stay identical to the original 512 design.
+function generateAppIcon(size = 512, outName = 'icon-playstore.png') {
+  const k = size / 512;
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
 
@@ -19,12 +23,12 @@ function generateAppIcon() {
   ctx.fillStyle = 'rgba(255,255,255,0.06)';
   ctx.beginPath();
   ctx.moveTo(0, size);
-  ctx.lineTo(60, size * 0.7);
-  ctx.lineTo(140, size * 0.82);
-  ctx.lineTo(220, size * 0.62);
-  ctx.lineTo(300, size * 0.78);
-  ctx.lineTo(380, size * 0.65);
-  ctx.lineTo(440, size * 0.75);
+  ctx.lineTo(60 * k, size * 0.7);
+  ctx.lineTo(140 * k, size * 0.82);
+  ctx.lineTo(220 * k, size * 0.62);
+  ctx.lineTo(300 * k, size * 0.78);
+  ctx.lineTo(380 * k, size * 0.65);
+  ctx.lineTo(440 * k, size * 0.75);
   ctx.lineTo(size, size * 0.68);
   ctx.lineTo(size, size);
   ctx.closePath();
@@ -33,28 +37,28 @@ function generateAppIcon() {
   // Kurdish sun — center circle with rays
   const cx = size / 2;
   const cy = size * 0.38;
-  const innerR = 42;
-  const outerR = 85;
+  const innerR = 42 * k;
+  const outerR = 85 * k;
   const rays = 21;
 
   // Sun glow
-  const glowGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR + 20);
+  const glowGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR + 20 * k);
   glowGrad.addColorStop(0, 'rgba(255,255,255,0.2)');
   glowGrad.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = glowGrad;
   ctx.beginPath();
-  ctx.arc(cx, cy, outerR + 20, 0, Math.PI * 2);
+  ctx.arc(cx, cy, outerR + 20 * k, 0, Math.PI * 2);
   ctx.fill();
 
   // Sun rays
   for (let i = 0; i < rays; i++) {
     const angle = (i * 360 / rays - 90) * Math.PI / 180;
-    const x1 = cx + Math.cos(angle) * (innerR + 4);
-    const y1 = cy + Math.sin(angle) * (innerR + 4);
+    const x1 = cx + Math.cos(angle) * (innerR + 4 * k);
+    const y1 = cy + Math.sin(angle) * (innerR + 4 * k);
     const x2 = cx + Math.cos(angle) * outerR;
     const y2 = cy + Math.sin(angle) * outerR;
     ctx.strokeStyle = i % 2 === 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.4)';
-    ctx.lineWidth = i % 2 === 0 ? 3 : 1.8;
+    ctx.lineWidth = (i % 2 === 0 ? 3 : 1.8) * k;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -73,20 +77,20 @@ function generateAppIcon() {
 
   // Text: "Fêrbûn"
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 72px sans-serif';
+  ctx.font = `bold ${72 * k}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('Fêrbûn', cx, size * 0.68);
 
   // Subtitle
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.font = '600 22px sans-serif';
-  ctx.letterSpacing = '4px';
+  ctx.font = `600 ${22 * k}px sans-serif`;
+  ctx.letterSpacing = `${4 * k}px`;
   ctx.fillText('LEARN KURDISH', cx, size * 0.78);
 
   // Save
   const buffer = canvas.toBuffer('image/png');
-  const outPath = path.join(__dirname, 'assets', 'icon-playstore.png');
+  const outPath = path.join(__dirname, 'assets', outName);
   fs.writeFileSync(outPath, buffer);
   console.log('App icon saved to:', outPath);
 }
@@ -196,6 +200,7 @@ function generateFeatureGraphic() {
   console.log('Feature graphic saved to:', outPath);
 }
 
-generateAppIcon();
+generateAppIcon(1024, 'icon.png');       // crisp 1024² source for app stores (alpha stripped post-gen)
+generateAppIcon(512, 'icon-playstore.png');
 generateFeatureGraphic();
 console.log('Done! Check the assets/ folder.');

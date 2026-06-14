@@ -2,10 +2,10 @@
   "expo": {
     "name": "Fêrbûn — Learn Kurdish",
     "slug": "ferbun",
-    "version": "1.0.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -13,8 +13,12 @@
       "backgroundColor": "#E85D00"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.ferbun.app"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ferbun.app",
+      "buildNumber": "3",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +27,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.ferbun.app",
-      "versionCode": 1
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,6 +36,15 @@
       "eas": {
         "projectId": "76993b45-c830-4319-82f3-f56b6082357a"
       }
-    }
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#E85D00"
+        }
+      ]
+    ]
   }
 }

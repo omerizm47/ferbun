@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { COLORS, SPACING, RADIUS, FONT_SIZE } from '../../theme';
+import React, { useState, useMemo } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { SPACING } from '../../theme';
 import { Exercise } from '../../data/types';
+import { shuffle } from '../../utils/shuffle';
+import { haptics } from '../../utils/haptics';
+import { useLang } from '../../i18n/LanguageProvider';
+import { resolveChoices, exercisePrompt, exercisePromptKu } from '../../i18n/content';
+import QuestionPrompt from './QuestionPrompt';
+import OptionRow, { OptionState } from './OptionRow';
 
 interface Props {
   exercise: Exercise;
@@ -10,48 +16,46 @@ interface Props {
 }
 
 export default function MultipleChoiceExercise({ exercise, onAnswer, disabled }: Props) {
+  const { t, lang } = useLang();
   const [selected, setSelected] = useState<string | null>(null);
+
+  // Options + correct answer resolve together from the active language so a
+  // multiple-choice answer can never desync across locales.
+  const { options: localizedOptions, correct } = resolveChoices(exercise, lang);
+  const isCorrectOption = (o: string) => (Array.isArray(correct) ? correct.includes(o) : o === correct);
+
+  // Shuffle once per exercise (and language) so the correct answer's position
+  // varies but stays stable across re-renders of the same question.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: re-shuffle only when the exercise or language changes
+  const options = useMemo(() => shuffle(localizedOptions ?? []), [exercise.id, lang]);
 
   const handleSelect = (option: string) => {
     if (disabled) return;
     setSelected(option);
-    const isCorrect = option === exercise.correctAnswer;
+    const isCorrect = isCorrectOption(option);
+    if (isCorrect) haptics.success(); else haptics.error();
     onAnswer(isCorrect);
   };
 
   return (
     <View style={styles.container}>
-      {exercise.questionKu && (
-        <Text style={styles.kurdishText}>{exercise.questionKu}</Text>
-      )}
-      <Text style={styles.question}>{exercise.questionEn}</Text>
+      <QuestionPrompt kicker={`HILBIJÊRE · ${t.exercises.chooseKicker}`} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
       <View style={styles.options}>
-        {exercise.options?.map((option, index) => {
+        {options.map((option, index) => {
           const isSelected = selected === option;
-          const isCorrect = option === exercise.correctAnswer;
-          const showResult = disabled && isSelected;
-
+          const isCorrect = isCorrectOption(option);
+          const state: OptionState = disabled
+            ? (isCorrect ? 'correct' : isSelected ? 'wrong' : 'idle')
+            : (isSelected ? 'selected' : 'idle');
           return (
-            <TouchableOpacity
+            <OptionRow
               key={index}
-              style={[
-                styles.option,
-                isSelected && styles.optionSelected,
-                showResult && isCorrect && styles.optionCorrect,
-                showResult && !isCorrect && styles.optionWrong,
-                disabled && isCorrect && styles.optionCorrect,
-              ]}
+              index={index}
+              label={option}
+              state={state}
               onPress={() => handleSelect(option)}
-              activeOpacity={disabled ? 1 : 0.7}
-            >
-              <Text style={[
-                styles.optionText,
-                isSelected && styles.optionTextSelected,
-                disabled && isCorrect && styles.optionTextCorrect,
-              ]}>
-                {option}
-              </Text>
-            </TouchableOpacity>
+              disabled={disabled}
+            />
           );
         })}
       </View>
@@ -61,17 +65,5 @@ export default function MultipleChoiceExercise({ exercise, onAnswer, disabled }:
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  kurdishText: { fontSize: 28, fontWeight: '800', color: COLORS.fire[600], marginBottom: SPACING.sm, lineHeight: 36 },
-  question: { fontSize: FONT_SIZE.md, fontWeight: '500', color: COLORS.gray[600], marginBottom: SPACING.xl, lineHeight: 24 },
   options: { gap: SPACING.sm },
-  option: {
-    padding: SPACING.md, borderRadius: RADIUS.lg, borderWidth: 2,
-    borderColor: COLORS.gray[200], backgroundColor: COLORS.white,
-  },
-  optionSelected: { borderColor: COLORS.fire[400], backgroundColor: COLORS.fire[50] },
-  optionCorrect: { borderColor: COLORS.success, backgroundColor: '#F0FDF4' },
-  optionWrong: { borderColor: COLORS.error, backgroundColor: '#FEF2F2' },
-  optionText: { fontSize: FONT_SIZE.md, fontWeight: '600', color: COLORS.midnight[800] },
-  optionTextSelected: { color: COLORS.fire[700] },
-  optionTextCorrect: { color: COLORS.success },
 });

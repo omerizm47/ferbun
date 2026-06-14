@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local scratch / recovered notes (not part of the app)
+RECOVERED-*.md
+__pycache__/
