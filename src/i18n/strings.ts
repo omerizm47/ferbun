@@ -125,6 +125,9 @@ const en: UiStrings = {
     help: 'HELP',
     replayIntro: 'Replay intro',
     replayIntroSub: 'See how Fêrbûn works again',
+    moreApps: 'More from us',
+    nisibisTitle: 'Nisibis',
+    nisibisSub: 'Free, ad-free travel & history guide to the ancient city of Nisibis.',
     reset: 'Reset All Progress',
     resetTitle: 'Reset all progress?',
     resetMessage: 'This permanently erases your XP, streak, completed lessons, stories, and profile on this device. This cannot be undone.',
@@ -203,6 +206,11 @@ const en: UiStrings = {
     permTitle: 'Notifications are off',
     permMessage: 'To get daily reminders, allow notifications for Fêrbûn in your device settings.',
     openSettings: 'Open Settings',
+  },
+  celebration: {
+    levelUp: 'Level Up',
+    newStreakTier: 'New Streak Tier',
+    reachedLevel: (n) => `You reached Level ${n}`,
   },
 };
 
@@ -326,6 +334,9 @@ const tr: UiStrings = {
     help: 'YARDIM',
     replayIntro: 'Tanıtımı tekrar izle',
     replayIntroSub: 'Fêrbûn’un nasıl çalıştığını tekrar gör',
+    moreApps: 'Bizden diğer uygulamalar',
+    nisibisTitle: 'Nisibis',
+    nisibisSub: 'Antik Nisibis şehri için ücretsiz, reklamsız gezi ve tarih rehberi.',
     reset: 'Tüm İlerlemeyi Sıfırla',
     resetTitle: 'Tüm ilerleme sıfırlansın mı?',
     resetMessage: 'Bu, bu cihazdaki XP’ni, serini, tamamlanan derslerini, hikayelerini ve profilini kalıcı olarak siler. Bu geri alınamaz.',
@@ -404,6 +415,11 @@ const tr: UiStrings = {
     permTitle: 'Bildirimler kapalı',
     permMessage: 'Günlük hatırlatıcılar için cihaz ayarlarından Fêrbûn bildirimlerine izin ver.',
     openSettings: 'Ayarları Aç',
+  },
+  celebration: {
+    levelUp: 'Seviye Atladın',
+    newStreakTier: 'Yeni Seri Seviyesi',
+    reachedLevel: (n) => `${n}. seviyeye ulaştın`,
   },
 };
 

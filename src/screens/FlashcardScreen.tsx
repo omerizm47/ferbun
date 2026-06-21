@@ -18,6 +18,7 @@ import { haptics } from '../utils/haptics';
 import { KurdishSun, KilimBorder, KilimDiamond } from '../components/ui/KurdishDecorations';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
+import UpperText from '../components/ui/UpperText';
 
 type RoutePropType = RouteProp<RootStackParamList, 'Flashcard'>;
 
@@ -135,12 +136,12 @@ export default function FlashcardScreen() {
             <View style={styles.fStatBox}>
               <Ionicons name="checkmark-done" size={18} color={c.kurdish[500]} />
               <Text style={styles.fStatVal}>{knownCount}</Text>
-              <Text style={styles.fStatLabel}>{t.flashcard.known}</Text>
+              <UpperText style={styles.fStatLabel}>{t.flashcard.known}</UpperText>
             </View>
             <View style={styles.fStatBox}>
               <Ionicons name="refresh" size={18} color={c.fire[500]} />
               <Text style={styles.fStatVal}>{words.length - knownCount}</Text>
-              <Text style={styles.fStatLabel}>{t.flashcard.learning}</Text>
+              <UpperText style={styles.fStatLabel}>{t.flashcard.learning}</UpperText>
             </View>
           </View>
           <Button label={t.common.done} icon="checkmark" iconPosition="right" onPress={() => navigation.goBack()} style={styles.finishBtn} />
@@ -200,7 +201,7 @@ export default function FlashcardScreen() {
             <View style={styles.cardCorner} pointerEvents="none">
               <KilimDiamond size={26} color={c.kurdish[500]} />
             </View>
-            <Text style={[styles.cardLabel, { color: c.kurdish[600] }]}>{t.flashcard.back}</Text>
+            <UpperText style={[styles.cardLabel, { color: c.kurdish[600] }]}>{t.flashcard.back}</UpperText>
             <Text style={styles.cardTranslation}>{vocabGloss(word, lang)}</Text>
             <Text style={styles.cardPos}>{word.partOfSpeech}</Text>
             {word.exampleKu && (

@@ -16,6 +16,7 @@ import ScreenHeader from '../components/ui/ScreenHeader';
 import MotifTile from '../components/ui/MotifTile';
 import PressableScale from '../components/ui/PressableScale';
 import EmptyState from '../components/ui/EmptyState';
+import UpperText from '../components/ui/UpperText';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 type RP = RouteProp<RootStackParamList, 'Unit'>;
@@ -77,7 +78,7 @@ export default function UnitScreen() {
                 <View style={s.cardInfo}>
                   <Text style={[s.cardTitle, !open && s.muted]}>{lessonTitle(lesson, lang)}</Text>
                   <View style={s.meta}>
-                    <Text style={[s.tag, isGrammar ? s.tagGrammar : s.tagVocab]}>{isGrammar ? t.unit.tagGrammar : t.unit.tagVocab}</Text>
+                    <UpperText style={[s.tag, isGrammar ? s.tagGrammar : s.tagVocab]}>{isGrammar ? t.unit.tagGrammar : t.unit.tagVocab}</UpperText>
                     <Text style={s.xp}>+{lesson.xpReward} XP</Text>
                   </View>
                 </View>

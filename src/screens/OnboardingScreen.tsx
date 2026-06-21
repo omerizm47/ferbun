@@ -13,6 +13,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { KurdishSun, NewrozFlame, MountainSilhouette, DotPattern, KilimBorder } from '../components/ui/KurdishDecorations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
+import { useUpper } from '../components/ui/UpperText';
 
 const { width } = Dimensions.get('window');
 
@@ -208,6 +209,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const insets = useSafeAreaInsets();
   const c = useColors();
   const t = useT();
+  const up = useUpper();
   const s = useMemo(() => makeStyles(c), [c]);
   const hs = useMemo(() => makeHeroStyles(c), [c]);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -288,8 +290,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
         <View key={currentSlide}>
           <Animated.Text entering={FadeInDown.duration(380)} style={s.titleKu}>{slide.titleKu}</Animated.Text>
-          <Animated.Text entering={FadeInDown.delay(70).duration(380)} style={[s.label, { color: slide.accent }]}>
-            {copy.label}
+          <Animated.Text entering={FadeInDown.delay(70).duration(380)} style={[s.label, { color: slide.accent, textTransform: 'none' }]}>
+            {up(copy.label)}
           </Animated.Text>
           <Animated.Text entering={FadeInUp.delay(130).duration(440)} style={s.description}>
             {copy.description}

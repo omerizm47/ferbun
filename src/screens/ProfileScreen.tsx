@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, StatusBar, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Dimensions, Alert, Switch, Linking } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Dimensions, Alert, Switch, Linking, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,12 +15,29 @@ import { MountainSilhouette } from '../components/ui/KurdishDecorations';
 import MotifTile from '../components/ui/MotifTile';
 import { toIconName } from '../utils/icons';
 import KurdishAvatar from '../components/ui/KurdishAvatar';
+import UpperText from '../components/ui/UpperText';
 import { haptics } from '../utils/haptics';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { requestNotificationPermission, scheduleDailyReminder, cancelDailyReminder } from '../utils/notifications';
 
 const { width: SCREEN_W } = Dimensions.get('window');
+
+// Cross-promotion: our sister app "Nisibis" (free, ad-free travel & history
+// guide). Per-platform store links. Leave a URL empty to hide the card on that
+// platform — the card never renders a dead link.
+// TODO(nisibis): paste the live store URLs below to switch the card on.
+//   iOS  e.g. 'https://apps.apple.com/app/id1234567890'
+//   Play e.g. 'https://play.google.com/store/apps/details?id=com.example.nisibis'
+const NISIBIS_APP_STORE_URL = '';
+const NISIBIS_PLAY_URL = '';
+const NISIBIS_URL = Platform.select({
+  ios: NISIBIS_APP_STORE_URL,
+  android: NISIBIS_PLAY_URL,
+  default: NISIBIS_PLAY_URL,
+}) as string;
+// Only show the cross-promo once a real URL exists for the active platform.
+const NISIBIS_LINK_READY = NISIBIS_URL.trim().length > 0;
 
 // Avatar emblems rooted in Kurdish culture & symbolism, drawn as original SVG
 // (see KurdishAvatar): the sun (Roj) of the Kurdistan flag, the Newroz fire, the
@@ -133,6 +150,11 @@ export default function ProfileScreen() {
     haptics.success();
   };
 
+  const openNisibis = () => {
+    haptics.selection();
+    Linking.openURL(NISIBIS_URL).catch(() => {});
+  };
+
   const handleReset = () => {
     haptics.selection();
     Alert.alert(
@@ -197,7 +219,7 @@ export default function ProfileScreen() {
             <Text style={s.name}>{displayName.trim() || 'Xwendekar'}</Text>
             <Ionicons name="pencil" size={14} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
-          <Text style={s.subtitle}>{t.profile.subtitle}</Text>
+          <UpperText style={s.subtitle}>{t.profile.subtitle}</UpperText>
 
           {/* Stats Row */}
           <View style={s.statsRow}>
@@ -207,7 +229,7 @@ export default function ProfileScreen() {
                   <Ionicons name={st.icon} size={15} color="#FFFFFF" />
                 </View>
                 <Text style={s.statVal}>{st.value}</Text>
-                <Text style={s.statSub}>{st.sub}</Text>
+                <UpperText style={s.statSub}>{st.sub}</UpperText>
               </View>
             ))}
           </View>
@@ -215,7 +237,7 @@ export default function ProfileScreen() {
 
         {/* Progress Section */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t.profile.levelProgress}</Text>
+          <UpperText style={s.sectionTitle}>{t.profile.levelProgress}</UpperText>
           <View style={s.progressCard}>
             <View style={s.progressHeader}>
               <Text style={s.progressLevel}>{t.profile.level} {currentLevel}</Text>
@@ -234,7 +256,7 @@ export default function ProfileScreen() {
 
         {/* Streak Levels */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t.profile.streakLevelsTitle}</Text>
+          <UpperText style={s.sectionTitle}>{t.profile.streakLevelsTitle}</UpperText>
           {STREAK_TIERS.map((level) => {
             const isActive = streakLevel.label === level.key;
             const isReached = streakCount >= level.min;
@@ -261,7 +283,7 @@ export default function ProfileScreen() {
 
         {/* Appearance */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t.profile.appearance}</Text>
+          <UpperText style={s.sectionTitle}>{t.profile.appearance}</UpperText>
           <View style={s.segment}>
             {APPEARANCE_OPTIONS.map((opt) => {
               const active = mode === opt.mode;
@@ -278,7 +300,7 @@ export default function ProfileScreen() {
                 >
                   <Ionicons name={opt.icon} size={18} color={active ? '#FFFFFF' : c.gray[500]} />
                   <Text style={[s.segmentKu, active && s.segmentLabelActive]}>{opt.ku}</Text>
-                  <Text style={[s.segmentEn, active && s.segmentSubActive]}>{label}</Text>
+                  <UpperText style={[s.segmentEn, active && s.segmentSubActive]}>{label}</UpperText>
                 </TouchableOpacity>
               );
             })}
@@ -287,7 +309,7 @@ export default function ProfileScreen() {
 
         {/* Language (the bridge language: how Kurdish is taught) */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t.language.settingTitle}</Text>
+          <UpperText style={s.sectionTitle}>{t.language.settingTitle}</UpperText>
           <View style={s.segment}>
             {LANGUAGE_OPTIONS.map((opt) => {
               const active = lang === opt.lang;
@@ -313,7 +335,7 @@ export default function ProfileScreen() {
 
         {/* Goals & Reminders */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t.reminders.sectionTitle}</Text>
+          <UpperText style={s.sectionTitle}>{t.reminders.sectionTitle}</UpperText>
 
           <Text style={s.subLabel}>{t.reminders.goalPickerTitle}</Text>
           <View style={s.chipRow}>
@@ -378,7 +400,7 @@ export default function ProfileScreen() {
 
         {/* Help */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t.profile.help}</Text>
+          <UpperText style={s.sectionTitle}>{t.profile.help}</UpperText>
           <TouchableOpacity style={s.linkRow} onPress={() => { haptics.selection(); replayIntro(); }} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t.profile.replayIntro} accessibilityHint={t.profile.replayIntroSub}>
             <View style={s.linkIconBox}>
               <Ionicons name="sparkles-outline" size={18} color={c.fire[600]} />
@@ -390,6 +412,30 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color={c.gray[300]} />
           </TouchableOpacity>
         </View>
+
+        {/* More from us — cross-promotion for our sister app, Nisibis */}
+        {NISIBIS_LINK_READY && (
+          <View style={s.section}>
+            <UpperText style={s.sectionTitle}>{t.profile.moreApps}</UpperText>
+            <TouchableOpacity
+              style={s.linkRow}
+              onPress={openNisibis}
+              activeOpacity={0.7}
+              accessibilityRole="link"
+              accessibilityLabel={t.profile.nisibisTitle}
+              accessibilityHint={t.profile.nisibisSub}
+            >
+              <View style={[s.linkIconBox, { backgroundColor: c.kurdishSoft }]}>
+                <Ionicons name="business-outline" size={18} color={c.kurdish[600]} />
+              </View>
+              <View style={s.linkInfo}>
+                <Text style={s.linkTitle}>{t.profile.nisibisTitle}</Text>
+                <Text style={s.linkSub} numberOfLines={2}>{t.profile.nisibisSub}</Text>
+              </View>
+              <Ionicons name="open-outline" size={18} color={c.gray[300]} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Reset */}
         <View style={s.section}>

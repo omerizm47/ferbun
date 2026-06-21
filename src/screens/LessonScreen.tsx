@@ -21,6 +21,7 @@ import Button from '../components/ui/Button';
 import { KurdishSun, KilimBorder } from '../components/ui/KurdishDecorations';
 import CoachMark, { CoachStep } from '../components/ui/CoachMark';
 import EmptyState from '../components/ui/EmptyState';
+import UpperText from '../components/ui/UpperText';
 import AnswerSheet from '../components/ui/AnswerSheet';
 import CelebrationOverlay, { Celebration } from '../components/ui/CelebrationOverlay';
 import { useCoachMarks } from '../hooks/useCoachMarks';
@@ -187,17 +188,17 @@ export default function LessonScreen() {
             <View style={styles.statBox}>
               <Ionicons name="ribbon" size={18} color={c.fire[500]} />
               <Text style={styles.statValue}>{finalScore}%</Text>
-              <Text style={styles.statLabel}>{t.lesson.scoreLabel}</Text>
+              <UpperText style={styles.statLabel}>{t.lesson.scoreLabel}</UpperText>
             </View>
             <View style={styles.statBox}>
               <Ionicons name="checkmark-done" size={18} color={c.kurdish[500]} />
               <Text style={styles.statValue}>{correctCount}/{totalExercises}</Text>
-              <Text style={styles.statLabel}>{t.lesson.correctLabel}</Text>
+              <UpperText style={styles.statLabel}>{t.lesson.correctLabel}</UpperText>
             </View>
             <View style={styles.statBox}>
               <Ionicons name="star" size={18} color={c.warning} />
               <Text style={styles.statValue}>+{xpEarned}</Text>
-              <Text style={styles.statLabel}>{t.lesson.xpLabel}</Text>
+              <UpperText style={styles.statLabel}>{t.lesson.xpLabel}</UpperText>
             </View>
           </View>
           <Button label={t.common.continue} icon="arrow-forward" iconPosition="right" onPress={() => navigation.goBack()} style={styles.finishBtn} />

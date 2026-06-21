@@ -4,11 +4,13 @@ import Animated, { ZoomIn, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../../theme/ThemeProvider';
+import { useT } from '../../i18n/LanguageProvider';
 import { SPACING, FONT_SIZE, SHADOWS, TYPOGRAPHY } from '../../theme';
 import { StreakLevel } from '../../stores/progressStore';
 import { KurdishSun, KilimBorder } from './KurdishDecorations';
 import { haptics } from '../../utils/haptics';
 import Button from './Button';
+import UpperText from './UpperText';
 
 export type Celebration =
   | { kind: 'level'; level: number }
@@ -27,6 +29,7 @@ interface Props {
  */
 export default function CelebrationOverlay({ celebration, onDismiss }: Props) {
   const c = useColors();
+  const t = useT();
   const { width } = useWindowDimensions();
 
   // Stable identity per milestone so a queued second celebration (e.g. a streak
@@ -46,10 +49,20 @@ export default function CelebrationOverlay({ celebration, onDismiss }: Props) {
 
   const isLevel = celebration.kind === 'level';
   const icon: keyof typeof Ionicons.glyphMap = isLevel ? 'star' : 'flame';
-  const overline = isLevel ? 'LEVEL UP' : 'NEW STREAK TIER';
+  const overline = isLevel ? t.celebration.levelUp : t.celebration.newStreakTier;
+  const tierName = (label: string): string => {
+    switch (label) {
+      case 'Candle': return t.profile.tiers.candle;
+      case 'Spark': return t.profile.tiers.spark;
+      case 'Campfire': return t.profile.tiers.campfire;
+      case 'Bonfire': return t.profile.tiers.bonfire;
+      case 'Newroz Fire': return t.profile.tiers.newrozFire;
+      default: return label;
+    }
+  };
   const detail = isLevel
-    ? `You reached Level ${celebration.level}`
-    : celebration.tier.label;
+    ? t.celebration.reachedLevel(celebration.level)
+    : tierName(celebration.tier.label);
 
   return (
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onDismiss}>
@@ -74,7 +87,7 @@ export default function CelebrationOverlay({ celebration, onDismiss }: Props) {
             </LinearGradient>
           </View>
 
-          <Text style={[styles.overline, { color: 'rgba(255,255,255,0.7)' }]}>{overline}</Text>
+          <UpperText style={[styles.overline, { color: 'rgba(255,255,255,0.7)' }]}>{overline}</UpperText>
           <Text style={[styles.title, { color: '#FFFFFF' }]} accessibilityRole="header">Pîroz be!</Text>
 
           <View style={styles.kilim} pointerEvents="none">

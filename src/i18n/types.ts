@@ -151,6 +151,10 @@ export interface UiStrings {
     help: string;
     replayIntro: string;
     replayIntroSub: string;
+    /** "More from us" cross-promotion section. */
+    moreApps: string;
+    nisibisTitle: string;
+    nisibisSub: string;
     reset: string;
     resetTitle: string;
     resetMessage: string;
@@ -230,5 +234,13 @@ export interface UiStrings {
     permTitle: string;
     permMessage: string;
     openSettings: string;
+  };
+  // Full-screen reward popup (level-up / new streak tier). The Kurmanji "Pîroz
+  // be!" headline and the "Berdewam be" button stay in the screen; only the
+  // eyebrow and the level detail are localized here.
+  celebration: {
+    levelUp: string;
+    newStreakTier: string;
+    reachedLevel: (n: number) => string;
   };
 }
