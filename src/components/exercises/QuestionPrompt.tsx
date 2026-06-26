@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, FONT_SIZE, TYPOGRAPHY, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
+import { useT } from '../../i18n/LanguageProvider';
 import { KilimDiamond } from '../ui/KurdishDecorations';
 import { speakKurdish } from '../../utils/speech';
 
@@ -21,6 +22,7 @@ interface Props {
  */
 export default function QuestionPrompt({ kicker, questionKu, questionEn }: Props) {
   const c = useColors();
+  const t = useT();
   const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.wrap}>
@@ -34,7 +36,7 @@ export default function QuestionPrompt({ kicker, questionKu, questionEn }: Props
             style={styles.kuBtn}
             onPress={() => speakKurdish(questionKu)}
             accessibilityRole="button"
-            accessibilityLabel={`${questionKu}. Tap to hear pronunciation.`}
+            accessibilityLabel={`${questionKu}. ${t.common.listen}`}
             activeOpacity={0.7}
           >
             <Text style={styles.ku}>{questionKu}</Text>
@@ -44,7 +46,7 @@ export default function QuestionPrompt({ kicker, questionKu, questionEn }: Props
             style={styles.slowBtn}
             onPress={() => speakKurdish(questionKu, true)}
             accessibilityRole="button"
-            accessibilityLabel="Listen slowly"
+            accessibilityLabel={t.common.listenSlow}
             activeOpacity={0.7}
           >
             <Ionicons name="volume-low-outline" size={20} color={c.fire[600]} />

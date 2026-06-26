@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import Svg, { Circle, Path, G, Defs, RadialGradient, Stop, Line, LinearGradient } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { COLORS } from '../../theme';
-import { useTheme } from '../../theme/ThemeProvider';
+import { useTheme } from '../../theme/themeContext';
 
 // Kurdish Sun — inspired by the Newroz/Rojava sun motif
 export function KurdishSun({

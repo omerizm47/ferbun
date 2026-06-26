@@ -301,7 +301,6 @@ export default function FlashcardScreen() {
             <Pressable
               style={styles.cardWrap}
               onPress={flip}
-              accessibilityRole="button"
               accessibilityLabel={isFlipped ? `${vocabGloss(word, lang)}. ${t.flashcard.back}` : `${word.wordKu}. ${t.flashcard.kurdish}`}
               accessibilityHint={t.flashcard.flipHint}
             >
@@ -346,7 +345,7 @@ export default function FlashcardScreen() {
                     haptics.light();
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel="Listen Kurdish pronunciation"
+                  accessibilityLabel={t.common.listen}
                 >
                   <Ionicons name="volume-medium-outline" size={20} color={c.kurdish[500]} />
                 </TouchableOpacity>
@@ -360,7 +359,7 @@ export default function FlashcardScreen() {
                     haptics.light();
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel="Listen slowly"
+                  accessibilityLabel={t.common.listenSlow}
                 >
                   <Ionicons name="volume-low-outline" size={20} color={c.kurdish[500]} />
                 </TouchableOpacity>

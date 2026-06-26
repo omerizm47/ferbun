@@ -17,6 +17,12 @@ const en: UiStrings = {
     check: 'Check',
     goBack: 'Go back',
     save: 'Save',
+    listen: 'Listen to Kurdish pronunciation',
+    listenSlow: 'Listen slowly',
+  },
+  coach: {
+    gotIt: 'Got it',
+    tapHint: 'Tap anywhere to continue',
   },
   tabs: {
     learn: 'Learn',
@@ -45,6 +51,15 @@ const en: UiStrings = {
     ],
     start: 'Start learning',
     goBack: 'Go back',
+    preview: {
+      unitKicker: 'UNIT 1 · GREETINGS',
+      question: 'What does “silav” mean?',
+      optCorrect: 'hello',
+      opt2: 'thank you',
+      opt3: 'goodbye',
+      wordsHint: 'Tap to reveal — good day',
+      storyGloss: 'home',
+    },
   },
   home: {
     greeting: { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', night: 'Good night' },
@@ -238,6 +253,12 @@ const tr: UiStrings = {
     check: 'Kontrol et',
     goBack: 'Geri dön',
     save: 'Kaydet',
+    listen: 'Kürtçe telaffuzu dinle',
+    listenSlow: 'Yavaş dinle',
+  },
+  coach: {
+    gotIt: 'Anladım',
+    tapHint: 'Devam etmek için herhangi bir yere dokun',
   },
   tabs: {
     learn: 'Öğren',
@@ -266,6 +287,15 @@ const tr: UiStrings = {
     ],
     start: 'Öğrenmeye başla',
     goBack: 'Geri dön',
+    preview: {
+      unitKicker: 'ÜNİTE 1 · SELAMLAŞMA',
+      question: '“silav” ne demek?',
+      optCorrect: 'merhaba',
+      opt2: 'teşekkürler',
+      opt3: 'hoşça kal',
+      wordsHint: 'Görmek için dokun — iyi günler',
+      storyGloss: 'ev',
+    },
   },
   home: {
     greeting: { morning: 'Günaydın', afternoon: 'İyi günler', evening: 'İyi akşamlar', night: 'İyi geceler' },

@@ -9,8 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '../theme';
 import { useColors } from '../theme/ThemeProvider';
 import { useT } from '../i18n/LanguageProvider';
+import { UiStrings } from '../i18n/types';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { KurdishSun, NewrozFlame, MountainSilhouette, DotPattern, KilimBorder } from '../components/ui/KurdishDecorations';
+import { KurdishSun, NewrozFlame, MountainSilhouette, DotPattern } from '../components/ui/KurdishDecorations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
 import { useUpper } from '../components/ui/UpperText';
@@ -115,36 +116,38 @@ function FlickerFlame({ size = 120 }: { size?: number }) {
 
 type HeroStyles = ReturnType<typeof makeHeroStyles>;
 
+type PreviewStrings = UiStrings['onboarding']['preview'];
+
 // A small mock of an exercise card — shows what a lesson looks like.
-function LearnPreview({ hs, c }: { hs: HeroStyles; c: ThemeColors }) {
+function LearnPreview({ hs, c, pv }: { hs: HeroStyles; c: ThemeColors; pv: PreviewStrings }) {
   return (
     <View style={hs.card}>
-      <Text style={hs.kicker}>UNIT 1 · GREETINGS</Text>
-      <Text style={hs.question}>What does “silav” mean?</Text>
+      <Text style={hs.kicker}>{pv.unitKicker}</Text>
+      <Text style={hs.question}>{pv.question}</Text>
       <View style={[hs.option, hs.optionCorrect]}>
-        <Text style={hs.optionTextCorrect}>hello</Text>
+        <Text style={hs.optionTextCorrect}>{pv.optCorrect}</Text>
         <Ionicons name="checkmark-circle" size={18} color={c.kurdish[600]} />
       </View>
-      <View style={hs.option}><Text style={hs.optionText}>thank you</Text></View>
-      <View style={[hs.option, { marginBottom: 0 }]}><Text style={hs.optionText}>goodbye</Text></View>
+      <View style={hs.option}><Text style={hs.optionText}>{pv.opt2}</Text></View>
+      <View style={[hs.option, { marginBottom: 0 }]}><Text style={hs.optionText}>{pv.opt3}</Text></View>
     </View>
   );
 }
 
 // A small mock of a flashcard.
-function WordsPreview({ hs }: { hs: HeroStyles }) {
+function WordsPreview({ hs, pv }: { hs: HeroStyles; pv: PreviewStrings }) {
   return (
     <View style={hs.flashcard}>
       <Text style={hs.flashLabel}>KURDÎ</Text>
       <Text style={hs.flashWord}>roj baş</Text>
       <View style={hs.flashDivider} />
-      <Text style={hs.flashHint}>Tap to reveal — good day</Text>
+      <Text style={hs.flashHint}>{pv.wordsHint}</Text>
     </View>
   );
 }
 
 // A small mock of a story line with a tapped word.
-function StoriesPreview({ hs }: { hs: HeroStyles }) {
+function StoriesPreview({ hs, pv }: { hs: HeroStyles; pv: PreviewStrings }) {
   return (
     <View style={hs.card}>
       <Text style={hs.storyLine}>
@@ -152,7 +155,7 @@ function StoriesPreview({ hs }: { hs: HeroStyles }) {
       </Text>
       <View style={hs.tooltip}>
         <Text style={hs.tooltipKu}>mal</Text>
-        <Text style={hs.tooltipEn}>home</Text>
+        <Text style={hs.tooltipEn}>{pv.storyGloss}</Text>
       </View>
     </View>
   );
@@ -171,12 +174,12 @@ function StreakPreview({ hs }: { hs: HeroStyles }) {
   );
 }
 
-function renderHero(kind: HeroKind, hs: HeroStyles, c: ThemeColors) {
+function renderHero(kind: HeroKind, hs: HeroStyles, c: ThemeColors, pv: PreviewStrings) {
   switch (kind) {
     case 'welcome': return <RotatingSun size={176} />;
-    case 'learn': return <LearnPreview hs={hs} c={c} />;
-    case 'words': return <WordsPreview hs={hs} />;
-    case 'stories': return <StoriesPreview hs={hs} />;
+    case 'learn': return <LearnPreview hs={hs} c={c} pv={pv} />;
+    case 'words': return <WordsPreview hs={hs} pv={pv} />;
+    case 'stories': return <StoriesPreview hs={hs} pv={pv} />;
     case 'streak': return <StreakPreview hs={hs} />;
     default: return null;
   }
@@ -264,7 +267,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
         <View style={[s.heroContent, { paddingTop: insets.top }]}>
           <FloatingHero key={currentSlide}>
             <Animated.View entering={ZoomIn.springify().damping(20)}>
-              {renderHero(slide.hero, hs, c)}
+              {renderHero(slide.hero, hs, c, t.onboarding.preview)}
             </Animated.View>
           </FloatingHero>
         </View>
@@ -283,9 +286,6 @@ export default function OnboardingScreen({ onComplete }: Props) {
               ]}
             />
           ))}
-        </View>
-        <View style={s.kilimDivider} pointerEvents="none">
-          <KilimBorder width={84} color={slide.accent} />
         </View>
 
         <View key={currentSlide}>
@@ -327,10 +327,9 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
     paddingTop: SPACING.lg,
     ...SHADOWS.lg,
   },
-  progress: { flexDirection: 'row', gap: 6, marginBottom: SPACING.md, alignSelf: 'center' },
+  progress: { flexDirection: 'row', gap: 6, marginBottom: SPACING.lg, alignSelf: 'center' },
   segment: { width: 22, height: 5, borderRadius: 3, backgroundColor: c.gray[200] },
   segmentActive: { width: 34 },
-  kilimDivider: { alignSelf: 'center', marginBottom: SPACING.lg, opacity: 0.85 },
 
   titleKu: { fontSize: 30, fontWeight: '800', color: c.midnight[800], letterSpacing: -0.5 },
   label: { fontSize: FONT_SIZE.sm, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 },

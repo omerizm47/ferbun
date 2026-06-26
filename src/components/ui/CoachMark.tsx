@@ -7,6 +7,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
+import { useT } from '../../i18n/LanguageProvider';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { KilimDiamond } from './KurdishDecorations';
 
@@ -60,6 +61,7 @@ function PulsingIcon({ icon }: { icon: keyof typeof Ionicons.glyphMap }) {
  */
 export default function CoachMark({ visible, steps, step, onNext, onSkip }: Props) {
   const c = useColors();
+  const t = useT();
   const styles = useMemo(() => makeStyles(c), [c]);
   if (!visible || steps.length === 0) return null;
   const current = steps[Math.min(step, steps.length - 1)];
@@ -90,17 +92,17 @@ export default function CoachMark({ visible, steps, step, onNext, onSkip }: Prop
             <View style={styles.actions}>
               {!isLast && (
                 <Pressable onPress={onSkip} hitSlop={8} style={styles.skipBtn}>
-                  <Text style={styles.skipText}>Skip</Text>
+                  <Text style={styles.skipText}>{t.common.skip}</Text>
                 </Pressable>
               )}
               <Pressable onPress={onNext} style={styles.nextBtn}>
-                <Text style={styles.nextText}>{isLast ? 'Got it' : 'Next'}</Text>
+                <Text style={styles.nextText}>{isLast ? t.coach.gotIt : t.common.next}</Text>
               </Pressable>
             </View>
           </View>
         </Animated.View>
         <Animated.Text entering={FadeIn.delay(450).duration(400)} style={styles.tapHint}>
-          Tap anywhere to continue
+          {t.coach.tapHint}
         </Animated.Text>
       </Pressable>
     </Modal>

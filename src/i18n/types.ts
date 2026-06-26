@@ -27,6 +27,16 @@ export interface UiStrings {
     check: string;
     goBack: string;
     save: string;
+    /** A11y label for the normal-speed pronunciation button. */
+    listen: string;
+    /** A11y label for the slow-speed pronunciation button. */
+    listenSlow: string;
+  };
+  // First-run coach-mark (spotlight) chrome. Step content lives in home.coach /
+  // lesson.coach; these are the shared control labels.
+  coach: {
+    gotIt: string;
+    tapHint: string;
   };
   // Bottom tab-bar labels.
   tabs: {
@@ -57,6 +67,16 @@ export interface UiStrings {
     start: string;
     /** Accessibility label for the back chevron. */
     goBack: string;
+    /** Decorative hero mock-up cards (kept in the bridge language). */
+    preview: {
+      unitKicker: string;
+      question: string;
+      optCorrect: string;
+      opt2: string;
+      opt3: string;
+      wordsHint: string;
+      storyGloss: string;
+    };
   };
   // Home screen chrome. Kurmanji greetings/titles stay in the screen; only the
   // gloss line + labels are localized.

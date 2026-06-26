@@ -1,23 +1,14 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { lightColors, darkColors, ThemeColors } from './index';
+import { lightColors, darkColors } from './index';
+import { ThemeContext, ThemeContextValue, ThemeMode, Scheme } from './themeContext';
 import BrandSplash from '../components/ui/BrandSplash';
 
-export type ThemeMode = 'system' | 'light' | 'dark';
-export type Scheme = 'light' | 'dark';
+export type { ThemeMode, Scheme } from './themeContext';
+export { useTheme, useColors } from './themeContext';
 
 const STORAGE_KEY = '@ferbun_theme';
-
-interface ThemeContextValue {
-  colors: ThemeColors;
-  scheme: Scheme;
-  mode: ThemeMode;
-  setMode: (m: ThemeMode) => void;
-  hydrated: boolean;
-}
-
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 /**
  * App-wide appearance provider. Resolves the active colour scheme from a
@@ -64,15 +55,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       {hydrated ? children : <BrandSplash colors={colors} />}
     </ThemeContext.Provider>
   );
-}
-
-export function useTheme(): ThemeContextValue {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within a ThemeProvider');
-  return ctx;
-}
-
-/** Active colour palette for the current scheme. */
-export function useColors(): ThemeColors {
-  return useTheme().colors;
 }

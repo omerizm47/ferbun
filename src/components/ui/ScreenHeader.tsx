@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
+import { useT } from '../../i18n/LanguageProvider';
 import { KilimBorder, KurdishSun } from './KurdishDecorations';
 
 interface ScreenHeaderProps {
@@ -37,6 +38,7 @@ export default function ScreenHeader({
   emblem = false,
 }: ScreenHeaderProps) {
   const c = useColors();
+  const t = useT();
   const styles = useMemo(() => makeStyles(c), [c]);
   const tone = accent ?? c.fire[600];
   return (
@@ -48,7 +50,7 @@ export default function ScreenHeader({
       )}
       <View style={styles.row}>
         {onBack && (
-          <Pressable onPress={onBack} hitSlop={8} style={styles.back} accessibilityRole="button" accessibilityLabel="Go back">
+          <Pressable onPress={onBack} hitSlop={8} style={styles.back} accessibilityRole="button" accessibilityLabel={t.common.goBack}>
             <Ionicons name="arrow-back" size={22} color={c.midnight[800]} />
           </Pressable>
         )}

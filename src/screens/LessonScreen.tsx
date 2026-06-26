@@ -305,7 +305,7 @@ export default function LessonScreen() {
                   speakKurdish(card.ku);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={`${card.ku}. Tap to hear pronunciation.`}
+                accessibilityLabel={`${card.ku}. ${t.common.listen}`}
               >
                 <View style={styles.teachCardHeader}>
                   <Text style={styles.teachKu}>{card.ku}</Text>
@@ -328,7 +328,7 @@ export default function LessonScreen() {
                         borderColor: c.gray[200],
                       }}
                       accessibilityRole="button"
-                      accessibilityLabel="Listen slowly"
+                      accessibilityLabel={t.common.listenSlow}
                     >
                       <Ionicons name="volume-low-outline" size={18} color={c.fire[600]} />
                     </TouchableOpacity>
