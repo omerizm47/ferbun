@@ -14,7 +14,7 @@ export const courses: Course[] = [
         id: 'u1', courseId: 'c1', title: 'Hello & Basics', titleKu: 'Silav û Destpêk',
         description: 'Greetings, yes/no, and your first Kurdish words',
         titleTr: 'Merhaba & Temeller',
-        descriptionTr: 'Selamlaşmalar, evet/hayır ve ilk Kürtçe kelimelerin',
+        descriptionTr: 'Selamlaşmalar, evet/hayır ve ilk Kürtçe kelimeler',
         icon: 'chatbubble-outline', order: 1,
         lessons: [
           { id: 'l1_1', unitId: 'u1', title: 'Greetings', titleKu: 'Silav', titleTr: 'Selamlaşma', type: 'vocab', order: 1, xpReward: 10, exercises: [] },

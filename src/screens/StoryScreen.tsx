@@ -21,6 +21,7 @@ import { toIconName } from '../utils/icons';
 import AnswerSheet from '../components/ui/AnswerSheet';
 import OptionRow, { OptionState } from '../components/exercises/OptionRow';
 import { KurdishSun, KilimBorder, KilimDiamond } from '../components/ui/KurdishDecorations';
+import CelebrationOverlay, { Celebration } from '../components/ui/CelebrationOverlay';
 
 type RP = RouteProp<RootStackParamList, 'Story'>;
 
@@ -37,8 +38,10 @@ export default function StoryScreen() {
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [quizDone, setQuizDone] = useState(false);
+  const [celebrations, setCelebrations] = useState<Celebration[]>([]);
+  const [earnedXp, setEarnedXp] = useState(false);
   const insets = useSafeAreaInsets();
-  const markStoryComplete = useProgressStore((st) => st.markStoryComplete);
+  const { markStoryComplete, isStoryComplete } = useProgressStore();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
@@ -65,6 +68,7 @@ export default function StoryScreen() {
     setQuizIndex(0);
     setQuizAnswer(null);
     setCorrectCount(0);
+    setEarnedXp(false);
   };
 
   const handleWordTap = (word: StoryWord) => {
@@ -89,7 +93,14 @@ export default function StoryScreen() {
       setQuizIndex((i) => i + 1);
     } else {
       setQuizDone(true);
-      markStoryComplete(story.id);
+      const isAlreadyComplete = isStoryComplete(story.id);
+      const res = markStoryComplete(story.id);
+      if (res.leveledUp) {
+        setCelebrations([{ kind: 'level', level: res.newLevel }]);
+      }
+      if (!isAlreadyComplete) {
+        setEarnedXp(true);
+      }
     }
   };
 
@@ -123,9 +134,19 @@ export default function StoryScreen() {
             <View style={s.finishKilim} pointerEvents="none">
               <KilimBorder width={120} color={c.fire[300]} />
             </View>
-            <Text style={s.resultScore}>{t.story.scoreResult(correctCount, totalQ, pct)}</Text>
+            <Text style={[s.resultScore, { marginBottom: earnedXp ? SPACING.md : SPACING.xl }]}>{t.story.scoreResult(correctCount, totalQ, pct)}</Text>
+            {earnedXp && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.xl }}>
+                <Ionicons name="star" size={18} color={c.warning} />
+                <Text style={{ fontSize: FONT_SIZE.md, fontWeight: '700', color: c.warning }}>+15 {t.lesson.xpLabel}</Text>
+              </View>
+            )}
             <Button label={t.story.backToStory} icon="arrow-back" onPress={closeQuiz} style={s.resultBtn} />
           </View>
+          <CelebrationOverlay
+            celebration={celebrations[0] ?? null}
+            onDismiss={() => setCelebrations((q) => q.slice(1))}
+          />
         </View>
       );
     }

@@ -72,9 +72,12 @@ interface ProgressState {
   completeLesson: (lessonId: string, score: number, xp: number) => LessonResult;
   updateVocabMastery: (vocabId: string, correct: boolean) => void;
   updateStreak: () => void;
+  checkStreakValidity: () => void;
+  incrementStreak: () => void;
+  completeVocabReview: (xp: number) => { leveledUp: boolean; newLevel: number };
   isLessonCompleted: (lessonId: string) => boolean;
   getLessonScore: (lessonId: string) => number;
-  markStoryComplete: (storyId: string) => void;
+  markStoryComplete: (storyId: string) => { leveledUp: boolean; newLevel: number };
   isStoryComplete: (storyId: string) => boolean;
   getStreakLevel: () => typeof STREAK_LEVELS[keyof typeof STREAK_LEVELS];
   getDueVocabIds: () => string[];
@@ -140,7 +143,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     }
 
     // Always refresh streak + last-active date on completion (including replays).
-    get().updateStreak();
+    get().incrementStreak();
     get().saveToStorage();
 
     // Report milestones so the lesson screen can celebrate.
@@ -188,20 +191,43 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   },
 
   updateStreak: () => {
+    get().incrementStreak();
+  },
+
+  checkStreakValidity: () => {
     const state = get();
     const today = new Date().toDateString();
     const lastActive = state.lastActiveDate;
 
-    if (lastActive === today) return; // Already active today
+    if (!lastActive) return; // New user or reset state
+    if (lastActive === today) return; // Already active today or checked today
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+
+    if (lastActive !== yesterdayStr) {
+      set({ streakCount: 0 });
+      get().saveToStorage();
+    }
+  },
+
+  incrementStreak: () => {
+    const state = get();
+    const today = new Date().toDateString();
+    const lastActive = state.lastActiveDate;
+
+    if (lastActive === today) return; // Already updated today
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
 
     let newStreak = state.streakCount;
-    if (lastActive === yesterday.toDateString()) {
-      newStreak += 1; // Consecutive day
-    } else if (lastActive !== today) {
-      newStreak = 1; // Streak broken, start fresh
+    if (lastActive === yesterdayStr) {
+      newStreak += 1;
+    } else {
+      newStreak = 1;
     }
 
     set({
@@ -209,6 +235,25 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
       lastActiveDate: today,
     });
     get().saveToStorage();
+  },
+
+  completeVocabReview: (xp: number) => {
+    const state = get();
+    const newXp = state.totalXp + xp;
+    const newLevel = Math.floor(newXp / XP_PER_LEVEL) + 1;
+    const today = new Date().toDateString();
+    const dailyBase = state.dailyXpDate === today ? state.dailyXp : 0;
+
+    set({
+      totalXp: newXp,
+      currentLevel: newLevel,
+      dailyXp: dailyBase + xp,
+      dailyXpDate: today,
+    });
+    get().incrementStreak();
+    get().saveToStorage();
+
+    return { leveledUp: newLevel > state.currentLevel, newLevel };
   },
 
   isLessonCompleted: (lessonId: string) => {
@@ -220,10 +265,34 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   },
 
   markStoryComplete: (storyId: string) => {
-    if (get().completedStories[storyId]) return;
-    set((s) => ({ completedStories: { ...s.completedStories, [storyId]: true } }));
-    get().updateStreak();
+    const state = get();
+    const alreadyDone = state.completedStories[storyId];
+    if (alreadyDone) {
+      get().incrementStreak();
+      get().saveToStorage();
+      return { leveledUp: false, newLevel: state.currentLevel };
+    }
+
+    const xp = 15; // 15 XP reward for story completion
+    const newXp = state.totalXp + xp;
+    const newLevel = Math.floor(newXp / XP_PER_LEVEL) + 1;
+    const today = new Date().toDateString();
+    const dailyBase = state.dailyXpDate === today ? state.dailyXp : 0;
+
+    set({
+      completedStories: {
+        ...state.completedStories,
+        [storyId]: true,
+      },
+      totalXp: newXp,
+      currentLevel: newLevel,
+      dailyXp: dailyBase + xp,
+      dailyXpDate: today,
+    });
+    get().incrementStreak();
     get().saveToStorage();
+
+    return { leveledUp: newLevel > state.currentLevel, newLevel };
   },
 
   isStoryComplete: (storyId: string) => {

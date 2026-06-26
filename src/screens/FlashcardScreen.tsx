@@ -19,6 +19,7 @@ import { haptics } from '../utils/haptics';
 import { KurdishSun, KilimBorder, KilimDiamond } from '../components/ui/KurdishDecorations';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
+import CelebrationOverlay, { Celebration } from '../components/ui/CelebrationOverlay';
 import { speakKurdish } from '../utils/speech';
 import { playSound } from '../utils/sounds';
 
@@ -30,7 +31,7 @@ export default function FlashcardScreen() {
   const { theme, mode } = route.params;
   const isReview = mode === 'review';
   const insets = useSafeAreaInsets();
-  const { updateVocabMastery, getDueVocabIds } = useProgressStore();
+  const { updateVocabMastery, getDueVocabIds, completeVocabReview } = useProgressStore();
   // The queue is snapshotted once at mount: answering pushes a word's next
   // review into the future, which would otherwise shrink the list mid-session.
   const words = useMemo(() => {
@@ -51,6 +52,7 @@ export default function FlashcardScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
+  const [celebrations, setCelebrations] = useState<Celebration[]>([]);
 
   const spin = useSharedValue(0);
   const frontStyle = useAnimatedStyle(() => ({
@@ -102,6 +104,10 @@ export default function FlashcardScreen() {
     spin.value = 0;
     if (!isAppending && currentIndex >= queue.length - 1) {
       playSound('success');
+      const res = completeVocabReview(10);
+      if (res.leveledUp) {
+        setCelebrations([{ kind: 'level', level: res.newLevel }]);
+      }
       setCurrentIndex(queue.length); // trigger finish
     } else {
       setCurrentIndex((i) => i + 1);
@@ -220,9 +226,18 @@ export default function FlashcardScreen() {
               <Text style={styles.fStatVal}>{words.length - knownCount}</Text>
               <Text style={styles.fStatLabel}>{t.flashcard.learning}</Text>
             </View>
+            <View style={styles.fStatBox}>
+              <Ionicons name="star" size={18} color={c.warning} />
+              <Text style={styles.fStatVal}>+10</Text>
+              <Text style={styles.fStatLabel}>{t.lesson.xpLabel}</Text>
+            </View>
           </View>
           <Button label={t.common.done} icon="checkmark" iconPosition="right" onPress={() => navigation.goBack()} style={styles.finishBtn} />
         </View>
+        <CelebrationOverlay
+          celebration={celebrations[0] ?? null}
+          onDismiss={() => setCelebrations((q) => q.slice(1))}
+        />
       </View>
     );
   }
@@ -377,13 +392,13 @@ export default function FlashcardScreen() {
               <View style={[styles.actionIcon, { backgroundColor: c.error }]}>
                 <Ionicons name="refresh" size={18} color="#FFFFFF" />
               </View>
-              <Text style={styles.dontKnowText}>{t.flashcard.stillLearning}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={styles.dontKnowText}>{t.flashcard.stillLearning}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.knowBtn} onPress={handleKnow} activeOpacity={0.85}>
               <View style={[styles.actionIcon, { backgroundColor: c.success }]}>
                 <Ionicons name="checkmark" size={18} color="#FFFFFF" />
               </View>
-              <Text style={styles.knowText}>{t.flashcard.iKnow}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={styles.knowText}>{t.flashcard.iKnow}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -432,11 +447,11 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   sheetPromptRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: SPACING.md },
   sheetPrompt: { ...TYPOGRAPHY.kicker, color: c.fire[600] },
   actions: { flexDirection: 'row', gap: SPACING.md },
-  dontKnowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: c.errorBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.errorBorder, ...SHADOWS.sm },
-  knowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: c.successBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.successBorder, ...SHADOWS.sm },
+  dontKnowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8, backgroundColor: c.errorBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.errorBorder, ...SHADOWS.sm },
+  knowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8, backgroundColor: c.successBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.successBorder, ...SHADOWS.sm },
   actionIcon: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  dontKnowText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: c.error },
-  knowText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: c.success },
+  dontKnowText: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: c.error, flexShrink: 1 },
+  knowText: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: c.success, flexShrink: 1 },
   finishScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
   medalWrap: { width: 150, height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.lg },
   medalRays: { position: 'absolute', opacity: 0.55 },
@@ -446,7 +461,7 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   finishKilim: { marginVertical: SPACING.md, opacity: 0.9 },
   finishSub: { fontSize: FONT_SIZE.md, color: c.gray[500], marginBottom: SPACING.xl },
   finishStats: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.xl },
-  fStatBox: { alignItems: 'center', backgroundColor: c.white, paddingVertical: SPACING.lg, paddingHorizontal: SPACING.xl, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: c.gray[100], gap: 4, minWidth: 110, ...SHADOWS.sm },
+  fStatBox: { flex: 1, alignItems: 'center', backgroundColor: c.white, paddingVertical: SPACING.lg, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: c.gray[100], gap: 4, maxWidth: 110, ...SHADOWS.sm },
   fStatVal: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: c.midnight[800] },
   fStatLabel: { fontSize: FONT_SIZE.xs, color: c.gray[500], textTransform: 'uppercase', letterSpacing: 0.5 },
   finishBtn: { alignSelf: 'stretch' },

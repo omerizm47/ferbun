@@ -13,6 +13,7 @@ interface LanguageContextValue {
   /** True once the user has explicitly chosen a language (stored locally). */
   chosen: boolean;
   setLang: (l: Lang) => void;
+  confirmLanguage: () => void;
   /** Active interface strings for the current language. */
   t: UiStrings;
   hydrated: boolean;
@@ -47,15 +48,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    setChosen(true);
     AsyncStorage.setItem(STORAGE_KEY, l).catch(() => {});
+  }, []);
+
+  const confirmLanguage = useCallback(() => {
+    setChosen(true);
   }, []);
 
   const t = STRINGS[lang];
 
   const value = useMemo<LanguageContextValue>(
-    () => ({ lang, chosen, setLang, t, hydrated }),
-    [lang, chosen, setLang, t, hydrated],
+    () => ({ lang, chosen, setLang, confirmLanguage, t, hydrated }),
+    [lang, chosen, setLang, confirmLanguage, t, hydrated],
   );
 
   // Defer first paint until the saved language is read so a returning user never

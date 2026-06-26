@@ -139,6 +139,18 @@ export interface UiStrings {
     editNameA11y: (name: string) => string;
     levelProgress: string;
     level: string;
+    statStreak: string;
+    statStreakA11y: (value: string, tier: string) => string;
+    statXp: string;
+    statXpA11y: (value: string, level: string) => string;
+    statDone: string;
+    statDoneA11y: (value: string, progress: string) => string;
+    srsTitle: string;
+    srsLearning: string;
+    srsFamiliar: string;
+    statMastered: string;
+    forgettingCurveTip: string;
+    srsEmptyState: string;
     xpToNext: (xp: number, level: number) => string;
     streakLevelsTitle: string;
     tiers: { candle: string; spark: string; campfire: string; bonfire: string; newrozFire: string };

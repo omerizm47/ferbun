@@ -24,11 +24,12 @@ export function useCoachMarks(storageKey: string, totalSteps: number, enabled = 
   }, [storageKey]);
 
   const next = useCallback(() => {
-    setStep((s) => {
-      if (s + 1 >= totalSteps) { finish(); return s; }
-      return s + 1;
-    });
-  }, [totalSteps, finish]);
+    if (step + 1 >= totalSteps) {
+      finish();
+    } else {
+      setStep((s) => s + 1);
+    }
+  }, [step, totalSteps, finish]);
 
   return { visible, step, next, skip: finish };
 }

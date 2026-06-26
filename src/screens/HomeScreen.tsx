@@ -76,10 +76,10 @@ export default function HomeScreen() {
   const { colors: c } = useTheme();
   const { t, lang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { totalXp, currentLevel, streakCount, displayName, loadFromStorage, updateStreak, isLessonCompleted, vocabMastery, dailyXp, dailyXpDate } = useProgressStore();
+  const { totalXp, currentLevel, streakCount, displayName, loadFromStorage, checkStreakValidity, isLessonCompleted, vocabMastery, dailyXp, dailyXpDate } = useProgressStore();
   const dailyGoalXp = useSettingsStore((st) => st.dailyGoalXp);
 
-  useEffect(() => { loadFromStorage().then(() => updateStreak()); }, [loadFromStorage, updateStreak]);
+  useEffect(() => { loadFromStorage().then(() => checkStreakValidity()); }, [loadFromStorage, checkStreakValidity]);
 
   const dueCount = useMemo(() => selectDueVocabIds(vocabMastery).length, [vocabMastery]);
   const todayXp = selectDailyXp({ dailyXp, dailyXpDate });

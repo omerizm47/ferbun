@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, StatusBar, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,9 +19,8 @@ import { haptics } from '../utils/haptics';
 export default function LanguagePickerScreen() {
   const insets = useSafeAreaInsets();
   const { colors: c, scheme } = useTheme();
-  const { t, setLang } = useLang();
+  const { lang, t, setLang, confirmLanguage } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const [selected, setSelected] = useState<Lang>('en');
 
   const options: { lang: Lang; code: string; name: string; sub: string }[] = [
     { lang: 'en', code: 'EN', name: t.language.englishName, sub: t.language.englishSub },
@@ -30,12 +29,12 @@ export default function LanguagePickerScreen() {
 
   const choose = (l: Lang) => {
     haptics.selection();
-    setSelected(l);
+    setLang(l);
   };
 
   const confirm = () => {
     haptics.success();
-    setLang(selected); // persists + flips the app; the nav gate advances to onboarding
+    confirmLanguage(); // persists + flips the app; the nav gate advances to onboarding
   };
 
   return (
@@ -66,7 +65,7 @@ export default function LanguagePickerScreen() {
 
         <View style={s.options}>
           {options.map((o) => {
-            const active = selected === o.lang;
+            const active = lang === o.lang;
             return (
               <Pressable
                 key={o.lang}

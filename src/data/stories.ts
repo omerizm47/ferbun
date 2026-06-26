@@ -429,7 +429,7 @@ export const stories: Story[] = [
     ],
   },
   {
-    id: 's6',
+    id: 's9',
     title: 'Azad Nexweş e',
     titleEn: 'Azad is Sick',
     level: 'beginner',

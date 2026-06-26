@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable, Keyboard } from 'react-native';
+import { TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable, Keyboard } from 'react-native';
 import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../../theme';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Exercise } from '../../data/types';
 import { haptics } from '../../utils/haptics';
-import { checkTypedAnswer, displayAnswer } from '../../utils/answers';
+import { checkTypedAnswer } from '../../utils/answers';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, exercisePromptKu, resolveTypedAnswer } from '../../i18n/content';
 import QuestionPrompt from './QuestionPrompt';
@@ -55,12 +55,6 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
       {!disabled && (
         <Button label={t.common.check} onPress={handleSubmit} disabled={!input.trim()} haptic={false} style={styles.checkBtn} />
       )}
-      {disabled && (
-        <View style={styles.answerChip}>
-          <Text style={styles.answerLabel}>BERSIVA RAST · {t.exercises.correctAnswer}</Text>
-          <Text style={styles.answerText}>{displayAnswer(resolveTypedAnswer(exercise, lang))}</Text>
-        </View>
-      )}
     </KeyboardAvoidingView>
   );
 }
@@ -75,7 +69,4 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   inputFocused: { borderColor: c.fire[400], backgroundColor: c.fireSoft },
   inputDisabled: { backgroundColor: c.gray[100], borderColor: c.gray[200] },
   checkBtn: { marginTop: SPACING.md },
-  answerChip: { marginTop: SPACING.md, backgroundColor: c.successBg, borderRadius: RADIUS.md, padding: SPACING.md, borderLeftWidth: 3, borderLeftColor: c.kurdish[500] },
-  answerLabel: { fontSize: 10, fontWeight: '700', color: c.successTextDim, letterSpacing: 1, marginBottom: 4 },
-  answerText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.successText },
 });

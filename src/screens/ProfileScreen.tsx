@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, StatusBar, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Dimensions, Alert, Switch, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SPACING, RADIUS, FONT_SIZE, XP_PER_LEVEL, SHADOWS, TYPOGRAPHY, ThemeColors, DAILY_GOAL_OPTIONS, REMINDER_TIME_OPTIONS } from '../theme';
 import { useTheme, ThemeMode } from '../theme/ThemeProvider';
@@ -64,11 +65,12 @@ const LANGUAGE_OPTIONS: { lang: Lang; code: string }[] = [
 ];
 
 export default function ProfileScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { colors: c, mode, setMode, scheme } = useTheme();
   const { t, lang, setLang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress } = useProgressStore();
+  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery } = useProgressStore();
   const streakLevel = getStreakLevel();
   const completed = Object.values(lessonProgress).filter((p) => p.completed).length;
   const total = getTotalLessons();
@@ -145,7 +147,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.clear();
+              await AsyncStorage.removeItem('@ferbun_progress');
               useProgressStore.setState({
                 displayName: '',
                 totalXp: 0, currentLevel: 1, streakCount: 0, lastActiveDate: null,
@@ -154,6 +156,7 @@ export default function ProfileScreen() {
                 avatarIcon: 'sunny', avatarColor: '#E85D00',
               });
               haptics.success();
+              navigation.navigate('Home' as never);
             } catch {
               haptics.error();
             }
@@ -172,10 +175,55 @@ export default function ProfileScreen() {
   ];
   const currentTierName = STREAK_TIERS.find((l) => l.key === streakLevel.label)?.name ?? streakLevel.label;
 
+  const vocabStats = useMemo(() => {
+    let learning = 0;
+    let familiar = 0;
+    let mastered = 0;
+    const items = Object.values(vocabMastery || {});
+    for (const item of items) {
+      if (item.masteryLevel >= 4) {
+        mastered++;
+      } else if (item.masteryLevel >= 2) {
+        familiar++;
+      } else {
+        learning++;
+      }
+    }
+    return {
+      learning,
+      familiar,
+      mastered,
+      total: items.length,
+    };
+  }, [vocabMastery]);
+
+  const srsA11yLabel = `${t.profile.srsTitle}. ${vocabStats.learning} ${t.profile.srsLearning}, ${vocabStats.familiar} ${t.profile.srsFamiliar}, ${vocabStats.mastered} ${t.profile.statMastered}. ${t.profile.forgettingCurveTip}`;
+
   const stats = [
-    { label: 'Streak', value: `${streakCount}`, sub: currentTierName, icon: 'flame' as const, color: c.fire[500] },
-    { label: 'XP', value: `${totalXp}`, sub: `${t.profile.level} ${currentLevel}`, icon: 'star' as const, color: c.warning },
-    { label: 'Done', value: `${progressPct}%`, sub: `${completed}/${total}`, icon: 'checkmark-circle' as const, color: c.kurdish[500] },
+    {
+      label: t.profile.statStreak,
+      value: `${streakCount}`,
+      sub: currentTierName,
+      icon: 'flame' as const,
+      color: c.fire[500],
+      a11yLabel: t.profile.statStreakA11y(String(streakCount), currentTierName),
+    },
+    {
+      label: t.profile.statXp,
+      value: `${totalXp}`,
+      sub: `${t.profile.level} ${currentLevel}`,
+      icon: 'star' as const,
+      color: c.warning,
+      a11yLabel: t.profile.statXpA11y(String(totalXp), String(currentLevel)),
+    },
+    {
+      label: t.profile.statDone,
+      value: `${progressPct}%`,
+      sub: `${completed}/${total}`,
+      icon: 'checkmark-circle' as const,
+      color: c.kurdish[500],
+      a11yLabel: t.profile.statDoneA11y(String(progressPct), `${completed}/${total}`),
+    },
   ];
 
   return (
@@ -205,7 +253,13 @@ export default function ProfileScreen() {
           {/* Stats Row */}
           <View style={s.statsRow}>
             {stats.map((st) => (
-              <View key={st.label} style={s.statCard}>
+              <View
+                key={st.label}
+                style={s.statCard}
+                accessible={true}
+                accessibilityRole="text"
+                accessibilityLabel={st.a11yLabel}
+              >
                 <View style={s.statIconChip}>
                   <Ionicons name={st.icon} size={15} color="#FFFFFF" />
                 </View>
@@ -233,6 +287,63 @@ export default function ProfileScreen() {
             />
             <Text style={s.progressHint}>{t.profile.xpToNext(XP_PER_LEVEL - xpInLevel, currentLevel + 1)}</Text>
           </View>
+        </View>
+
+        {/* Vocabulary SRS Stats Panel */}
+        <View style={s.section} accessible={true} accessibilityLabel={srsA11yLabel}>
+          <Text style={s.sectionTitle}>{t.profile.srsTitle}</Text>
+          {vocabStats.total === 0 ? (
+            <View style={[s.srsCard, { alignItems: 'center', paddingVertical: SPACING.lg }]}>
+              <Ionicons name="bookmarks-outline" size={32} color={c.gray[300]} style={{ marginBottom: SPACING.xs }} />
+              <Text style={s.emptyText}>{t.profile.srsEmptyState}</Text>
+            </View>
+          ) : (
+            <View style={s.srsCard}>
+              <View style={s.barContainer}>
+                {vocabStats.learning > 0 && (
+                  <View style={[s.barSegment, { flex: vocabStats.learning, backgroundColor: c.fire[400] }]} />
+                )}
+                {vocabStats.familiar > 0 && (
+                  <View style={[s.barSegment, { flex: vocabStats.familiar, backgroundColor: c.warning }]} />
+                )}
+                {vocabStats.mastered > 0 && (
+                  <View style={[s.barSegment, { flex: vocabStats.mastered, backgroundColor: c.kurdish[500] }]} />
+                )}
+              </View>
+
+              <View style={s.legendRow}>
+                <View style={s.legendItem}>
+                  <View style={[s.legendDot, { backgroundColor: c.fire[400] }]} />
+                  <Text style={s.legendText}>
+                    {t.profile.srsLearning} <Text style={s.legendCount}>({vocabStats.learning})</Text>
+                  </Text>
+                </View>
+                <View style={s.legendItem}>
+                  <View style={[s.legendDot, { backgroundColor: c.warning }]} />
+                  <Text style={s.legendText}>
+                    {t.profile.srsFamiliar} <Text style={s.legendCount}>({vocabStats.familiar})</Text>
+                  </Text>
+                </View>
+                <View style={s.legendItem}>
+                  <View style={[s.legendDot, { backgroundColor: c.kurdish[500] }]} />
+                  <Text style={s.legendText}>
+                    {t.profile.statMastered} <Text style={s.legendCount}>({vocabStats.mastered})</Text>
+                  </Text>
+                </View>
+              </View>
+
+              <View style={s.tipCard}>
+                <View style={s.tipSunWatermark} pointerEvents="none">
+                  <KurdishSun size={48} color={scheme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'} />
+                </View>
+                <View style={s.tipHeader}>
+                  <Ionicons name="bulb-outline" size={14} color={c.fire[600]} style={{ marginRight: 4 }} />
+                  <Text style={s.tipTitle}>{lang === 'tr' ? 'BİLİYOR MUYDUNUZ?' : 'DID YOU KNOW?'}</Text>
+                </View>
+                <Text style={s.tipText}>{t.profile.forgettingCurveTip}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Streak Levels */}
@@ -583,4 +694,88 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   colorOption: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
   colorOptionSelected: { borderColor: c.midnight[800] },
   avatarEditDot: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+
+  // SRS Panel
+  srsCard: {
+    backgroundColor: c.white,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: c.gray[100],
+  },
+  barContainer: {
+    height: 12,
+    borderRadius: 6,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    backgroundColor: c.gray[100],
+    marginBottom: SPACING.md,
+  },
+  barSegment: {
+    height: '100%',
+  },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: c.gray[500],
+  },
+  legendCount: {
+    fontWeight: '700',
+    color: c.midnight[800],
+  },
+  tipCard: {
+    backgroundColor: c.fireSoft,
+    borderColor: c.fireSoftBorder,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginTop: SPACING.md,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  tipTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: c.fire[700],
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  tipText: {
+    fontSize: 11,
+    color: c.gray[600],
+    lineHeight: 16,
+  },
+  tipSunWatermark: {
+    position: 'absolute',
+    bottom: -8,
+    right: -8,
+  },
+  emptyText: {
+    fontSize: FONT_SIZE.sm,
+    color: c.gray[400],
+    textAlign: 'center',
+    paddingHorizontal: SPACING.md,
+    lineHeight: 20,
+  },
 });
