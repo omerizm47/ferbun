@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
 import AnimatedProgressBar from '../components/ui/AnimatedProgressBar';
 import Button from '../components/ui/Button';
-import { KurdishSun, KilimBorder } from '../components/ui/KurdishDecorations';
+import { KurdishSun, KilimBorder, NewrozFlame } from '../components/ui/KurdishDecorations';
 import CoachMark, { CoachStep } from '../components/ui/CoachMark';
 import EmptyState from '../components/ui/EmptyState';
 import UpperText from '../components/ui/UpperText';
@@ -31,6 +31,19 @@ import TranslationExercise from '../components/exercises/TranslationExercise';
 import MatchPairsExercise from '../components/exercises/MatchPairsExercise';
 import TrueFalseExercise from '../components/exercises/TrueFalseExercise';
 import FillBlankExercise from '../components/exercises/FillBlankExercise';
+import { speakKurdish } from '../utils/speech';
+import { playSound } from '../utils/sounds';
+import PressableScale from '../components/ui/PressableScale';
+
+const ENCOURAGEMENTS = [
+  { ku: 'Aferîn!', en: 'Well done!', tr: 'Aferin!' },
+  { ku: 'Bijî!', en: 'Bravo!', tr: 'Yaşa!' },
+  { ku: 'Her bijî!', en: 'Long live!', tr: 'Çok yaşa!' },
+  { ku: 'Destxweş!', en: 'Congratulations!', tr: 'Tebrikler!' },
+  { ku: 'Zîrek î!', en: 'You are smart!', tr: 'Zekisin!' },
+  { ku: 'Nayab e!', en: 'Excellent!', tr: 'Mükemmel!' },
+  { ku: 'Pir baş e!', en: 'Very good!', tr: 'Çok iyi!' },
+];
 
 type RoutePropType = RouteProp<RootStackParamList, 'Lesson'>;
 
@@ -54,15 +67,22 @@ export default function LessonScreen() {
   const barStyle = scheme === 'dark' ? 'light-content' : 'dark-content';
 
   const [phase, setPhase] = useState<'teach' | 'practice'>(() => (teachCards.length >= 2 ? 'teach' : 'practice'));
+  const [sessionExercises, setSessionExercises] = useState(() => exercises);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
+  const [mistakeCount, setMistakeCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastCorrect, setLastCorrect] = useState(false);
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
 
-  const totalExercises = exercises.length;
-  const progress = totalExercises > 0 ? (currentIndex + (showFeedback || isFinished ? 1 : 0)) / totalExercises : 0;
+  // Combo system state
+  const [comboCount, setComboCount] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
+  const [endedCombo, setEndedCombo] = useState(0);
+  const [currentEncouragement, setCurrentEncouragement] = useState<{ ku: string; tr: string; en: string } | null>(null);
+
+  const progress = exercises.length > 0 ? Math.min(1, correctCount / exercises.length) : 0;
 
   // Confirm before discarding an in-progress practice run (≥1 answer given,
   // not yet finished). Teach phase / empty state / pre-first-answer exit freely.
@@ -86,19 +106,52 @@ export default function LessonScreen() {
   const handleAnswer = useCallback((correct: boolean) => {
     setLastCorrect(correct);
     setShowFeedback(true);
-    if (correct) setCorrectCount((c) => c + 1);
-  }, []);
+    if (correct) {
+      playSound('correct');
+      setCorrectCount((c) => c + 1);
+      setComboCount((prev) => {
+        const next = prev + 1;
+        if (next > maxCombo) {
+          setMaxCombo(next);
+        }
+        if (next >= 3) {
+          const rand = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
+          setCurrentEncouragement(rand);
+        }
+        return next;
+      });
+      setEndedCombo(0);
+    } else {
+      playSound('wrong');
+      setMistakeCount((m) => m + 1);
+      setSessionExercises((prev) => [...prev, prev[currentIndex]]);
+      setComboCount((prev) => {
+        if (prev >= 3) {
+          setEndedCombo(prev);
+        } else {
+          setEndedCombo(0);
+        }
+        return 0;
+      });
+      setCurrentEncouragement(null);
+    }
+  }, [currentIndex, maxCombo]);
 
   const handleNext = useCallback(() => {
     haptics.medium();
     setShowFeedback(false);
-    if (currentIndex + 1 >= totalExercises) {
+    setEndedCombo(0);
+    if (currentIndex + 1 >= sessionExercises.length) {
+      playSound('success');
       setIsFinished(true);
-      // correctCount already includes the last answer from handleAnswer
-      const finalCorrect = correctCount;
-      const score = totalExercises > 0 ? Math.min(100, Math.round(finalCorrect / totalExercises * 100)) : 100;
-      const xp = score === 100 ? XP_PER_PERFECT_LESSON : XP_PER_LESSON;
-      const result = completeLesson(lessonId, score, xp);
+      const score = exercises.length > 0
+        ? Math.max(0, Math.round((exercises.length - mistakeCount) / exercises.length * 100))
+        : 100;
+      const xpBase = score === 100 ? XP_PER_PERFECT_LESSON : XP_PER_LESSON;
+      const comboBonusXp = maxCombo >= 10 ? 5 : (maxCombo >= 5 ? 3 : 0);
+      const totalXp = xpBase + comboBonusXp;
+      
+      const result = completeLesson(lessonId, score, totalXp);
       // Queue any milestone celebrations to play over the finish screen.
       const queued: Celebration[] = [];
       if (result.streakMilestone) queued.push({ kind: 'streak', tier: result.streakMilestone });
@@ -106,11 +159,12 @@ export default function LessonScreen() {
       setCelebrations(queued);
       if (queued.length === 0) haptics.success();
     } else {
+      playSound('click');
       setCurrentIndex((i) => i + 1);
     }
-  }, [currentIndex, totalExercises, correctCount, lessonId, completeLesson]);
+  }, [currentIndex, sessionExercises.length, exercises.length, mistakeCount, maxCombo, lessonId, completeLesson]);
 
-  const coach = useCoachMarks(CM_LESSON_KEY, LESSON_COACH_CONFIG.length, !!lesson && totalExercises > 0);
+  const coach = useCoachMarks(CM_LESSON_KEY, LESSON_COACH_CONFIG.length, !!lesson && exercises.length > 0);
   const coachSteps = LESSON_COACH_CONFIG.map((cfg, i) => ({ ...cfg, ...t.lesson.coach[i] }));
 
   if (!lesson) {
@@ -128,7 +182,7 @@ export default function LessonScreen() {
     );
   }
 
-  if (totalExercises === 0) {
+  if (exercises.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <StatusBar barStyle={barStyle} />
@@ -152,8 +206,12 @@ export default function LessonScreen() {
   }
 
   if (isFinished) {
-    const finalScore = Math.min(100, Math.round(correctCount / totalExercises * 100));
-    const xpEarned = finalScore === 100 ? XP_PER_PERFECT_LESSON : XP_PER_LESSON;
+    const finalScore = exercises.length > 0
+      ? Math.max(0, Math.round((exercises.length - mistakeCount) / exercises.length * 100))
+      : 100;
+    const xpBase = finalScore === 100 ? XP_PER_PERFECT_LESSON : XP_PER_LESSON;
+    const comboBonusXp = maxCombo >= 10 ? 5 : (maxCombo >= 5 ? 3 : 0);
+    const totalXpEarned = xpBase + comboBonusXp;
     const messages = [
       { min: 0, text: t.lesson.finishMessages.min0, icon: 'refresh' as const },
       { min: 50, text: t.lesson.finishMessages.min50, icon: 'trending-up' as const },
@@ -184,6 +242,14 @@ export default function LessonScreen() {
             <KilimBorder width={120} color={c.fire[300]} />
           </View>
           <Text style={styles.finishMessage}>{msg.text}</Text>
+          {maxCombo >= 3 && (
+            <Animated.View entering={ZoomIn.delay(300)} style={styles.finishComboBanner}>
+              <NewrozFlame size={24} intensity={3} />
+              <Text style={styles.finishComboText}>
+                {lang === 'tr' ? `En Yüksek Kombo: ${maxCombo} Doğru 🔥` : `Max Combo: ${maxCombo} Correct 🔥`}
+              </Text>
+            </Animated.View>
+          )}
           <View style={styles.finishStats}>
             <View style={styles.statBox}>
               <Ionicons name="ribbon" size={18} color={c.fire[500]} />
@@ -192,13 +258,16 @@ export default function LessonScreen() {
             </View>
             <View style={styles.statBox}>
               <Ionicons name="checkmark-done" size={18} color={c.kurdish[500]} />
-              <Text style={styles.statValue}>{correctCount}/{totalExercises}</Text>
+              <Text style={styles.statValue}>{exercises.length}/{exercises.length}</Text>
               <UpperText style={styles.statLabel}>{t.lesson.correctLabel}</UpperText>
             </View>
             <View style={styles.statBox}>
               <Ionicons name="star" size={18} color={c.warning} />
-              <Text style={styles.statValue}>+{xpEarned}</Text>
+              <Text style={styles.statValue}>+{totalXpEarned}</Text>
               <UpperText style={styles.statLabel}>{t.lesson.xpLabel}</UpperText>
+              {comboBonusXp > 0 && (
+                <Text style={styles.bonusText}>+{comboBonusXp} XP Bonus</Text>
+              )}
             </View>
           </View>
           <Button label={t.common.continue} icon="arrow-forward" iconPosition="right" onPress={() => navigation.goBack()} style={styles.finishBtn} />
@@ -228,10 +297,46 @@ export default function LessonScreen() {
           <Text style={styles.teachTitle}>{t.lesson.learnFirst}</Text>
           <Text style={styles.teachSub}>{t.lesson.learnFirstSub}</Text>
           {teachCards.map((card, i) => (
-            <Animated.View key={`${card.ku}-${i}`} entering={FadeInUp.delay(i * 60).duration(300)} style={styles.teachCard}>
-              <Text style={styles.teachKu}>{card.ku}</Text>
-              <View style={styles.teachDivider} />
-              <Text style={styles.teachEn}>{card.en}</Text>
+            <Animated.View key={`${card.ku}-${i}`} entering={FadeInUp.delay(i * 60).duration(300)}>
+              <PressableScale
+                style={styles.teachCard}
+                onPress={() => {
+                  haptics.selection();
+                  speakKurdish(card.ku);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`${card.ku}. Tap to hear pronunciation.`}
+              >
+                <View style={styles.teachCardHeader}>
+                  <Text style={styles.teachKu}>{card.ku}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="volume-medium-outline" size={20} color={c.fire[500]} />
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        speakKurdish(card.ku, true);
+                        haptics.light();
+                      }}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        backgroundColor: c.cream[100],
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        borderWidth: 1,
+                        borderColor: c.gray[200],
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Listen slowly"
+                    >
+                      <Ionicons name="volume-low-outline" size={18} color={c.fire[600]} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.teachDivider} />
+                <Text style={styles.teachEn}>{card.en}</Text>
+              </PressableScale>
             </Animated.View>
           ))}
         </ScrollView>
@@ -243,7 +348,7 @@ export default function LessonScreen() {
     );
   }
 
-  const currentExercise = exercises[currentIndex];
+  const currentExercise = sessionExercises[currentIndex];
 
   const renderExercise = () => {
     switch (currentExercise.type) {
@@ -272,7 +377,13 @@ export default function LessonScreen() {
         <View style={styles.progressBarBg}>
           <AnimatedProgressBar progress={progress} height={10} fillColor={c.fire[500]} minFill={0.02} />
         </View>
-        <Text style={styles.counterText}>{currentIndex + 1}/{totalExercises}</Text>
+        {comboCount >= 3 && (
+          <Animated.View entering={ZoomIn.duration(200)} style={styles.headerCombo}>
+            <NewrozFlame size={20} intensity={2} />
+            <Text style={styles.headerComboText}>{comboCount}</Text>
+          </Animated.View>
+        )}
+        <Text style={styles.counterText}>{currentIndex + 1}/{sessionExercises.length}</Text>
       </View>
 
       <View style={styles.exerciseArea} key={currentExercise.id}>
@@ -281,8 +392,32 @@ export default function LessonScreen() {
 
       {showFeedback && (
         <AnswerSheet correct={lastCorrect} bottomInset={insets.bottom}>
+          {lastCorrect && comboCount >= 3 && currentEncouragement && (
+            <Animated.View entering={FadeInUp.duration(350)} style={styles.comboBanner}>
+              <NewrozFlame size={44} intensity={3} />
+              <View style={styles.comboInfo}>
+                <Text style={styles.comboKicker}>
+                  {lang === 'tr'
+                    ? `${comboCount} PIRSAN DI RÊZÊ DE · ÜST ÜSTE ${comboCount} DOĞRU!`
+                    : `${comboCount} PIRSAN DI RÊZÊ DE · ${comboCount} IN A ROW!`}
+                </Text>
+                <Text style={styles.comboWordKu}>{currentEncouragement.ku}</Text>
+                <Text style={styles.comboWordTranslation}>
+                  {lang === 'tr' ? currentEncouragement.tr : currentEncouragement.en}
+                </Text>
+              </View>
+            </Animated.View>
+          )}
           {!lastCorrect && (
             <View style={styles.correctAnswerBox}>
+              {endedCombo >= 3 && (
+                <Animated.View entering={FadeInUp.duration(300)} style={styles.comboBrokenBadge}>
+                  <Ionicons name="flame-outline" size={14} color={c.gray[400]} />
+                  <Text style={styles.comboBrokenText}>
+                    {lang === 'tr' ? `Kombo bitti (En Yüksek: ${endedCombo})` : `Combo broke (Max: ${endedCombo})`}
+                  </Text>
+                </Animated.View>
+              )}
               <Text style={styles.correctAnswerLabel}>BERSIVA RAST · {t.exercises.correctAnswer}</Text>
               <Text style={styles.correctAnswerText}>
                 {(() => {
@@ -331,7 +466,6 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   progressBarFill: { height: '100%', backgroundColor: c.fire[500], borderRadius: RADIUS.full },
   counterText: { fontSize: FONT_SIZE.sm, fontWeight: '600', color: c.gray[500], width: 40, textAlign: 'right' },
 
-  // Teach (vocabulary preview)
   teachHeaderTitle: { flex: 1, textAlign: 'center', fontSize: FONT_SIZE.lg, fontWeight: '700', color: c.midnight[800] },
   teachScroll: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.lg },
   teachKicker: { ...TYPOGRAPHY.kicker, color: c.fire[600] },
@@ -341,14 +475,15 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: c.white, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.sm,
     borderWidth: 1, borderColor: c.gray[100], ...SHADOWS.sm,
   },
+  teachCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   teachKu: { fontSize: 24, fontWeight: '800', color: c.fire[600] },
   teachDivider: { width: 28, height: 2, backgroundColor: c.gray[200], borderRadius: 1, marginVertical: SPACING.sm },
   teachEn: { fontSize: FONT_SIZE.md, fontWeight: '500', color: c.gray[700] },
   teachFooter: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm },
   exerciseArea: { flex: 1, paddingHorizontal: SPACING.lg, paddingTop: SPACING.lg },
-  correctAnswerBox: { backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.md, marginBottom: SPACING.sm, borderLeftWidth: 3, borderLeftColor: c.kurdish[500] },
-  correctAnswerLabel: { fontSize: 10, fontWeight: '700', color: c.successTextDim, letterSpacing: 1, marginBottom: 4 },
-  correctAnswerText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.successText },
+  correctAnswerBox: { backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.md, marginBottom: SPACING.sm, borderLeftWidth: 3, borderLeftColor: c.gray[300] },
+  correctAnswerLabel: { fontSize: 10, fontWeight: '700', color: c.gray[500], letterSpacing: 1, marginBottom: 4 },
+  correctAnswerText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.midnight[800] },
   explanationText: { fontSize: FONT_SIZE.sm, color: c.gray[600], marginBottom: SPACING.md, lineHeight: 20, backgroundColor: c.tintSoft, padding: SPACING.md, borderRadius: RADIUS.md },
   finishScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl, backgroundColor: c.cream[50] },
   medalWrap: { width: 150, height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.lg },
@@ -363,4 +498,27 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   statValue: { fontSize: FONT_SIZE.xl, fontWeight: '800', color: c.midnight[800] },
   statLabel: { fontSize: FONT_SIZE.xs, color: c.gray[500], textTransform: 'uppercase', letterSpacing: 0.5 },
   finishBtn: { alignSelf: 'stretch' },
+
+  headerCombo: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.fireSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: RADIUS.full, borderWidth: 1, borderColor: c.fireSoftBorder, gap: 2, marginRight: 4 },
+  headerComboText: { fontSize: 13, fontWeight: '800', color: c.fire[600] },
+  comboBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.lg, borderLeftWidth: 4, borderLeftColor: c.fire[500], gap: SPACING.md, marginBottom: SPACING.md, ...SHADOWS.sm },
+  comboInfo: { flex: 1 },
+  comboKicker: { fontSize: 9, fontWeight: '800', color: c.fire[600], letterSpacing: 1 },
+  comboWordKu: { fontSize: 24, fontWeight: '800', color: c.midnight[800], marginTop: 2 },
+  comboWordTranslation: { fontSize: FONT_SIZE.xs, color: c.gray[500], fontStyle: 'italic', marginTop: 1 },
+  comboBrokenBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: c.gray[50], paddingHorizontal: 8, paddingVertical: 4, borderRadius: RADIUS.full, borderWidth: 1, borderColor: c.gray[200], marginBottom: 8 },
+  comboBrokenText: { fontSize: 10, fontWeight: '700', color: c.gray[400], textTransform: 'uppercase', letterSpacing: 0.5 },
+  finishComboBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, backgroundColor: c.fireSoft, paddingHorizontal: SPACING.md, paddingVertical: 10, borderRadius: RADIUS.md, borderWidth: 1, borderColor: c.fireSoftBorder, marginBottom: SPACING.lg },
+  finishComboText: { fontSize: FONT_SIZE.md, fontWeight: '800', color: c.fire[700] },
+  bonusText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: c.successText,
+    backgroundColor: c.successBg,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: RADIUS.sm,
+    marginTop: 2,
+    overflow: 'hidden',
+  },
 });

@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, Pressable,
 } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, interpolate, FadeInUp } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS, FadeInUp } from 'react-native-reanimated';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '../theme';
@@ -19,6 +20,9 @@ import { KurdishSun, KilimBorder, KilimDiamond } from '../components/ui/KurdishD
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import UpperText from '../components/ui/UpperText';
+import CelebrationOverlay, { Celebration } from '../components/ui/CelebrationOverlay';
+import { speakKurdish } from '../utils/speech';
+import { playSound } from '../utils/sounds';
 
 type RoutePropType = RouteProp<RootStackParamList, 'Flashcard'>;
 
@@ -28,7 +32,7 @@ export default function FlashcardScreen() {
   const { theme, mode } = route.params;
   const isReview = mode === 'review';
   const insets = useSafeAreaInsets();
-  const { updateVocabMastery, getDueVocabIds } = useProgressStore();
+  const { updateVocabMastery, getDueVocabIds, completeVocabReview } = useProgressStore();
   // The queue is snapshotted once at mount: answering pushes a word's next
   // review into the future, which would otherwise shrink the list mid-session.
   const words = useMemo(() => {
@@ -44,9 +48,12 @@ export default function FlashcardScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const barStyle = scheme === 'dark' ? 'light-content' : 'dark-content';
 
+  const [queue, setQueue] = useState<VocabWord[]>(() => words);
+  const [failedIds, setFailedIds] = useState<Set<string>>(() => new Set());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
+  const [celebrations, setCelebrations] = useState<Celebration[]>([]);
 
   const spin = useSharedValue(0);
   const frontStyle = useAnimatedStyle(() => ({
@@ -57,12 +64,117 @@ export default function FlashcardScreen() {
   }));
 
   const flip = () => {
+    playSound('click');
     const next = !isFlipped;
     setIsFlipped(next);
     spin.value = withTiming(next ? 1 : 0, { duration: 420 });
     haptics.light();
   };
 
+  const word = queue[currentIndex];
+
+
+  const progress = queue.length > 0 ? currentIndex / queue.length : 0;
+  const accent = themeInfo?.color || c.fire[600];
+
+  const handleKnow = () => {
+    playSound('click');
+    updateVocabMastery(word.id, true);
+    if (!failedIds.has(word.id)) {
+      setKnownCount((c) => c + 1);
+    }
+    haptics.success();
+    advance(false);
+  };
+
+  const handleDontKnow = () => {
+    playSound('click');
+    updateVocabMastery(word.id, false);
+    setFailedIds((prev) => {
+      const next = new Set(prev);
+      next.add(word.id);
+      return next;
+    });
+    setQueue((prev) => [...prev, word]);
+    haptics.light();
+    advance(true);
+  };
+
+  const advance = (isAppending: boolean = false) => {
+    setIsFlipped(false);
+    spin.value = 0;
+    if (!isAppending && currentIndex >= queue.length - 1) {
+      playSound('success');
+      const res = completeVocabReview(10);
+      if (res.leveledUp) {
+        setCelebrations([{ kind: 'level', level: res.newLevel }]);
+      }
+      setCurrentIndex(queue.length); // trigger finish
+    } else {
+      setCurrentIndex((i) => i + 1);
+    }
+  };
+
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  const swipeStyle = useAnimatedStyle(() => {
+    const rotate = `${interpolate(translateX.value, [-200, 200], [-8, 8])}deg`;
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { rotate: rotate },
+      ],
+    };
+  });
+
+  const knowIndicatorStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(translateX.value, [0, 80], [0, 1], 'clamp');
+    return { opacity };
+  });
+
+  const dontKnowIndicatorStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(translateX.value, [-80, 0], [1, 0], 'clamp');
+    return { opacity };
+  });
+
+  const triggerKnow = () => {
+    handleKnow();
+    translateX.value = 0;
+    translateY.value = 0;
+  };
+
+  const triggerDontKnow = () => {
+    handleDontKnow();
+    translateX.value = 0;
+    translateY.value = 0;
+  };
+
+  const onGestureEvent = (event: any) => {
+    translateX.value = event.nativeEvent.translationX;
+    translateY.value = event.nativeEvent.translationY;
+  };
+
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.state === 5) { // ENDED
+      const { translationX } = event.nativeEvent;
+      if (translationX > 120) {
+        translateX.value = withTiming(500, { duration: 250 }, () => {
+          runOnJS(triggerKnow)();
+        });
+      } else if (translationX < -120) {
+        translateX.value = withTiming(-500, { duration: 250 }, () => {
+          runOnJS(triggerDontKnow)();
+        });
+      } else {
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+      }
+    }
+  };
+
+  // Empty state check
   if (words.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -84,36 +196,8 @@ export default function FlashcardScreen() {
     );
   }
 
-  const word = words[currentIndex];
-  const isLast = currentIndex >= words.length - 1;
-  const progress = (currentIndex + 1) / words.length;
-  const accent = themeInfo?.color || c.fire[600];
-
-  const handleKnow = () => {
-    updateVocabMastery(word.id, true);
-    setKnownCount((c) => c + 1);
-    haptics.success();
-    advance();
-  };
-
-  const handleDontKnow = () => {
-    updateVocabMastery(word.id, false);
-    haptics.light();
-    advance();
-  };
-
-  const advance = () => {
-    setIsFlipped(false);
-    spin.value = 0;
-    if (isLast) {
-      setCurrentIndex(words.length); // trigger finish
-    } else {
-      setCurrentIndex((i) => i + 1);
-    }
-  };
-
   // Finish screen
-  if (currentIndex >= words.length) {
+  if (currentIndex >= queue.length) {
     const accent = themeInfo?.color || c.fire[600];
     return (
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -143,9 +227,18 @@ export default function FlashcardScreen() {
               <Text style={styles.fStatVal}>{words.length - knownCount}</Text>
               <UpperText style={styles.fStatLabel}>{t.flashcard.learning}</UpperText>
             </View>
+            <View style={styles.fStatBox}>
+              <Ionicons name="star" size={18} color={c.warning} />
+              <Text style={styles.fStatVal}>+10</Text>
+              <UpperText style={styles.fStatLabel}>{t.lesson.xpLabel}</UpperText>
+            </View>
           </View>
           <Button label={t.common.done} icon="checkmark" iconPosition="right" onPress={() => navigation.goBack()} style={styles.finishBtn} />
         </View>
+        <CelebrationOverlay
+          celebration={celebrations[0] ?? null}
+          onDismiss={() => setCelebrations((q) => q.slice(1))}
+        />
       </View>
     );
   }
@@ -161,57 +254,130 @@ export default function FlashcardScreen() {
         <View style={styles.progressBarBg}>
           <View style={[styles.progressBarFill, { width: `${progress * 100}%`, backgroundColor: themeInfo?.color || c.fire[500] }]} />
         </View>
-        <Text style={styles.counter}>{currentIndex + 1}/{words.length}</Text>
+        <Text style={styles.counter}>{currentIndex + 1}/{queue.length}</Text>
       </View>
 
       {/* Card */}
       <View style={styles.cardArea}>
-        <Pressable
-          style={styles.cardWrap}
-          onPress={flip}
-          accessibilityRole="button"
-          accessibilityLabel={isFlipped ? `${vocabGloss(word, lang)}. ${t.flashcard.back}` : `${word.wordKu}. ${t.flashcard.kurdish}`}
-          accessibilityHint={t.flashcard.flipHint}
-        >
-          {/* Front — Kurdish */}
-          <Animated.View style={[styles.card, styles.cardFace, frontStyle]}>
-            <View style={[styles.cardTopBar, { backgroundColor: accent }]} />
+        {/* Next Card (Background Card Stack Effect) */}
+        {currentIndex + 1 < queue.length && (
+          <View style={[styles.backgroundCard, SHADOWS.sm]} pointerEvents="none">
+            <View style={[styles.cardTopBar, { backgroundColor: c.gray[200] }]} />
             <View style={styles.cardSun} pointerEvents="none">
-              <KurdishSun size={170} color={accent} />
+              <KurdishSun size={170} color={c.gray[100]} />
             </View>
             <View style={styles.cardCorner} pointerEvents="none">
-              <KilimDiamond size={26} color={accent} />
+              <KilimDiamond size={26} color={c.gray[100]} />
             </View>
-            <Text style={[styles.cardLabel, { color: accent }]}>Kurdî</Text>
-            <Text style={styles.cardWord}>{word.wordKu}</Text>
-            {word.gender && (
-              <Text style={styles.genderBadge}>
-                {word.gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
+            <Text style={[styles.cardLabel, { color: c.gray[300] }]}>Kurdî</Text>
+            <Text style={[styles.cardWord, { color: c.gray[300] }]}>{queue[currentIndex + 1].wordKu}</Text>
+            {queue[currentIndex + 1].gender && (
+              <Text style={[styles.genderBadge, { backgroundColor: c.gray[50], color: c.gray[300] }]}>
+                {queue[currentIndex + 1].gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
               </Text>
             )}
             <View style={styles.tapHintRow}>
-              <Ionicons name="sync-outline" size={14} color={c.gray[300]} />
-              <Text style={styles.tapHint}>{t.flashcard.tapReveal}</Text>
+              <Ionicons name="sync-outline" size={14} color={c.gray[200]} />
+              <Text style={[styles.tapHint, { color: c.gray[200] }]}>{t.flashcard.tapReveal}</Text>
             </View>
-          </Animated.View>
+          </View>
+        )}
 
-          {/* Back — English */}
-          <Animated.View style={[styles.card, styles.cardFace, backStyle]}>
-            <View style={[styles.cardTopBar, { backgroundColor: c.kurdish[500] }]} />
-            <View style={styles.cardCorner} pointerEvents="none">
-              <KilimDiamond size={26} color={c.kurdish[500]} />
-            </View>
-            <UpperText style={[styles.cardLabel, { color: c.kurdish[600] }]}>{t.flashcard.back}</UpperText>
-            <Text style={styles.cardTranslation}>{vocabGloss(word, lang)}</Text>
-            <Text style={styles.cardPos}>{word.partOfSpeech}</Text>
-            {word.exampleKu && (
-              <View style={styles.exampleBox}>
-                <Text style={styles.exampleKu}>{word.exampleKu}</Text>
-                <Text style={styles.exampleEn}>{vocabExample(word, lang)}</Text>
-              </View>
-            )}
+        {/* Current Card (Interactive / Swipeable) */}
+        <PanGestureHandler
+          onGestureEvent={onGestureEvent}
+          onHandlerStateChange={onHandlerStateChange}
+          activeOffsetX={[-15, 15]}
+        >
+          <Animated.View style={[styles.activeCardContainer, swipeStyle]}>
+            {/* Swipe Indicators */}
+            <Animated.View style={[styles.swipeIndicator, styles.knowIndicator, knowIndicatorStyle]} pointerEvents="none">
+              <Text style={[styles.swipeIndicatorText, { color: '#2E7D32' }]}>{lang === 'tr' ? 'BİLİYORUM' : 'I KNOW'}</Text>
+            </Animated.View>
+            <Animated.View style={[styles.swipeIndicator, styles.dontKnowIndicator, dontKnowIndicatorStyle]} pointerEvents="none">
+              <Text style={[styles.swipeIndicatorText, { color: '#C62828' }]}>{lang === 'tr' ? 'TEKRAR' : 'LEARN'}</Text>
+            </Animated.View>
+
+            <Pressable
+              style={styles.cardWrap}
+              onPress={flip}
+              accessibilityRole="button"
+              accessibilityLabel={isFlipped ? `${vocabGloss(word, lang)}. ${t.flashcard.back}` : `${word.wordKu}. ${t.flashcard.kurdish}`}
+              accessibilityHint={t.flashcard.flipHint}
+            >
+              {/* Front — Kurdish */}
+              <Animated.View style={[styles.card, styles.cardFace, frontStyle]}>
+                <View style={[styles.cardTopBar, { backgroundColor: accent }]} />
+                <View style={styles.cardSun} pointerEvents="none">
+                  <KurdishSun size={170} color={accent} />
+                </View>
+                <View style={styles.cardCorner} pointerEvents="none">
+                  <KilimDiamond size={26} color={accent} />
+                </View>
+
+
+
+                <Text style={[styles.cardLabel, { color: accent }]}>Kurdî</Text>
+                <Text style={styles.cardWord}>{word.wordKu}</Text>
+                {word.gender && (
+                  <Text style={styles.genderBadge}>
+                    {word.gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
+                  </Text>
+                )}
+                <View style={styles.tapHintRow}>
+                  <Ionicons name="sync-outline" size={14} color={c.gray[300]} />
+                  <Text style={styles.tapHint}>{t.flashcard.tapReveal}</Text>
+                </View>
+              </Animated.View>
+
+              {/* Back — English */}
+              <Animated.View style={[styles.card, styles.cardFace, backStyle]}>
+                <View style={[styles.cardTopBar, { backgroundColor: c.kurdish[500] }]} />
+                <View style={styles.cardCorner} pointerEvents="none">
+                  <KilimDiamond size={26} color={c.kurdish[500]} />
+                </View>
+
+                {/* Normal Speaker Button */}
+                <TouchableOpacity
+                  style={styles.speakerBtn}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    speakKurdish(word.wordKu);
+                    haptics.light();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Listen Kurdish pronunciation"
+                >
+                  <Ionicons name="volume-medium-outline" size={20} color={c.kurdish[500]} />
+                </TouchableOpacity>
+
+                {/* Slow Speaker Button */}
+                <TouchableOpacity
+                  style={[styles.speakerBtn, { right: 58 }]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    speakKurdish(word.wordKu, true);
+                    haptics.light();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Listen slowly"
+                >
+                  <Ionicons name="volume-low-outline" size={20} color={c.kurdish[500]} />
+                </TouchableOpacity>
+
+                <UpperText style={[styles.cardLabel, { color: c.kurdish[600] }]}>{t.flashcard.back}</UpperText>
+                <Text style={styles.cardTranslation}>{vocabGloss(word, lang)}</Text>
+                <Text style={styles.cardPos}>{word.partOfSpeech}</Text>
+                {word.exampleKu && (
+                  <View style={styles.exampleBox}>
+                    <Text style={styles.exampleKu}>{word.exampleKu}</Text>
+                    <Text style={styles.exampleEn}>{vocabExample(word, lang)}</Text>
+                  </View>
+                )}
+              </Animated.View>
+            </Pressable>
           </Animated.View>
-        </Pressable>
+        </PanGestureHandler>
       </View>
 
       {/* Actions */}
@@ -227,13 +393,13 @@ export default function FlashcardScreen() {
               <View style={[styles.actionIcon, { backgroundColor: c.error }]}>
                 <Ionicons name="refresh" size={18} color="#FFFFFF" />
               </View>
-              <Text style={styles.dontKnowText}>{t.flashcard.stillLearning}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={styles.dontKnowText}>{t.flashcard.stillLearning}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.knowBtn} onPress={handleKnow} activeOpacity={0.85}>
               <View style={[styles.actionIcon, { backgroundColor: c.success }]}>
                 <Ionicons name="checkmark" size={18} color="#FFFFFF" />
               </View>
-              <Text style={styles.knowText}>{t.flashcard.iKnow}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={styles.knowText}>{t.flashcard.iKnow}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -282,11 +448,11 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   sheetPromptRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: SPACING.md },
   sheetPrompt: { ...TYPOGRAPHY.kicker, color: c.fire[600] },
   actions: { flexDirection: 'row', gap: SPACING.md },
-  dontKnowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: c.errorBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.errorBorder, ...SHADOWS.sm },
-  knowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: c.successBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.successBorder, ...SHADOWS.sm },
+  dontKnowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8, backgroundColor: c.errorBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.errorBorder, ...SHADOWS.sm },
+  knowBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8, backgroundColor: c.successBg, paddingVertical: 14, borderRadius: RADIUS.lg, borderWidth: 1.5, borderColor: c.successBorder, ...SHADOWS.sm },
   actionIcon: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  dontKnowText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: c.error },
-  knowText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: c.success },
+  dontKnowText: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: c.error, flexShrink: 1 },
+  knowText: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: c.success, flexShrink: 1 },
   finishScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
   medalWrap: { width: 150, height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.lg },
   medalRays: { position: 'absolute', opacity: 0.55 },
@@ -296,8 +462,73 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   finishKilim: { marginVertical: SPACING.md, opacity: 0.9 },
   finishSub: { fontSize: FONT_SIZE.md, color: c.gray[500], marginBottom: SPACING.xl },
   finishStats: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.xl },
-  fStatBox: { alignItems: 'center', backgroundColor: c.white, paddingVertical: SPACING.lg, paddingHorizontal: SPACING.xl, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: c.gray[100], gap: 4, minWidth: 110, ...SHADOWS.sm },
+  fStatBox: { flex: 1, alignItems: 'center', backgroundColor: c.white, paddingVertical: SPACING.lg, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: c.gray[100], gap: 4, maxWidth: 110, ...SHADOWS.sm },
   fStatVal: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: c.midnight[800] },
   fStatLabel: { fontSize: FONT_SIZE.xs, color: c.gray[500], textTransform: 'uppercase', letterSpacing: 0.5 },
   finishBtn: { alignSelf: 'stretch' },
+  speakerBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: c.gray[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: c.gray[200],
+    zIndex: 20,
+    shadowColor: c.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  backgroundCard: {
+    position: 'absolute',
+    width: '100%',
+    height: 340,
+    backgroundColor: c.white,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: c.gray[100],
+    transform: [{ scale: 0.95 }, { translateY: 12 }],
+    opacity: 0.88,
+    zIndex: 1,
+  },
+  activeCardContainer: {
+    width: '100%',
+    height: 340,
+    zIndex: 10,
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    top: 24,
+    borderWidth: 3,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    zIndex: 30,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
+  knowIndicator: {
+    left: 24,
+    borderColor: '#2E7D32',
+    transform: [{ rotate: '-12deg' }],
+  },
+  dontKnowIndicator: {
+    right: 24,
+    borderColor: '#C62828',
+    transform: [{ rotate: '12deg' }],
+  },
+  swipeIndicatorText: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
 });

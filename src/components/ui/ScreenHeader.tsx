@@ -43,7 +43,7 @@ export default function ScreenHeader({
     <View style={[styles.header, { paddingTop: topInset + SPACING.sm }]}>
       {emblem && (
         <View style={[styles.emblem, { top: topInset - 4 }]} pointerEvents="none">
-          <KurdishSun size={72} color={c.fire[300]} />
+          <KurdishSun size={72} color={c.fire[300]} animate={true} />
         </View>
       )}
       <View style={styles.row}>

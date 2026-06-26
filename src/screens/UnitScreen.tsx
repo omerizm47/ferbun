@@ -8,7 +8,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { unitTitle, unitDescription, lessonTitle } from '../i18n/content';
 import { useProgressStore } from '../stores/progressStore';
-import { getUnitById } from '../data/courses';
+import { getUnitById, courses } from '../data/courses';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -30,6 +30,24 @@ export default function UnitScreen() {
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
+
+  const isUnitUnlocked = useMemo(() => {
+    if (!unit) return false;
+    const courseIndex = courses.findIndex((co) => co.id === unit.courseId);
+    if (courseIndex === -1) return false;
+    const course = courses[courseIndex];
+
+    const prevCourse = courseIndex > 0 ? courses[courseIndex - 1] : null;
+    const prevCourseDone = !prevCourse || prevCourse.units.every((u) => u.lessons.every((l) => isLessonCompleted(l.id)));
+
+    const ui = course.units.findIndex((u) => u.id === unit.id);
+    if (ui === -1) return false;
+
+    const prevUnit = ui > 0 ? course.units[ui - 1] : null;
+    const prevUnitDone = !prevUnit || prevUnit.lessons.every((l) => isLessonCompleted(l.id));
+
+    return (ui === 0 && prevCourseDone) || prevUnitDone;
+  }, [unit, isLessonCompleted]);
 
   if (!unit) return (
     <View style={s.container}>
@@ -60,7 +78,7 @@ export default function UnitScreen() {
           const done = isLessonCompleted(lesson.id);
           const score = getLessonScore(lesson.id);
           const prevDone = i === 0 || isLessonCompleted(unit.lessons[i - 1].id);
-          const open = i === 0 || prevDone;
+          const open = isUnitUnlocked && (i === 0 || prevDone);
           const isGrammar = lesson.type === 'grammar';
 
           return (

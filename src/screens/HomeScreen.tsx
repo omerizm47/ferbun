@@ -76,10 +76,10 @@ export default function HomeScreen() {
   const { colors: c } = useTheme();
   const { t, lang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { totalXp, currentLevel, streakCount, displayName, loadFromStorage, updateStreak, isLessonCompleted, vocabMastery, dailyXp, dailyXpDate } = useProgressStore();
+  const { totalXp, currentLevel, streakCount, displayName, loadFromStorage, checkStreakValidity, isLessonCompleted, vocabMastery, dailyXp, dailyXpDate } = useProgressStore();
   const dailyGoalXp = useSettingsStore((st) => st.dailyGoalXp);
 
-  useEffect(() => { loadFromStorage().then(() => updateStreak()); }, [loadFromStorage, updateStreak]);
+  useEffect(() => { loadFromStorage().then(() => checkStreakValidity()); }, [loadFromStorage, checkStreakValidity]);
 
   const dueCount = useMemo(() => selectDueVocabIds(vocabMastery).length, [vocabMastery]);
   const todayXp = selectDailyXp({ dailyXp, dailyXpDate });
@@ -103,7 +103,7 @@ export default function HomeScreen() {
       {/* Greeting header */}
       <LinearGradient colors={[c.fire[600], c.fire[800], '#5C2800']} style={[s.header, { paddingTop: insets.top + SPACING.md }]} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }}>
         <View style={s.sunWatermark} pointerEvents="none">
-          <KurdishSun size={132} color="rgba(255,255,255,0.13)" />
+          <KurdishSun size={132} color="rgba(255,255,255,0.13)" animate={true} />
         </View>
         <View style={s.mountainDecor} pointerEvents="none">
           <MountainSilhouette width={SCREEN_W} height={48} color="rgba(0,0,0,0.10)" />
