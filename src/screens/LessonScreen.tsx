@@ -363,7 +363,7 @@ export default function LessonScreen() {
       case 'fill_blank':
         return <FillBlankExercise exercise={currentExercise} onAnswer={handleAnswer} disabled={showFeedback} />;
       default:
-        return <Text>Unknown exercise type</Text>;
+        return null;
     }
   };
 

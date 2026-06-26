@@ -78,7 +78,7 @@ export default function CoachMark({ visible, steps, step, onNext, onSkip }: Prop
           </View>
           <View style={styles.kickerRow}>
             <KilimDiamond size={12} color={c.fire[400]} />
-            <Text style={styles.kicker}>RÊBER · QUICK GUIDE</Text>
+            <Text style={styles.kicker}>RÊBER · {t.coach.kicker}</Text>
           </View>
           <Text style={styles.title}>{current.title}</Text>
           <Text style={styles.description}>{current.description}</Text>

@@ -38,10 +38,10 @@ function MainTabs() {
       tabBar={(props) => <CraftedTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Learn' }} />
-      <Tab.Screen name="Vocab" component={VocabScreen} options={{ tabBarLabel: 'Words' }} />
-      <Tab.Screen name="Stories" component={StoriesListScreen} options={{ tabBarLabel: 'Stories' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Vocab" component={VocabScreen} />
+      <Tab.Screen name="Stories" component={StoriesListScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }

@@ -37,6 +37,8 @@ export interface UiStrings {
   coach: {
     gotIt: string;
     tapHint: string;
+    /** Bridge-language half of the "RÊBER · …" kicker. */
+    kicker: string;
   };
   // Bottom tab-bar labels.
   tabs: {

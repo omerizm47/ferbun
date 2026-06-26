@@ -23,6 +23,7 @@ const en: UiStrings = {
   coach: {
     gotIt: 'Got it',
     tapHint: 'Tap anywhere to continue',
+    kicker: 'QUICK GUIDE',
   },
   tabs: {
     learn: 'Learn',
@@ -259,6 +260,7 @@ const tr: UiStrings = {
   coach: {
     gotIt: 'Anladım',
     tapHint: 'Devam etmek için herhangi bir yere dokun',
+    kicker: 'HIZLI REHBER',
   },
   tabs: {
     learn: 'Öğren',
