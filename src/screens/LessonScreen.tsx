@@ -31,7 +31,7 @@ import TranslationExercise from '../components/exercises/TranslationExercise';
 import MatchPairsExercise from '../components/exercises/MatchPairsExercise';
 import TrueFalseExercise from '../components/exercises/TrueFalseExercise';
 import FillBlankExercise from '../components/exercises/FillBlankExercise';
-import { speakKurdish } from '../utils/speech';
+import { pronounce } from '../utils/speech';
 import { playSound } from '../utils/sounds';
 import PressableScale from '../components/ui/PressableScale';
 
@@ -302,7 +302,7 @@ export default function LessonScreen() {
                 style={styles.teachCard}
                 onPress={() => {
                   haptics.selection();
-                  speakKurdish(card.ku);
+                  pronounce(card.ku);
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={`${card.ku}. ${t.common.listen}`}
@@ -314,7 +314,7 @@ export default function LessonScreen() {
                     <TouchableOpacity
                       onPress={(e) => {
                         e.stopPropagation();
-                        speakKurdish(card.ku, true);
+                        pronounce(card.ku, true);
                         haptics.light();
                       }}
                       style={{

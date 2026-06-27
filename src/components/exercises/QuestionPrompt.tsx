@@ -5,7 +5,7 @@ import { SPACING, FONT_SIZE, TYPOGRAPHY, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
 import { useT } from '../../i18n/LanguageProvider';
 import { KilimDiamond } from '../ui/KurdishDecorations';
-import { speakKurdish } from '../../utils/speech';
+import { pronounce } from '../../utils/speech';
 
 interface Props {
   /** Short Kurmanji · English instruction, e.g. "HILBIJÊRE · CHOOSE". */
@@ -34,7 +34,7 @@ export default function QuestionPrompt({ kicker, questionKu, questionEn }: Props
         <View style={styles.kuRow}>
           <TouchableOpacity
             style={styles.kuBtn}
-            onPress={() => speakKurdish(questionKu)}
+            onPress={() => pronounce(questionKu)}
             accessibilityRole="button"
             accessibilityLabel={`${questionKu}. ${t.common.listen}`}
             activeOpacity={0.7}
@@ -44,7 +44,7 @@ export default function QuestionPrompt({ kicker, questionKu, questionEn }: Props
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.slowBtn}
-            onPress={() => speakKurdish(questionKu, true)}
+            onPress={() => pronounce(questionKu, true)}
             accessibilityRole="button"
             accessibilityLabel={t.common.listenSlow}
             activeOpacity={0.7}

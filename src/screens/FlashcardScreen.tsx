@@ -21,7 +21,7 @@ import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import UpperText from '../components/ui/UpperText';
 import CelebrationOverlay, { Celebration } from '../components/ui/CelebrationOverlay';
-import { speakKurdish } from '../utils/speech';
+import { pronounce } from '../utils/speech';
 import { playSound } from '../utils/sounds';
 
 type RoutePropType = RouteProp<RootStackParamList, 'Flashcard'>;
@@ -341,7 +341,7 @@ export default function FlashcardScreen() {
                   style={styles.speakerBtn}
                   onPress={(e) => {
                     e.stopPropagation();
-                    speakKurdish(word.wordKu);
+                    pronounce(word.wordKu);
                     haptics.light();
                   }}
                   accessibilityRole="button"
@@ -355,7 +355,7 @@ export default function FlashcardScreen() {
                   style={[styles.speakerBtn, { right: 58 }]}
                   onPress={(e) => {
                     e.stopPropagation();
-                    speakKurdish(word.wordKu, true);
+                    pronounce(word.wordKu, true);
                     haptics.light();
                   }}
                   accessibilityRole="button"
