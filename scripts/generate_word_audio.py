@@ -122,13 +122,58 @@ def main():
             "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.03,"
             "areverse")
 
-    def synth(text: str, mp3: Path):
-        # A clean sentence-final stop helps the model fully articulate short words.
-        say = text if text[-1:] in ".!?" else text + "."
+    def synth_wave(say: str):
         inputs = tok(say, return_tensors="pt")
         with torch.no_grad():
             wav = model(**inputs).waveform
-        data = wav.squeeze().cpu().numpy().astype("float32")
+        return wav.squeeze().cpu().numpy().astype("float32")
+
+    def voiced_segments(data, win):
+        """Return [start_frame, end_frame] runs of voiced audio (10 ms frames)."""
+        pad = (-len(data)) % win
+        d = np.concatenate([data, np.zeros(pad, dtype=data.dtype)])
+        energy = np.sqrt((d.reshape(-1, win) ** 2).mean(axis=1) + 1e-9)
+        voiced = energy > (energy.max() * 0.08)
+        runs, i, n = [], 0, len(voiced)
+        while i < n:
+            if voiced[i]:
+                j = i
+                while j < n and voiced[j]:
+                    j += 1
+                runs.append([i, j])
+                i = j
+            else:
+                i += 1
+        # Merge runs split by tiny (<60 ms) intra-word gaps.
+        merged = []
+        gap = int(0.06 * sr / win)
+        for r in runs:
+            if merged and r[0] - merged[-1][1] < gap:
+                merged[-1][1] = r[1]
+            else:
+                merged.append(r)
+        min_len = int(0.05 * sr / win)
+        return [m for m in merged if m[1] - m[0] > min_len]
+
+    def synth(text: str, mp3: Path):
+        # Isolated short/single words come out as blips in VITS — give them
+        # phonetic context by saying the word 3× (comma-separated), then crop to
+        # the cleanest middle repetition. Phrases already have context.
+        if " " in text:
+            say = text if text[-1:] in ".!?" else text + "."
+            data = synth_wave(say)
+        else:
+            data = synth_wave(f"{text}, {text}, {text}.")
+            win = max(1, int(0.01 * sr))
+            segs = voiced_segments(data, win)
+            if len(segs) >= 2:
+                mid = segs[len(segs) // 2]
+                s = max(0, mid[0] * win - int(0.03 * sr))
+                e = min(len(data), mid[1] * win + int(0.05 * sr))
+                data = data[s:e]
+            else:
+                data = synth_wave(text + ".")  # fallback: single utterance
+
         peak = float(np.abs(data).max()) or 1.0
         int16 = (data / peak * 32767 * 0.95).astype("int16")
         scipy.io.wavfile.write(str(tmp_wav), sr, int16)
