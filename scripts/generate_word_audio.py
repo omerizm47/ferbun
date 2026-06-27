@@ -188,6 +188,11 @@ def main():
         text = clean_for_synth(spoken[key])
         if not text:
             continue
+        # Single words use the natural on-device (Turkish) voice — MMS can't
+        # articulate isolated short words. Bundle clips only for multi-word
+        # phrases/sentences, which MMS renders well.
+        if " " not in text:
+            continue
         stem = hashlib.sha1(norm(text).encode("utf-8")).hexdigest()[:12]
         mp3 = OUT_DIR / f"{stem}.mp3"
         if stem not in done_files and not mp3.exists():
