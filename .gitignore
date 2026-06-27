@@ -43,3 +43,7 @@ yarn-error.*
 # local scratch / recovered notes (not part of the app)
 RECOVERED-*.md
 __pycache__/
+_ssbuild/
+_audiotest/
+scripts/ab_pronounce.py
+scripts/espeak_test.py
