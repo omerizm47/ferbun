@@ -97,15 +97,35 @@ def main():
     tok = AutoTokenizer.from_pretrained(MODEL_ID)
     model.eval()
     sr = model.config.sampling_rate
-    print(f"Model ready. sampling_rate={sr}")
+
+    # Clarity tuning — MMS/VITS defaults (noise 0.667, dur-noise 0.8, rate 1.0)
+    # sound slurred/"drunk" and rush short words. Lower stochastic noise + a
+    # slightly slower pace make every letter land. Set on both model and config
+    # so whichever the transformers version reads, it takes effect.
+    for obj in (model, model.config):
+        if hasattr(obj, "noise_scale"):
+            obj.noise_scale = 0.45
+        if hasattr(obj, "noise_scale_duration"):
+            obj.noise_scale_duration = 0.5
+        if hasattr(obj, "speaking_rate"):
+            obj.speaking_rate = 0.85
+    print(f"Model ready. sampling_rate={sr} (noise=0.45, rate=0.85)")
 
     tmp_wav = OUT_DIR / "_tmp.wav"
     mapping = {}          # normalized key -> filename stem
     done_files = set()
     failures = []
 
+    # Trim dead air at both ends without clipping soft onsets.
+    trim = ("silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.03,"
+            "areverse,"
+            "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.03,"
+            "areverse")
+
     def synth(text: str, mp3: Path):
-        inputs = tok(text, return_tensors="pt")
+        # A clean sentence-final stop helps the model fully articulate short words.
+        say = text if text[-1:] in ".!?" else text + "."
+        inputs = tok(say, return_tensors="pt")
         with torch.no_grad():
             wav = model(**inputs).waveform
         data = wav.squeeze().cpu().numpy().astype("float32")
@@ -113,8 +133,8 @@ def main():
         int16 = (data / peak * 32767 * 0.95).astype("int16")
         scipy.io.wavfile.write(str(tmp_wav), sr, int16)
         subprocess.run(
-            [ffmpeg, "-y", "-i", str(tmp_wav), "-ac", "1", "-ar", "22050",
-             "-b:a", "48k", str(mp3)],
+            [ffmpeg, "-y", "-i", str(tmp_wav), "-af", trim,
+             "-ac", "1", "-ar", "22050", "-b:a", "48k", str(mp3)],
             check=True, capture_output=True,
         )
 
