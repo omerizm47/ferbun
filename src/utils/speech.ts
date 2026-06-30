@@ -11,12 +11,15 @@ export async function speakKurdish(text: string, slow: boolean = false): Promise
   if (Platform.OS === 'web') return; // web speech synthesizers often lack kurdish
 
   try {
-    // Unconditionally stop any active speech without awaiting to avoid native bridge roundtrip delay
-    Speech.stop();
+    // 1. Stop any active speech and wait for the operation to complete
+    await Speech.stop();
+
+    // 2. Give the native speech engine a brief moment (50ms) to reset its state
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // Kurdish locale identifier. Modern iOS uses 'ku', Android might support 'ku-TR' or 'ku-IR'.
     // We try to pass 'ku' as it works as a fallback matching iOS native and Android.
-    Speech.speak(text, {
+    await Speech.speak(text, {
       language: 'ku',
       pitch: 1.0,
       rate: slow ? 0.58 : 0.88, // normal is 0.88, slow (turtle mode) is 0.58

@@ -19,6 +19,7 @@ export async function preloadSounds(): Promise<void> {
     await Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: false,
+      allowsRecordingIOS: false,
     });
 
     for (const [key, value] of Object.entries(SOUNDS)) {
