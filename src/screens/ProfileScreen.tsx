@@ -73,7 +73,7 @@ export default function ProfileScreen() {
   const { colors: c, mode, setMode, scheme } = useTheme();
   const { t, lang, setLang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories } = useProgressStore();
+  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories, maxComboEver } = useProgressStore();
   const streakLevel = getStreakLevel();
   const completed = Object.values(lessonProgress).filter((p) => p.completed).length;
   const total = getTotalLessons();
@@ -207,9 +207,10 @@ export default function ProfileScreen() {
     vocabMastery,
     streakCount,
     completedStories,
+    maxComboEver,
     totalLessons: total,
     totalStories: stories.length,
-  }), [lessonProgress, vocabMastery, streakCount, completedStories, total]);
+  }), [lessonProgress, vocabMastery, streakCount, completedStories, maxComboEver, total]);
 
   const stats = [
     {

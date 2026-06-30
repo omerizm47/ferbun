@@ -14,9 +14,9 @@ import { Exercise } from '../data/types';
  *      even if the user writes "baş e" (no period). Leading/embedded
  *      punctuation is left intact so "ez/min" stays distinct from "ezmin".
  *
- * ş and ç are intentionally NOT folded — both exist on Turkish & Kurdish
- * keyboards and are phonemically distinct; folding them would hide a
- * real spelling error and reduce the pedagogical value of typed exercises.
+ * ş and ç are intentionally folded (ş→s, ç→c) so that users without Turkish/Kurdish
+ * keyboard layouts (or writing quickly, e.g. "rojbas" instead of "rojbaş") can still
+ * match successfully.
  */
 function normKurdish(s: string): string {
   return s
