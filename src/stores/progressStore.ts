@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProgress, VocabMastery } from '../data/types';
 import { XP_PER_LEVEL, STREAK_LEVELS } from '../theme';
+import { computeBadges, ProgressSnapshot } from '../utils/badges';
+import { stories } from '../data/stories';
+import { getTotalLessons } from '../data/courses';
 
 export type StreakLevel = typeof STREAK_LEVELS[keyof typeof STREAK_LEVELS];
 
@@ -10,6 +13,7 @@ export interface LessonResult {
   leveledUp: boolean;
   newLevel: number;
   streakMilestone: StreakLevel | null;
+  newBadgeIds?: string[];
 }
 
 /** Streak tier for a given consecutive-day count (pure, no store read). */
@@ -37,6 +41,21 @@ export function selectDueVocabIds(
 }
 
 /**
+ * Vocab ids that the learner struggles with most — masteryLevel 0 or 1.
+ * Used for the "Zayıf Kelimeler / Weak Words" flashcard mode that surfaces
+ * cards the learner has seen but not yet consolidated, giving them a targeted
+ * review without waiting for the SRS timer to fire.
+ */
+export function selectWeakVocabIds(
+  vocabMastery: Record<string, VocabMastery>,
+): string[] {
+  return Object.values(vocabMastery)
+    .filter((m) => m.masteryLevel <= 1)
+    .sort((a, b) => a.masteryLevel - b.masteryLevel)
+    .map((m) => m.vocabId);
+}
+
+/**
  * XP earned *today*. Returns 0 when the stored daily tally belongs to an earlier
  * day, so the daily-goal ring resets at midnight without needing a timer.
  */
@@ -46,6 +65,7 @@ export function selectDailyXp(
 ): number {
   return s.dailyXpDate === today ? s.dailyXp : 0;
 }
+
 
 interface ProgressState {
   // User info
@@ -60,6 +80,7 @@ interface ProgressState {
   // a new day is detected lazily via selectDailyXp (no background timer).
   dailyXp: number;
   dailyXpDate: string | null;
+  maxComboEver: number;
 
   // Progress
   lessonProgress: Record<string, UserProgress>;
@@ -69,15 +90,15 @@ interface ProgressState {
   // Actions
   setDisplayName: (name: string) => void;
   setAvatar: (icon: string, color: string) => void;
-  completeLesson: (lessonId: string, score: number, xp: number) => LessonResult;
+  completeLesson: (lessonId: string, score: number, xp: number, maxCombo?: number) => LessonResult;
   updateVocabMastery: (vocabId: string, correct: boolean) => void;
   updateStreak: () => void;
   checkStreakValidity: () => void;
   incrementStreak: () => void;
-  completeVocabReview: (xp: number) => { leveledUp: boolean; newLevel: number };
+  completeVocabReview: (xp: number) => { leveledUp: boolean; newLevel: number; newBadgeIds?: string[] };
   isLessonCompleted: (lessonId: string) => boolean;
   getLessonScore: (lessonId: string) => number;
-  markStoryComplete: (storyId: string) => { leveledUp: boolean; newLevel: number };
+  markStoryComplete: (storyId: string) => { leveledUp: boolean; newLevel: number; newBadgeIds?: string[] };
   isStoryComplete: (storyId: string) => boolean;
   getStreakLevel: () => typeof STREAK_LEVELS[keyof typeof STREAK_LEVELS];
   getDueVocabIds: () => string[];
@@ -93,6 +114,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   avatarColor: '#E85D00',
   totalXp: 0,
   currentLevel: 1,
+  maxComboEver: 0,
   streakCount: 0,
   lastActiveDate: null,
   dailyXp: 0,
@@ -111,12 +133,25 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     get().saveToStorage();
   },
 
-  completeLesson: (lessonId: string, score: number, xp: number) => {
+  completeLesson: (lessonId: string, score: number, xp: number, maxCombo?: number) => {
     const state = get();
+    const total = getTotalLessons();
+    const snapshotBefore: ProgressSnapshot = {
+      lessonProgress: state.lessonProgress,
+      vocabMastery: state.vocabMastery,
+      streakCount: state.streakCount,
+      completedStories: state.completedStories,
+      maxComboEver: state.maxComboEver,
+      totalLessons: total,
+      totalStories: stories.length,
+    };
+    const badgesBefore = computeBadges(snapshotBefore);
+
     const existing = state.lessonProgress[lessonId];
     const prevLevel = state.currentLevel;
     const prevStreak = state.streakCount;
     let newLevel = prevLevel;
+    const newMaxComboEver = Math.max(state.maxComboEver || 0, maxCombo || 0);
 
     // Only award XP / update the stored score when it's a new best.
     if (!existing || score > existing.score) {
@@ -139,7 +174,10 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         currentLevel: newLevel,
         dailyXp: dailyBase + xp,
         dailyXpDate: today,
+        maxComboEver: newMaxComboEver,
       });
+    } else {
+      set({ maxComboEver: newMaxComboEver });
     }
 
     // Always refresh streak + last-active date on completion (including replays).
@@ -153,7 +191,20 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     const streakMilestone =
       newStreak > prevStreak && newTier.label !== prevTier.label ? newTier : null;
 
-    return { leveledUp: newLevel > prevLevel, newLevel, streakMilestone };
+    const finalState = get();
+    const snapshotAfter: ProgressSnapshot = {
+      lessonProgress: finalState.lessonProgress,
+      vocabMastery: finalState.vocabMastery,
+      streakCount: finalState.streakCount,
+      completedStories: finalState.completedStories,
+      maxComboEver: finalState.maxComboEver,
+      totalLessons: total,
+      totalStories: stories.length,
+    };
+    const badgesAfter = computeBadges(snapshotAfter);
+    const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
+
+    return { leveledUp: newLevel > prevLevel, newLevel, streakMilestone, newBadgeIds };
   },
 
   updateVocabMastery: (vocabId: string, correct: boolean) => {
@@ -239,6 +290,18 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
   completeVocabReview: (xp: number) => {
     const state = get();
+    const total = getTotalLessons();
+    const snapshotBefore: ProgressSnapshot = {
+      lessonProgress: state.lessonProgress,
+      vocabMastery: state.vocabMastery,
+      streakCount: state.streakCount,
+      completedStories: state.completedStories,
+      maxComboEver: state.maxComboEver,
+      totalLessons: total,
+      totalStories: stories.length,
+    };
+    const badgesBefore = computeBadges(snapshotBefore);
+
     const newXp = state.totalXp + xp;
     const newLevel = Math.floor(newXp / XP_PER_LEVEL) + 1;
     const today = new Date().toDateString();
@@ -253,7 +316,20 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     get().incrementStreak();
     get().saveToStorage();
 
-    return { leveledUp: newLevel > state.currentLevel, newLevel };
+    const finalState = get();
+    const snapshotAfter: ProgressSnapshot = {
+      lessonProgress: finalState.lessonProgress,
+      vocabMastery: finalState.vocabMastery,
+      streakCount: finalState.streakCount,
+      completedStories: finalState.completedStories,
+      maxComboEver: finalState.maxComboEver,
+      totalLessons: total,
+      totalStories: stories.length,
+    };
+    const badgesAfter = computeBadges(snapshotAfter);
+    const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
+
+    return { leveledUp: newLevel > state.currentLevel, newLevel, newBadgeIds };
   },
 
   isLessonCompleted: (lessonId: string) => {
@@ -266,11 +342,37 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
   markStoryComplete: (storyId: string) => {
     const state = get();
+    const total = getTotalLessons();
+    const snapshotBefore: ProgressSnapshot = {
+      lessonProgress: state.lessonProgress,
+      vocabMastery: state.vocabMastery,
+      streakCount: state.streakCount,
+      completedStories: state.completedStories,
+      maxComboEver: state.maxComboEver,
+      totalLessons: total,
+      totalStories: stories.length,
+    };
+    const badgesBefore = computeBadges(snapshotBefore);
+
     const alreadyDone = state.completedStories[storyId];
     if (alreadyDone) {
       get().incrementStreak();
       get().saveToStorage();
-      return { leveledUp: false, newLevel: state.currentLevel };
+
+      const finalState = get();
+      const snapshotAfter: ProgressSnapshot = {
+        lessonProgress: finalState.lessonProgress,
+        vocabMastery: finalState.vocabMastery,
+        streakCount: finalState.streakCount,
+        completedStories: finalState.completedStories,
+        maxComboEver: finalState.maxComboEver,
+        totalLessons: total,
+        totalStories: stories.length,
+      };
+      const badgesAfter = computeBadges(snapshotAfter);
+      const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
+
+      return { leveledUp: false, newLevel: state.currentLevel, newBadgeIds };
     }
 
     const xp = 15; // 15 XP reward for story completion
@@ -292,7 +394,20 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     get().incrementStreak();
     get().saveToStorage();
 
-    return { leveledUp: newLevel > state.currentLevel, newLevel };
+    const finalState = get();
+    const snapshotAfter: ProgressSnapshot = {
+      lessonProgress: finalState.lessonProgress,
+      vocabMastery: finalState.vocabMastery,
+      streakCount: finalState.streakCount,
+      completedStories: finalState.completedStories,
+      maxComboEver: finalState.maxComboEver,
+      totalLessons: total,
+      totalStories: stories.length,
+    };
+    const badgesAfter = computeBadges(snapshotAfter);
+    const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
+
+    return { leveledUp: newLevel > state.currentLevel, newLevel, newBadgeIds };
   },
 
   isStoryComplete: (storyId: string) => {
@@ -325,6 +440,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
           lessonProgress: parsed.lessonProgress || {},
           vocabMastery: parsed.vocabMastery || {},
           completedStories: parsed.completedStories || {},
+          maxComboEver: parsed.maxComboEver || 0,
         });
       }
     } catch (e) {
@@ -350,6 +466,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
           lessonProgress: state.lessonProgress,
           vocabMastery: state.vocabMastery,
           completedStories: state.completedStories,
+          maxComboEver: state.maxComboEver,
         })
       );
     } catch (e) {

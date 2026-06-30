@@ -8,7 +8,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { themeLabel } from '../i18n/content';
 import { getVocabByTheme, VOCAB_THEMES } from '../data/vocabulary';
-import { useProgressStore, selectDueVocabIds } from '../stores/progressStore';
+import { useProgressStore, selectDueVocabIds, selectWeakVocabIds } from '../stores/progressStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -27,6 +27,7 @@ export default function VocabScreen() {
   const s = useMemo(() => makeStyles(c), [c]);
   const vocabMastery = useProgressStore((st) => st.vocabMastery);
   const dueCount = useMemo(() => selectDueVocabIds(vocabMastery).length, [vocabMastery]);
+  const weakCount = useMemo(() => selectWeakVocabIds(vocabMastery).length, [vocabMastery]);
 
   return (
     <View style={s.container}>
@@ -46,6 +47,27 @@ export default function VocabScreen() {
             <View style={s.reviewInfo}>
               <Text style={s.reviewTitle}>{t.review.title}</Text>
               <Text style={s.reviewSub}>{t.review.due(dueCount)}</Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </PressableScale>
+        )}
+        {weakCount > 0 && (
+          <PressableScale
+            style={s.weakBanner}
+            onPress={() => { haptics.selection(); navigation.navigate('Flashcard', { mode: 'weak' }); }}
+            accessibilityRole="button"
+            accessibilityLabel={lang === 'tr' ? 'Zayıf kelimeleri tekrar et' : 'Review weak words'}
+          >
+            <View style={s.weakIconWrap}>
+              <Ionicons name="trending-up" size={20} color="#FFFFFF" />
+            </View>
+            <View style={s.reviewInfo}>
+              <Text style={s.reviewTitle}>
+                {lang === 'tr' ? 'Zayıf Kelimeler' : 'Weak Words'}
+              </Text>
+              <Text style={s.reviewSub}>
+                {lang === 'tr' ? `${weakCount} kelime pratik istiyor` : `${weakCount} words need practice`}
+              </Text>
             </View>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </PressableScale>
@@ -79,9 +101,13 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   labelEn: { fontSize: FONT_SIZE.xs, color: c.gray[400], marginTop: 2 },
 
   // Review banner (spaced-repetition deck)
-  reviewBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, backgroundColor: c.kurdish[600], borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: 12, ...SHADOWS.md },
+  reviewBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, backgroundColor: c.kurdish[600], borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: 10, ...SHADOWS.md },
   reviewIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
   reviewInfo: { flex: 1 },
   reviewTitle: { fontSize: FONT_SIZE.md, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.2 },
   reviewSub: { fontSize: FONT_SIZE.xs, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
+
+  // Weak words banner
+  weakBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, backgroundColor: '#EA580C', borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: 12, ...SHADOWS.md },
+  weakIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
 });

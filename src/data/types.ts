@@ -45,7 +45,8 @@ export type ExerciseType =
   | 'translation'
   | 'fill_blank'
   | 'match_pairs'
-  | 'true_false';
+  | 'true_false'
+  | 'writing';  // Show meaning → user writes Kurdish word/phrase
 
 export interface Exercise {
   id: string;

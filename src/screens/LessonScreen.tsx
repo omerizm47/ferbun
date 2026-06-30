@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, ScrollView, Alert,
 } from 'react-native';
-import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeInUp, ZoomIn, useSharedValue, useAnimatedStyle, withSequence, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -11,6 +11,8 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { lessonTitle, exerciseExplanation, resolveChoices, resolveTypedAnswer } from '../i18n/content';
 import { useProgressStore } from '../stores/progressStore';
+import { Exercise } from '../data/types';
+import { Lang } from '../i18n/types';
 import { getLessonById } from '../data/courses';
 import { getOrderedExercisesForLesson, getLessonTeachCards } from '../data/exercises';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -30,6 +32,7 @@ import TranslationExercise from '../components/exercises/TranslationExercise';
 import MatchPairsExercise from '../components/exercises/MatchPairsExercise';
 import TrueFalseExercise from '../components/exercises/TrueFalseExercise';
 import FillBlankExercise from '../components/exercises/FillBlankExercise';
+import WritingExercise from '../components/exercises/WritingExercise';
 import { speakKurdish } from '../utils/speech';
 import { playSound } from '../utils/sounds';
 import PressableScale from '../components/ui/PressableScale';
@@ -50,6 +53,30 @@ const LESSON_COACH_CONFIG: { icon: CoachStep['icon']; align: CoachStep['align'] 
   { icon: 'bulb', align: 'center' },
   { icon: 'speedometer', align: 'top' },
 ];
+
+/** Eşleştirme hatası gösterimi için Kürtçe kelimeyi sol, karşılığını sağ tarafta ayarlar. */
+function resolveMistakePair(ex: Exercise, lang: Lang): { ku: string; gloss: string } {
+  if (ex.questionKu) {
+    const ku = ex.questionKu;
+    const gloss = (lang === 'tr' ? ex.correctAnswerTr : ex.correctAnswer) || ex.correctAnswer;
+    return { ku, gloss: String(gloss) };
+  } else {
+    const ku = Array.isArray(ex.correctAnswer) ? ex.correctAnswer[0] : ex.correctAnswer;
+    const question = (lang === 'tr' ? ex.questionTr : ex.questionEn) || ex.questionEn || '';
+    const match = question.match(/["'«“](.+?)["'»”]/);
+    let gloss = match ? match[1] : question;
+    if (!match) {
+      gloss = gloss
+        .replace(/Translate to Kurdish:\s*/i, '')
+        .replace(/How do you say\s*/i, '')
+        .replace(/\s*in Kurdish\??/i, '')
+        .replace(/\s*Kürtçe nasıl denir\??/i, '')
+        .replace(/Tamamla:\s*/i, '')
+        .replace(/Complete:\s*/i, '');
+    }
+    return { ku: String(ku), gloss };
+  }
+}
 
 export default function LessonScreen() {
   const navigation = useNavigation();
@@ -74,12 +101,17 @@ export default function LessonScreen() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastCorrect, setLastCorrect] = useState(false);
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
+  const [mistakeExerciseIds, setMistakeExerciseIds] = useState<string[]>([]);
 
   // Combo system state
   const [comboCount, setComboCount] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [endedCombo, setEndedCombo] = useState(0);
   const [currentEncouragement, setCurrentEncouragement] = useState<{ ku: string; tr: string; en: string } | null>(null);
+
+  // Combo pulse animation
+  const comboPulse = useSharedValue(1);
+  const comboPulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: comboPulse.value }] }));
 
   const progress = exercises.length > 0 ? Math.min(1, correctCount / exercises.length) : 0;
 
@@ -116,6 +148,11 @@ export default function LessonScreen() {
         if (next >= 3) {
           const rand = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
           setCurrentEncouragement(rand);
+          // Pulse the combo counter
+          comboPulse.value = withSequence(
+            withSpring(1.4, { damping: 6, stiffness: 220 }),
+            withSpring(1, { damping: 10, stiffness: 180 }),
+          );
         }
         return next;
       });
@@ -123,6 +160,12 @@ export default function LessonScreen() {
     } else {
       playSound('wrong');
       setMistakeCount((m) => m + 1);
+      // Track which exercises were missed (for lesson result analysis)
+      setMistakeExerciseIds((prev) => {
+        const id = sessionExercises[currentIndex]?.id;
+        if (id && !prev.includes(id)) return [...prev, id];
+        return prev;
+      });
       setSessionExercises((prev) => [...prev, prev[currentIndex]]);
       setComboCount((prev) => {
         if (prev >= 3) {
@@ -134,7 +177,7 @@ export default function LessonScreen() {
       });
       setCurrentEncouragement(null);
     }
-  }, [currentIndex, maxCombo]);
+  }, [currentIndex, maxCombo, sessionExercises, comboPulse]);
 
   const handleNext = useCallback(() => {
     haptics.medium();
@@ -150,11 +193,16 @@ export default function LessonScreen() {
       const comboBonusXp = maxCombo >= 10 ? 5 : (maxCombo >= 5 ? 3 : 0);
       const totalXp = xpBase + comboBonusXp;
       
-      const result = completeLesson(lessonId, score, totalXp);
+      const result = completeLesson(lessonId, score, totalXp, maxCombo);
       // Queue any milestone celebrations to play over the finish screen.
       const queued: Celebration[] = [];
       if (result.streakMilestone) queued.push({ kind: 'streak', tier: result.streakMilestone });
       if (result.leveledUp) queued.push({ kind: 'level', level: result.newLevel });
+      if (result.newBadgeIds) {
+        result.newBadgeIds.forEach((badgeId) => {
+          queued.push({ kind: 'badge', badgeId });
+        });
+      }
       setCelebrations(queued);
       if (queued.length === 0) haptics.success();
     } else {
@@ -219,62 +267,93 @@ export default function LessonScreen() {
     ];
     const msg = [...messages].reverse().find((m) => finalScore >= m.min)!;
 
+    const hasCelebration = celebrations.length > 0;
+
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <View style={styles.finishScreen}>
-          <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.medalWrap}>
-            <View style={styles.medalRays} pointerEvents="none">
-              <KurdishSun size={150} color={c.fire[200]} />
-            </View>
-            <LinearGradient
-              colors={[c.fire[400], c.fire[600], c.fire[800]]}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={styles.medal}
-            >
-              <Ionicons name={msg.icon} size={56} color="#FFFFFF" />
-            </LinearGradient>
-          </Animated.View>
-          <Text style={styles.finishTitleKu}>Pîroz be!</Text>
-          <Text style={styles.finishTitleEn}>{t.lesson.complete}</Text>
-          <View style={styles.finishKilim} pointerEvents="none">
-            <KilimBorder width={120} color={c.fire[300]} />
-          </View>
-          <Text style={styles.finishMessage}>{msg.text}</Text>
-          {maxCombo >= 3 && (
-            <Animated.View entering={ZoomIn.delay(300)} style={styles.finishComboBanner}>
-              <NewrozFlame size={24} intensity={3} />
-              <Text style={styles.finishComboText}>
-                {lang === 'tr' ? `En Yüksek Kombo: ${maxCombo} Doğru 🔥` : `Max Combo: ${maxCombo} Correct 🔥`}
-              </Text>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: hasCelebration ? '#020617' : c.cream[50] }]}>
+        {hasCelebration ? (
+          <CelebrationOverlay
+            celebration={celebrations[0] ?? null}
+            onDismiss={() => setCelebrations((q) => q.slice(1))}
+          />
+        ) : (
+          <ScrollView style={styles.finishScrollView} contentContainerStyle={styles.finishScroll} showsVerticalScrollIndicator={false}>
+            <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.medalWrap}>
+              <View style={styles.medalRays} pointerEvents="none">
+                <KurdishSun size={110} color={c.fire[200]} />
+              </View>
+              <LinearGradient
+                colors={[c.fire[400], c.fire[600], c.fire[800]]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.medal}
+              >
+                <Ionicons name={msg.icon} size={36} color="#FFFFFF" />
+              </LinearGradient>
             </Animated.View>
-          )}
-          <View style={styles.finishStats}>
-            <View style={styles.statBox}>
-              <Ionicons name="ribbon" size={18} color={c.fire[500]} />
-              <Text style={styles.statValue}>{finalScore}%</Text>
-              <Text style={styles.statLabel}>{t.lesson.scoreLabel}</Text>
+            <Text style={styles.finishTitleKu}>Pîroz be!</Text>
+            <Text style={styles.finishTitleEn}>{t.lesson.complete}</Text>
+            <View style={styles.finishKilim} pointerEvents="none">
+              <KilimBorder width={120} color={c.fire[300]} />
             </View>
-            <View style={styles.statBox}>
-              <Ionicons name="checkmark-done" size={18} color={c.kurdish[500]} />
-              <Text style={styles.statValue}>{exercises.length}/{exercises.length}</Text>
-              <Text style={styles.statLabel}>{t.lesson.correctLabel}</Text>
+            <Text style={styles.finishMessage}>{msg.text}</Text>
+            {maxCombo >= 3 && (
+              <Animated.View entering={ZoomIn.delay(300)} style={styles.finishComboBanner}>
+                <NewrozFlame size={20} intensity={3} />
+                <Text style={styles.finishComboText}>
+                  {lang === 'tr' ? `En Yüksek Kombo: ${maxCombo} Doğru 🔥` : `Max Combo: ${maxCombo} Correct 🔥`}
+                </Text>
+              </Animated.View>
+            )}
+            {/* Lesson result: wrong exercises list */}
+            {mistakeExerciseIds.length > 0 && (
+              <Animated.View entering={FadeInUp.delay(400).duration(350)} style={styles.mistakesBox}>
+                <Text style={styles.mistakesLabel}>
+                  {lang === 'tr' ? 'YANLIŞ YAPILANLAR' : 'NEEDS REVIEW'}
+                </Text>
+                <ScrollView style={styles.mistakesScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  {mistakeExerciseIds.slice(0, 5).map((id) => {
+                    const ex = exercises.find((e) => e.id === id);
+                    if (!ex) return null;
+                    const pair = resolveMistakePair(ex, lang);
+                    return (
+                      <View key={id} style={styles.mistakeRow}>
+                        <Text style={styles.mistakeKu}>{pair.ku}</Text>
+                        <Text style={styles.mistakeEn}>{pair.gloss}</Text>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+                {mistakeExerciseIds.length > 5 && (
+                  <Text style={styles.mistakeMore}>
+                    {lang === 'tr' ? `+${mistakeExerciseIds.length - 5} tane daha` : `+${mistakeExerciseIds.length - 5} more`}
+                  </Text>
+                )}
+              </Animated.View>
+            )}
+            <View style={styles.finishStats}>
+              <View style={styles.statBox}>
+                <Ionicons name="ribbon" size={18} color={c.fire[500]} />
+                <Text style={styles.statValue}>{finalScore}%</Text>
+                <Text style={styles.statLabel}>{t.lesson.scoreLabel}</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Ionicons name="checkmark-done" size={18} color={c.kurdish[500]} />
+                <Text style={styles.statValue}>{exercises.length - mistakeExerciseIds.length}/{exercises.length}</Text>
+                <Text style={styles.statLabel}>{t.lesson.correctLabel}</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Ionicons name="star" size={18} color={c.warning} />
+                <Text style={styles.statValue}>+{totalXpEarned}</Text>
+                <Text style={styles.statLabel}>{t.lesson.xpLabel}</Text>
+                {comboBonusXp > 0 && (
+                  <Text style={styles.bonusText}>+{comboBonusXp} XP Bonus</Text>
+                )}
+              </View>
             </View>
-            <View style={styles.statBox}>
-              <Ionicons name="star" size={18} color={c.warning} />
-              <Text style={styles.statValue}>+{totalXpEarned}</Text>
-              <Text style={styles.statLabel}>{t.lesson.xpLabel}</Text>
-              {comboBonusXp > 0 && (
-                <Text style={styles.bonusText}>+{comboBonusXp} XP Bonus</Text>
-              )}
-            </View>
-          </View>
-          <Button label={t.common.continue} icon="arrow-forward" iconPosition="right" onPress={() => navigation.goBack()} style={styles.finishBtn} />
-        </View>
-        <CelebrationOverlay
-          celebration={celebrations[0] ?? null}
-          onDismiss={() => setCelebrations((q) => q.slice(1))}
-        />
+            <Button label={t.common.continue} icon="arrow-forward" iconPosition="right" onPress={() => navigation.goBack()} style={styles.finishBtn} />
+          </ScrollView>
+        )}
       </View>
     );
   }
@@ -361,6 +440,8 @@ export default function LessonScreen() {
         return <TrueFalseExercise exercise={currentExercise} onAnswer={handleAnswer} disabled={showFeedback} />;
       case 'fill_blank':
         return <FillBlankExercise exercise={currentExercise} onAnswer={handleAnswer} disabled={showFeedback} />;
+      case 'writing':
+        return <WritingExercise exercise={currentExercise} onAnswer={handleAnswer} disabled={showFeedback} />;
       default:
         return <Text>Unknown exercise type</Text>;
     }
@@ -377,15 +458,15 @@ export default function LessonScreen() {
           <AnimatedProgressBar progress={progress} height={10} fillColor={c.fire[500]} minFill={0.02} />
         </View>
         {comboCount >= 3 && (
-          <Animated.View entering={ZoomIn.duration(200)} style={styles.headerCombo}>
-            <NewrozFlame size={20} intensity={2} />
+          <Animated.View entering={ZoomIn.duration(200)} style={[styles.headerCombo, comboPulseStyle]}>
+            <NewrozFlame size={16} intensity={2} />
             <Text style={styles.headerComboText}>{comboCount}</Text>
           </Animated.View>
         )}
         <Text style={styles.counterText}>{currentIndex + 1}/{sessionExercises.length}</Text>
       </View>
 
-      <View style={styles.exerciseArea} key={currentExercise.id}>
+      <View style={[styles.exerciseArea, { paddingBottom: showFeedback ? 0 : Math.max(12, insets.bottom) }]} key={currentExercise.id}>
         {renderExercise()}
       </View>
 
@@ -484,21 +565,50 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   correctAnswerLabel: { fontSize: 10, fontWeight: '700', color: c.gray[500], letterSpacing: 1, marginBottom: 4 },
   correctAnswerText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.midnight[800] },
   explanationText: { fontSize: FONT_SIZE.sm, color: c.gray[600], marginBottom: SPACING.md, lineHeight: 20, backgroundColor: c.tintSoft, padding: SPACING.md, borderRadius: RADIUS.md },
-  finishScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl, backgroundColor: c.cream[50] },
-  medalWrap: { width: 150, height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.lg },
+  finishScreen: { width: '100%', alignItems: 'center' },
+  finishScrollView: { flex: 1, width: '100%' },
+  finishScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm, paddingBottom: SPACING.lg },
+  medalWrap: { width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.xs },
   medalRays: { position: 'absolute', opacity: 0.55 },
-  medal: { width: 96, height: 96, borderRadius: 48, justifyContent: 'center', alignItems: 'center', ...SHADOWS.lg },
-  finishTitleKu: { fontSize: FONT_SIZE.xxxl, fontWeight: '800', color: c.fire[600], letterSpacing: -0.5 },
-  finishTitleEn: { fontSize: 11, fontWeight: '700', color: c.gray[500], textTransform: 'uppercase', letterSpacing: 2, marginTop: 2 },
-  finishKilim: { marginVertical: SPACING.md, opacity: 0.9 },
-  finishMessage: { fontSize: FONT_SIZE.md, color: c.gray[600], textAlign: 'center', marginBottom: SPACING.xl },
-  finishStats: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.xl, alignSelf: 'stretch', justifyContent: 'center' },
-  statBox: { flex: 1, alignItems: 'center', backgroundColor: c.white, paddingVertical: SPACING.lg, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: c.gray[100], gap: 4, ...SHADOWS.sm, maxWidth: 110 },
-  statValue: { fontSize: FONT_SIZE.xl, fontWeight: '800', color: c.midnight[800] },
-  statLabel: { fontSize: FONT_SIZE.xs, color: c.gray[500], textTransform: 'uppercase', letterSpacing: 0.5 },
-  finishBtn: { alignSelf: 'stretch' },
+  medal: { width: 70, height: 70, borderRadius: 35, justifyContent: 'center', alignItems: 'center', ...SHADOWS.md },
+  finishTitleKu: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: c.fire[600], letterSpacing: -0.5 },
+  finishTitleEn: { fontSize: 10, fontWeight: '700', color: c.gray[500], textTransform: 'uppercase', letterSpacing: 2, marginTop: 1 },
+  finishKilim: { marginVertical: SPACING.xs, opacity: 0.9 },
+  finishMessage: { fontSize: FONT_SIZE.sm, color: c.gray[600], textAlign: 'center', marginBottom: SPACING.md },
+  finishStats: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md, alignSelf: 'stretch', justifyContent: 'center' },
+  statBox: { flex: 1, alignItems: 'center', backgroundColor: c.white, paddingVertical: SPACING.md, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: c.gray[100], gap: 2, ...SHADOWS.sm, maxWidth: 100 },
+  statValue: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.midnight[800] },
+  statLabel: { fontSize: 10, color: c.gray[500], textTransform: 'uppercase', letterSpacing: 0.5 },
+  finishBtn: { alignSelf: 'stretch', marginTop: 'auto' },
 
-  headerCombo: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.fireSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: RADIUS.full, borderWidth: 1, borderColor: c.fireSoftBorder, gap: 2, marginRight: 4 },
+  // Lesson result: wrong exercises (theme-aware colors)
+  mistakesBox: {
+    alignSelf: 'stretch', backgroundColor: c.white, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: c.gray[200], padding: SPACING.sm, marginBottom: SPACING.md,
+    ...SHADOWS.sm,
+  },
+  mistakesScroll: { maxHeight: 85 },
+  mistakesLabel: { fontSize: 10, fontWeight: '800', color: c.fire[600], letterSpacing: 1, marginBottom: SPACING.sm },
+  mistakeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+    paddingVertical: 8, borderTopWidth: 1, borderTopColor: c.gray[100],
+  },
+  mistakeKu: { fontSize: FONT_SIZE.md, fontWeight: '800', color: c.midnight[800], flex: 1 },
+  mistakeEn: { fontSize: FONT_SIZE.xs, color: c.gray[500], flex: 1, textAlign: 'right', fontStyle: 'italic' },
+  mistakeMore: { fontSize: FONT_SIZE.xs, color: c.fire[600], fontWeight: '700', marginTop: SPACING.sm, textAlign: 'center' },
+
+  headerCombo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: c.fireSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: c.fireSoftBorder,
+    gap: 2,
+    marginHorizontal: 4,
+  },
   headerComboText: { fontSize: 13, fontWeight: '800', color: c.fire[600] },
   comboBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.lg, borderLeftWidth: 4, borderLeftColor: c.fire[500], gap: SPACING.md, marginBottom: SPACING.md, ...SHADOWS.sm },
   comboInfo: { flex: 1 },

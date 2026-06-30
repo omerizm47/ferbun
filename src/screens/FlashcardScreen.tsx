@@ -12,7 +12,7 @@ import { useLang } from '../i18n/LanguageProvider';
 import { vocabGloss, vocabExample } from '../i18n/content';
 import { getVocabByTheme, getVocabById, VOCAB_THEMES } from '../data/vocabulary';
 import { VocabWord } from '../data/types';
-import { useProgressStore } from '../stores/progressStore';
+import { useProgressStore, selectWeakVocabIds } from '../stores/progressStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -30,17 +30,21 @@ export default function FlashcardScreen() {
   const route = useRoute<RoutePropType>();
   const { theme, mode } = route.params;
   const isReview = mode === 'review';
+  const isWeak = mode === 'weak';
   const insets = useSafeAreaInsets();
-  const { updateVocabMastery, getDueVocabIds, completeVocabReview } = useProgressStore();
+  const { updateVocabMastery, getDueVocabIds, completeVocabReview, vocabMastery } = useProgressStore();
   // The queue is snapshotted once at mount: answering pushes a word's next
   // review into the future, which would otherwise shrink the list mid-session.
   const words = useMemo(() => {
     if (isReview) {
       return getDueVocabIds().map((id) => getVocabById(id)).filter((w): w is VocabWord => !!w);
     }
+    if (isWeak) {
+      return selectWeakVocabIds(vocabMastery).map((id) => getVocabById(id)).filter((w): w is VocabWord => !!w);
+    }
     return theme ? getVocabByTheme(theme) : [];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReview, theme]);
+  }, [isReview, isWeak, theme]);
   const themeInfo = theme ? VOCAB_THEMES.find((t) => t.id === theme) : undefined;
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
@@ -105,9 +109,16 @@ export default function FlashcardScreen() {
     if (!isAppending && currentIndex >= queue.length - 1) {
       playSound('success');
       const res = completeVocabReview(10);
+      const queued: Celebration[] = [];
       if (res.leveledUp) {
-        setCelebrations([{ kind: 'level', level: res.newLevel }]);
+        queued.push({ kind: 'level', level: res.newLevel });
       }
+      if (res.newBadgeIds) {
+        res.newBadgeIds.forEach((badgeId) => {
+          queued.push({ kind: 'badge', badgeId });
+        });
+      }
+      setCelebrations(queued);
       setCurrentIndex(queue.length); // trigger finish
     } else {
       setCurrentIndex((i) => i + 1);

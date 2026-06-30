@@ -239,6 +239,8 @@ export interface UiStrings {
     goalPickerTitle: string;
     notifTitle: string;
     notifBody: string;
+    wordOfDayTitle: string;
+    wordOfDayBody: (word: string, meaning: string) => string;
     permTitle: string;
     permMessage: string;
     openSettings: string;

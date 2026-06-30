@@ -1,5 +1,8 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { vocabulary } from '../data/vocabulary';
+import { Lang } from '../i18n/types';
+import { STRINGS } from '../i18n/strings';
 
 /**
  * Thin, defensive wrapper around expo-notifications for the daily streak
@@ -64,32 +67,55 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 /**
- * (Re)schedule the single repeating daily reminder at the given local hour.
- * Cancels any existing schedule first so only one ever exists — staying far
- * under iOS's 64 pending-notification cap.
+ * Reschedule a rolling queue of 7 daily reminders, each with a different "Word of the Day".
+ * Cancels all previous schedules to avoid cluttering. If the user doesn't launch the app
+ * for 7 days, notifications stop (preventing ghost spam, which is standard OS practice).
  */
 export async function scheduleDailyReminder(
   hour: number,
-  content: { title: string; body: string },
+  lang: Lang,
 ): Promise<void> {
   try {
     await ensureAndroidChannel();
     await Notifications.cancelAllScheduledNotificationsAsync();
-    await Notifications.scheduleNotificationAsync({
-      content: { title: content.title, body: content.body },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute: 0,
-        channelId: CHANNEL_ID,
-      },
-    });
-  } catch {
-    /* no-op */
+
+    const t = STRINGS[lang];
+    const now = new Date();
+
+    for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
+      const scheduledDate = new Date();
+      scheduledDate.setDate(now.getDate() + dayOffset);
+      scheduledDate.setHours(hour, 0, 0, 0);
+
+      // Determine day of the year for a stable word selection
+      const startOfYear = new Date(scheduledDate.getFullYear(), 0, 0);
+      const diff = scheduledDate.getTime() - startOfYear.getTime();
+      const oneDay = 1000 * 60 * 60 * 24;
+      const dayOfYear = Math.floor(diff / oneDay);
+
+      const wordIndex = dayOfYear % vocabulary.length;
+      const wordObj = vocabulary[wordIndex];
+
+      const wordKu = wordObj.wordKu;
+      const meaning = lang === 'tr' ? (wordObj.wordTr || wordObj.wordEn) : wordObj.wordEn;
+
+      const title = t.reminders.wordOfDayTitle;
+      const body = t.reminders.wordOfDayBody(wordKu, meaning);
+
+      await Notifications.scheduleNotificationAsync({
+        content: { title, body },
+        trigger: {
+          date: scheduledDate,
+          channelId: CHANNEL_ID,
+        } as any,
+      });
+    }
+  } catch (e) {
+    console.error('Failed to schedule daily reminders:', e);
   }
 }
 
-/** Remove the scheduled reminder (e.g. when the user turns reminders off). */
+/** Remove all scheduled reminders (e.g. when the user turns reminders off). */
 export async function cancelDailyReminder(): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
@@ -97,3 +123,4 @@ export async function cancelDailyReminder(): Promise<void> {
     /* no-op */
   }
 }
+

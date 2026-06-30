@@ -20,6 +20,9 @@ import { haptics } from '../utils/haptics';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { requestNotificationPermission, scheduleDailyReminder, cancelDailyReminder } from '../utils/notifications';
+import { getBadgeProgress } from '../utils/badges';
+import { stories } from '../data/stories';
+import BadgeCard from '../components/ui/BadgeCard';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -70,7 +73,7 @@ export default function ProfileScreen() {
   const { colors: c, mode, setMode, scheme } = useTheme();
   const { t, lang, setLang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery } = useProgressStore();
+  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories } = useProgressStore();
   const streakLevel = getStreakLevel();
   const completed = Object.values(lessonProgress).filter((p) => p.completed).length;
   const total = getTotalLessons();
@@ -78,6 +81,7 @@ export default function ProfileScreen() {
   const progressPct = Math.round((completed / total) * 100);
 
   const [editing, setEditing] = useState(false);
+  const [showBadgesModal, setShowBadgesModal] = useState(false);
   const [nameInput, setNameInput] = useState(displayName);
   const [iconChoice, setIconChoice] = useState(avatarIcon);
   const [colorChoice, setColorChoice] = useState(avatarColor);
@@ -90,7 +94,6 @@ export default function ProfileScreen() {
   const setNotificationsEnabled = useSettingsStore((st) => st.setNotificationsEnabled);
   const setReminderHour = useSettingsStore((st) => st.setReminderHour);
   const setDailyGoalXp = useSettingsStore((st) => st.setDailyGoalXp);
-  const reminderContent = { title: t.reminders.notifTitle, body: t.reminders.notifBody };
 
   // iOS will not re-prompt after a denial, so fall back to opening Settings.
   const onToggleReminders = async (value: boolean) => {
@@ -105,7 +108,7 @@ export default function ProfileScreen() {
         return;
       }
       setNotificationsEnabled(true);
-      await scheduleDailyReminder(reminderHour, reminderContent);
+      await scheduleDailyReminder(reminderHour, lang);
     } else {
       setNotificationsEnabled(false);
       await cancelDailyReminder();
@@ -114,7 +117,7 @@ export default function ProfileScreen() {
   const onPickTime = async (hour: number) => {
     haptics.selection();
     setReminderHour(hour);
-    if (notificationsEnabled) await scheduleDailyReminder(hour, reminderContent);
+    if (notificationsEnabled) await scheduleDailyReminder(hour, lang);
   };
   const onPickGoal = (xp: number) => {
     haptics.selection();
@@ -198,6 +201,15 @@ export default function ProfileScreen() {
   }, [vocabMastery]);
 
   const srsA11yLabel = `${t.profile.srsTitle}. ${vocabStats.learning} ${t.profile.srsLearning}, ${vocabStats.familiar} ${t.profile.srsFamiliar}, ${vocabStats.mastered} ${t.profile.statMastered}. ${t.profile.forgettingCurveTip}`;
+
+  const badgeProgress = useMemo(() => getBadgeProgress({
+    lessonProgress,
+    vocabMastery,
+    streakCount,
+    completedStories,
+    totalLessons: total,
+    totalStories: stories.length,
+  }), [lessonProgress, vocabMastery, streakCount, completedStories, total]);
 
   const stats = [
     {
@@ -344,6 +356,34 @@ export default function ProfileScreen() {
               </View>
             </View>
           )}
+        </View>
+
+        {/* Achievements / Başarımlar */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>
+            {lang === 'tr' ? 'BAŞARIMLAR' : 'ACHIEVEMENTS'}
+          </Text>
+          <TouchableOpacity
+            style={s.achievementsSummaryCard}
+            onPress={() => { haptics.selection(); setShowBadgesModal(true); }}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={lang === 'tr' ? 'Başarımları görüntüle' : 'View achievements'}
+          >
+            <View style={[s.summaryBadgeIconCircle, { backgroundColor: c.fire[500] }]}>
+              <Ionicons name="ribbon" size={22} color="#FFFFFF" />
+            </View>
+            <View style={s.summaryTextWrap}>
+              <Text style={s.summaryTitle}>
+                {lang === 'tr' ? 'Rozetlerim & Başarımlarım' : 'My Badges & Achievements'}
+              </Text>
+              <Text style={s.summarySubtitle}>
+                {badgeProgress.filter((b) => b.earned).length}/{badgeProgress.length}{' '}
+                {lang === 'tr' ? 'başarım kazanıldı' : 'achievements earned'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={c.gray[400]} />
+          </TouchableOpacity>
         </View>
 
         {/* Streak Levels */}
@@ -516,6 +556,55 @@ export default function ProfileScreen() {
         <View style={{ height: 32 }} />
       </ScrollView>
 
+      {/* Achievements Detail Modal */}
+      <Modal
+        visible={showBadgesModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowBadgesModal(false)}
+      >
+        <View style={[s.modalContainer, { backgroundColor: c.cream[50] }]}>
+          {/* Modal Header */}
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>
+              {lang === 'tr' ? 'Tüm Başarımlar' : 'All Achievements'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowBadgesModal(false)}
+              style={s.modalCloseBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t.common.close}
+            >
+              <Ionicons name="close" size={24} color={c.gray[600]} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Badge List */}
+          <ScrollView
+            contentContainerStyle={s.modalScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={s.modalSubtitle}>
+              {lang === 'tr'
+                ? 'Kürtçe öğrenirken kazandığın tüm rozetler ve başarımlar.'
+                : 'All achievements and badges earned while learning Kurdish.'}
+            </Text>
+            <View style={s.badgeCountBox}>
+              <Text style={s.badgeCountText}>
+                {badgeProgress.filter((b) => b.earned).length} / {badgeProgress.length}
+              </Text>
+              <Text style={s.badgeCountLabel}>
+                {lang === 'tr' ? 'Kazanılan Rozet' : 'Badges Earned'}
+              </Text>
+            </View>
+
+            {badgeProgress.map((bp, i) => (
+              <BadgeCard key={bp.def.id} def={bp.def} earned={bp.earned} index={i} />
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
       {/* Edit profile */}
       <Modal visible={editing} transparent animationType="fade" onRequestClose={() => setEditing(false)}>
         <Pressable style={s.modalOverlay} onPress={() => setEditing(false)}>
@@ -620,6 +709,7 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   // Sections
   section: { paddingHorizontal: SPACING.lg, marginTop: SPACING.xl },
   sectionTitle: { ...TYPOGRAPHY.section, color: c.gray[500], marginBottom: SPACING.sm },
+  sectionSubtitle: { fontSize: FONT_SIZE.xs, color: c.gray[400], marginBottom: SPACING.sm, marginTop: -4 },
 
   // Progress Card
   progressCard: { backgroundColor: c.white, borderRadius: RADIUS.md, padding: SPACING.md, borderWidth: 1, borderColor: c.gray[100] },
@@ -777,5 +867,85 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: SPACING.md,
     lineHeight: 20,
+  },
+
+  // Achievements Summary Card & Detail Modal styles
+  achievementsSummaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: c.white,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: c.gray[100],
+    gap: SPACING.md,
+    ...SHADOWS.sm,
+  },
+  summaryBadgeIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryTextWrap: {
+    flex: 1,
+  },
+  summaryTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '800',
+    color: c.midnight[800],
+  },
+  summarySubtitle: {
+    fontSize: FONT_SIZE.xs,
+    color: c.gray[500],
+    marginTop: 2,
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: c.gray[100],
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalScrollContent: {
+    padding: SPACING.lg,
+  },
+  modalSubtitle: {
+    fontSize: FONT_SIZE.sm,
+    color: c.gray[500],
+    lineHeight: 20,
+    marginBottom: SPACING.md,
+  },
+  badgeCountBox: {
+    backgroundColor: c.white,
+    borderWidth: 1,
+    borderColor: c.gray[100],
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    ...SHADOWS.sm,
+  },
+  badgeCountText: {
+    fontSize: FONT_SIZE.xxl,
+    fontWeight: '900',
+    color: c.fire[600],
+  },
+  badgeCountLabel: {
+    fontSize: FONT_SIZE.xs,
+    color: c.gray[500],
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 4,
   },
 });

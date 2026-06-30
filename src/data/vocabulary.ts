@@ -3,7 +3,7 @@ import { VocabWord } from './types';
 // Vocabulary organized by theme, sourced from Thackston's glossary
 // Gender: m = masculine, f = feminine
 
-const vocabulary: VocabWord[] = [
+export const vocabulary: VocabWord[] = [
   // === GREETINGS & SOCIAL ===
   { id: 'v001', wordKu: 'silav', wordEn: 'greeting, hello', partOfSpeech: 'f', theme: 'greetings', exampleKu: 'Silav li te!', exampleEn: 'Hello to you!', wordTr: 'selam, merhaba', exampleTr: 'Sana selam!' },
   { id: 'v002', wordKu: 'spas', wordEn: 'thanks', partOfSpeech: 'm', theme: 'greetings', exampleKu: 'Spas ji te re.', exampleEn: 'Thanks to you.', wordTr: 'teşekkürler', exampleTr: 'Sana teşekkürler.' },

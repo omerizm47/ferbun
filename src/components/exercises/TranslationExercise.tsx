@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable, Keyboard } from 'react-native';
 import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../../theme';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -9,6 +9,7 @@ import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, exercisePromptKu, resolveTypedAnswer } from '../../i18n/content';
 import QuestionPrompt from './QuestionPrompt';
 import Button from '../ui/Button';
+import KurdishKeyboardRow from '../ui/KurdishKeyboardRow';
 
 interface Props {
   exercise: Exercise;
@@ -23,13 +24,21 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [showUpper, setShowUpper] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   const handleSubmit = () => {
     if (disabled || submitted || !input.trim()) return;
+    Keyboard.dismiss();
     setSubmitted(true);
     const correct = checkTypedAnswer(input, resolveTypedAnswer(exercise, lang));
     if (correct) haptics.success(); else haptics.error();
     onAnswer(correct);
+  };
+
+  const handleInsert = (char: string) => {
+    setInput((prev) => prev + char);
+    inputRef.current?.focus();
   };
 
   return (
@@ -38,6 +47,7 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
         <QuestionPrompt kicker={`WERGERÎNE · ${t.exercises.translateKicker}`} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
       </Pressable>
       <TextInput
+        ref={inputRef}
         style={[styles.input, focused && styles.inputFocused, submitted && styles.inputDisabled]}
         placeholder={t.exercises.typeAnswer}
         placeholderTextColor={c.gray[400]}
@@ -51,7 +61,17 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
         onBlur={() => setFocused(false)}
         autoCapitalize="none"
         autoCorrect={false}
+        onSubmitEditing={handleSubmit}
+        returnKeyType="done"
+        enablesReturnKeyAutomatically
       />
+      {!disabled && !submitted && (
+        <KurdishKeyboardRow
+          onInsert={handleInsert}
+          showUppercase={showUpper}
+          onToggleCase={() => setShowUpper((v) => !v)}
+        />
+      )}
       {!disabled && (
         <Button label={t.common.check} onPress={handleSubmit} disabled={!input.trim()} haptic={false} style={styles.checkBtn} />
       )}
@@ -70,3 +90,5 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   inputDisabled: { backgroundColor: c.gray[100], borderColor: c.gray[200] },
   checkBtn: { marginTop: SPACING.md },
 });
+
+

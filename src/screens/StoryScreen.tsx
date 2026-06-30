@@ -95,9 +95,16 @@ export default function StoryScreen() {
       setQuizDone(true);
       const isAlreadyComplete = isStoryComplete(story.id);
       const res = markStoryComplete(story.id);
+      const queued: Celebration[] = [];
       if (res.leveledUp) {
-        setCelebrations([{ kind: 'level', level: res.newLevel }]);
+        queued.push({ kind: 'level', level: res.newLevel });
       }
+      if (res.newBadgeIds) {
+        res.newBadgeIds.forEach((badgeId) => {
+          queued.push({ kind: 'badge', badgeId });
+        });
+      }
+      setCelebrations(queued);
       if (!isAlreadyComplete) {
         setEarnedXp(true);
       }
