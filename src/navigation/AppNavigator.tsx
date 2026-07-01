@@ -20,6 +20,7 @@ import LessonScreen from '../screens/LessonScreen';
 import UnitScreen from '../screens/UnitScreen';
 import FlashcardScreen from '../screens/FlashcardScreen';
 import StoryScreen from '../screens/StoryScreen';
+import RapidFireScreen from '../screens/RapidFireScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   Unit: { unitId: string; courseId: string };
   Flashcard: { theme?: string; mode?: 'review' | 'weak' };
   Story: { storyId: string };
+  RapidFire: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -116,6 +118,7 @@ export default function AppNavigator() {
         />
         <Stack.Screen name="Flashcard" component={FlashcardScreen} />
         <Stack.Screen name="Story" component={StoryScreen} />
+        <Stack.Screen name="RapidFire" component={RapidFireScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
