@@ -11,17 +11,30 @@ const SOUNDS = {
 const loadedSounds: Record<string, Audio.Sound> = {};
 
 /**
+ * Set whether audio plays through the iOS silent switch. UI feedback sounds
+ * respect silent (false); pronunciation flips this to true only while a clip or
+ * utterance is playing, then restores it (see utils/speech).
+ */
+export async function setPlaysInSilentMode(on: boolean): Promise<void> {
+  try {
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: on,
+      staysActiveInBackground: false,
+      allowsRecordingIOS: false,
+    });
+  } catch (e) {
+    console.warn('[Fêrbûn Sounds] Failed to set audio mode:', e);
+  }
+}
+
+/**
  * Preload all UI feedback sounds into memory at app startup.
  * This guarantees zero playback latency on user interactions.
  */
 export async function preloadSounds(): Promise<void> {
   try {
-    // Configure audio to play even if user device has silent switch active (premium iOS mode)
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      allowsRecordingIOS: false,
-    });
+    // UI feedback sounds should honour the ringer/silent switch.
+    await setPlaysInSilentMode(false);
 
     for (const [key, value] of Object.entries(SOUNDS)) {
       if (!loadedSounds[key]) {

@@ -8,7 +8,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { themeLabel } from '../i18n/content';
 import { getVocabByTheme, VOCAB_THEMES, vocabulary } from '../data/vocabulary';
-import { useProgressStore, selectDueVocabIds } from '../stores/progressStore';
+import { useProgressStore, selectDueVocabIds, selectWeakVocabIds } from '../stores/progressStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -29,6 +29,7 @@ export default function VocabScreen() {
   
   const vocabMastery = useProgressStore((st) => st.vocabMastery);
   const dueCount = useMemo(() => selectDueVocabIds(vocabMastery).length, [vocabMastery]);
+  const weakCount = useMemo(() => selectWeakVocabIds(vocabMastery).length, [vocabMastery]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWord, setSelectedWord] = useState<any>(null);
@@ -221,6 +222,24 @@ export default function VocabScreen() {
               <View style={s.reviewInfo}>
                 <Text style={s.reviewTitle}>{t.review.title}</Text>
                 <Text style={s.reviewSub}>{t.review.due(dueCount)}</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </PressableScale>
+          )}
+
+          {weakCount > 0 && (
+            <PressableScale
+              style={s.reviewBanner}
+              onPress={() => { haptics.selection(); navigation.navigate('Flashcard', { mode: 'weak' }); }}
+              accessibilityRole="button"
+              accessibilityLabel={lang === 'tr' ? 'Zayıf kelimeleri tekrarla' : 'Practice weak words'}
+            >
+              <View style={s.reviewIconWrap}>
+                <Ionicons name="barbell" size={20} color="#FFFFFF" />
+              </View>
+              <View style={s.reviewInfo}>
+                <Text style={s.reviewTitle}>{lang === 'tr' ? 'Zayıf Kelimeler' : 'Weak Words'}</Text>
+                <Text style={s.reviewSub}>{lang === 'tr' ? `${weakCount} kelime tekrar bekliyor` : `${weakCount} words need practice`}</Text>
               </View>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </PressableScale>

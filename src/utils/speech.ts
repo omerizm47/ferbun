@@ -2,6 +2,7 @@ import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 import { Platform } from 'react-native';
 import { WORD_AUDIO } from '../data/wordAudio';
+import { setPlaysInSilentMode } from './sounds';
 
 /**
  * Defensive wrapper around expo-speech for reading Kurmanji aloud.
@@ -87,13 +88,20 @@ export async function speakKurdish(text: string, slow: boolean = false): Promise
     // Only respell when leaning on a Turkish voice; a real Kurdish voice knows the script.
     const usingTurkish = picked.language.toLowerCase().startsWith('tr');
     const spoken = usingTurkish ? respellForTurkish(text) : text;
+    // Pronunciation is content the user asked for, so let it play through the
+    // iOS silent switch; restore silent-respecting mode when the utterance ends.
+    await setPlaysInSilentMode(true);
     Speech.speak(spoken, {
       language: picked.language,
       voice: picked.voice,
       pitch: 1.0,
       rate: slow ? 0.5 : 0.82, // turtle mode vs. natural pace
+      onDone: () => { setPlaysInSilentMode(false).catch(() => {}); },
+      onStopped: () => { setPlaysInSilentMode(false).catch(() => {}); },
+      onError: () => { setPlaysInSilentMode(false).catch(() => {}); },
     });
   } catch (e) {
+    setPlaysInSilentMode(false).catch(() => {});
     console.warn('[Fêrbûn Speech] Failed to speak:', e);
   }
 }
@@ -128,6 +136,8 @@ export async function pronounce(text: string, slow: boolean = false): Promise<vo
       currentClip = null;
       prev.unloadAsync().catch(() => {});
     }
+    // Bundled pronunciation should be audible even when the ringer is silenced.
+    await setPlaysInSilentMode(true);
     const { sound } = await Audio.Sound.createAsync(asset, { shouldPlay: false });
     currentClip = sound;
     await sound.setRateAsync(slow ? 0.6 : 1.0, true);
@@ -135,6 +145,7 @@ export async function pronounce(text: string, slow: boolean = false): Promise<vo
       if (st.isLoaded && st.didJustFinish) {
         sound.unloadAsync().catch(() => {});
         if (currentClip === sound) currentClip = null;
+        setPlaysInSilentMode(false).catch(() => {});
       }
     });
     await sound.setPositionAsync(0);
