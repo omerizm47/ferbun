@@ -74,6 +74,7 @@ export default function LessonScreen() {
   const [isFinished, setIsFinished] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastCorrect, setLastCorrect] = useState(false);
+  const [lastExact, setLastExact] = useState(true);
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
 
   // Combo system state
@@ -103,8 +104,9 @@ export default function LessonScreen() {
     }
   }, [phase, currentIndex, showFeedback, isFinished, navigation, t]);
 
-  const handleAnswer = useCallback((correct: boolean) => {
+  const handleAnswer = useCallback((correct: boolean, opts?: { exact?: boolean }) => {
     setLastCorrect(correct);
+    setLastExact(opts?.exact ?? true);
     setShowFeedback(true);
     if (correct) {
       playSound('correct');
@@ -408,6 +410,17 @@ export default function LessonScreen() {
               </View>
             </Animated.View>
           )}
+          {lastCorrect && !lastExact && (
+            <View style={styles.spellingTipBox}>
+              <Text style={styles.spellingTipLabel}>RASTNIVÎS · {t.exercises.correctSpelling}</Text>
+              <Text style={styles.spellingTipText}>
+                {(() => {
+                  const ans = resolveTypedAnswer(currentExercise, lang);
+                  return Array.isArray(ans) ? ans[0] : ans;
+                })()}
+              </Text>
+            </View>
+          )}
           {!lastCorrect && (
             <View style={styles.correctAnswerBox}>
               {endedCombo >= 3 && (
@@ -484,6 +497,9 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   correctAnswerBox: { backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.md, marginBottom: SPACING.sm, borderLeftWidth: 3, borderLeftColor: c.gray[300] },
   correctAnswerLabel: { fontSize: 10, fontWeight: '700', color: c.gray[500], letterSpacing: 1, marginBottom: 4 },
   correctAnswerText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.midnight[800] },
+  spellingTipBox: { backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.md, marginBottom: SPACING.sm, borderLeftWidth: 3, borderLeftColor: c.success },
+  spellingTipLabel: { fontSize: 10, fontWeight: '700', color: c.successText, letterSpacing: 1, marginBottom: 4 },
+  spellingTipText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.midnight[800] },
   explanationText: { fontSize: FONT_SIZE.sm, color: c.gray[600], marginBottom: SPACING.md, lineHeight: 20, backgroundColor: c.tintSoft, padding: SPACING.md, borderRadius: RADIUS.md },
   finishScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl, backgroundColor: c.cream[50] },
   medalWrap: { width: 150, height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.lg },

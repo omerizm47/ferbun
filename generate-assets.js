@@ -200,7 +200,84 @@ function generateFeatureGraphic() {
   console.log('Feature graphic saved to:', outPath);
 }
 
-generateAppIcon(1024, 'icon.png');       // crisp 1024² source for app stores (alpha stripped post-gen)
-generateAppIcon(512, 'icon-playstore.png');
-generateFeatureGraphic();
+// === SPLASH ICON (transparent; composites on the #E85D00 splash background) ===
+// The previous splash-icon.png was the default Expo placeholder (grid + circles).
+// This draws the Fêrbûn sun + wordmark on a transparent canvas so resizeMode
+// "contain" centers it cleanly on the orange splash backgroundColor.
+function generateSplashIcon(size = 1024) {
+  const k = size / 1024;
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  // intentionally no background fill — keep it transparent
+
+  const cx = size / 2;
+  const cy = size * 0.40;
+  const innerR = 64 * k;
+  const outerR = 128 * k;
+  const rays = 21;
+
+  // Sun glow
+  const glowGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR + 30 * k);
+  glowGrad.addColorStop(0, 'rgba(255,255,255,0.22)');
+  glowGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR + 30 * k, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Sun rays
+  for (let i = 0; i < rays; i++) {
+    const angle = (i * 360 / rays - 90) * Math.PI / 180;
+    const x1 = cx + Math.cos(angle) * (innerR + 6 * k);
+    const y1 = cy + Math.sin(angle) * (innerR + 6 * k);
+    const x2 = cx + Math.cos(angle) * outerR;
+    const y2 = cy + Math.sin(angle) * outerR;
+    ctx.strokeStyle = i % 2 === 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = (i % 2 === 0 ? 4 : 2.4) * k;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // Sun center
+  const sunGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, innerR);
+  sunGrad.addColorStop(0, '#FFE9D2');
+  sunGrad.addColorStop(1, '#FFFFFF');
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Wordmark
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `bold ${130 * k}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Fêrbûn', cx, size * 0.66);
+
+  // Subtitle
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = `600 ${34 * k}px sans-serif`;
+  ctx.letterSpacing = `${6 * k}px`;
+  ctx.fillText('LEARN KURDISH', cx, size * 0.745);
+
+  const buffer = canvas.toBuffer('image/png');
+  const outPath = path.join(__dirname, 'assets', 'splash-icon.png');
+  fs.writeFileSync(outPath, buffer);
+  console.log('Splash icon saved to:', outPath);
+}
+
+// Pass a target to limit output: `node generate-assets.js splash` (or `icons`).
+// No argument keeps the original behavior and regenerates everything.
+const target = process.argv[2] || 'all';
+if (target === 'all' || target === 'icons') {
+  generateAppIcon(1024, 'icon.png');       // crisp 1024² source for app stores (alpha stripped post-gen)
+  generateAppIcon(512, 'icon-playstore.png');
+  generateFeatureGraphic();
+}
+if (target === 'all' || target === 'splash') {
+  generateSplashIcon();
+}
 console.log('Done! Check the assets/ folder.');

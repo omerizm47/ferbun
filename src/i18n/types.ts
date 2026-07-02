@@ -142,6 +142,7 @@ export interface UiStrings {
     matchKicker: string;
     matchInstruction: string;
     correctAnswer: string;
+    correctSpelling: string;
     typeAnswer: string;
     fillBlank: string;
     true: string;

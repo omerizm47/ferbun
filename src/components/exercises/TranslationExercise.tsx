@@ -4,7 +4,7 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../../theme';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Exercise } from '../../data/types';
 import { haptics } from '../../utils/haptics';
-import { checkTypedAnswer } from '../../utils/answers';
+import { gradeTypedAnswer } from '../../utils/answers';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, exercisePromptKu, resolveTypedAnswer } from '../../i18n/content';
 import QuestionPrompt from './QuestionPrompt';
@@ -12,7 +12,7 @@ import Button from '../ui/Button';
 
 interface Props {
   exercise: Exercise;
-  onAnswer: (correct: boolean) => void;
+  onAnswer: (correct: boolean, opts?: { exact?: boolean }) => void;
   disabled: boolean;
 }
 
@@ -27,9 +27,9 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
   const handleSubmit = () => {
     if (disabled || submitted || !input.trim()) return;
     setSubmitted(true);
-    const correct = checkTypedAnswer(input, resolveTypedAnswer(exercise, lang));
-    if (correct) haptics.success(); else haptics.error();
-    onAnswer(correct);
+    const grade = gradeTypedAnswer(input, resolveTypedAnswer(exercise, lang));
+    if (grade.correct) haptics.success(); else haptics.error();
+    onAnswer(grade.correct, { exact: grade.exact });
   };
 
   return (
