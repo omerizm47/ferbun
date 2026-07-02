@@ -10,12 +10,16 @@ import { useLang } from '../i18n/LanguageProvider';
 import { Lang } from '../i18n/types';
 import { useProgressStore } from '../stores/progressStore';
 import { getTotalLessons } from '../data/courses';
+import { stories } from '../data/stories';
+import { computeBadges, ProgressSnapshot } from '../utils/badges';
+import { ALL_BADGES } from '../data/badges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedProgressBar from '../components/ui/AnimatedProgressBar';
 import { MountainSilhouette, KurdishSun } from '../components/ui/KurdishDecorations';
 import MotifTile from '../components/ui/MotifTile';
 import { toIconName } from '../utils/icons';
 import KurdishAvatar from '../components/ui/KurdishAvatar';
+import BadgeCard from '../components/ui/BadgeCard';
 import UpperText from '../components/ui/UpperText';
 import { haptics } from '../utils/haptics';
 import { useOnboardingStore } from '../stores/onboardingStore';
@@ -87,7 +91,7 @@ export default function ProfileScreen() {
   const { colors: c, mode, setMode, scheme } = useTheme();
   const { t, lang, setLang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery } = useProgressStore();
+  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories, maxComboEver } = useProgressStore();
   const streakLevel = getStreakLevel();
   const completed = Object.values(lessonProgress).filter((p) => p.completed).length;
   const total = getTotalLessons();
@@ -107,6 +111,28 @@ export default function ProfileScreen() {
   const setNotificationsEnabled = useSettingsStore((st) => st.setNotificationsEnabled);
   const setReminderHour = useSettingsStore((st) => st.setReminderHour);
   const setDailyGoalXp = useSettingsStore((st) => st.setDailyGoalXp);
+  const soundEffectsEnabled = useSettingsStore((st) => st.soundEffectsEnabled);
+  const hapticsEnabled = useSettingsStore((st) => st.hapticsEnabled);
+  const cardDirection = useSettingsStore((st) => st.cardDirection);
+  const setSoundEffectsEnabled = useSettingsStore((st) => st.setSoundEffectsEnabled);
+  const setHapticsEnabled = useSettingsStore((st) => st.setHapticsEnabled);
+  const setCardDirection = useSettingsStore((st) => st.setCardDirection);
+  const targetLangName = lang === 'tr' ? 'Türkçe' : 'English';
+
+  const badgeProgress = useMemo(() => {
+    const snapshot: ProgressSnapshot = {
+      lessonProgress,
+      vocabMastery,
+      streakCount,
+      completedStories,
+      maxComboEver,
+      totalLessons: getTotalLessons(),
+      totalStories: stories.length,
+    };
+    const earned = computeBadges(snapshot);
+    return ALL_BADGES.map((def) => ({ def, earned: earned.has(def.id) }));
+  }, [lessonProgress, vocabMastery, streakCount, completedStories, maxComboEver]);
+  const earnedBadgeCount = badgeProgress.filter((b) => b.earned).length;
 
   // iOS will not re-prompt after a denial, so fall back to opening Settings.
   const onToggleReminders = async (value: boolean) => {
@@ -509,6 +535,75 @@ export default function ProfileScreen() {
               </View>
             </>
           )}
+        </View>
+
+        {/* Preferences */}
+        <View style={s.section}>
+          <UpperText style={s.sectionTitle}>{t.profile.preferences}</UpperText>
+
+          <View style={s.switchRow}>
+            <View style={s.switchInfo}>
+              <Text style={s.switchTitle}>{t.profile.prefSoundEffects}</Text>
+            </View>
+            <Switch
+              value={soundEffectsEnabled}
+              onValueChange={(val) => { haptics.selection(); setSoundEffectsEnabled(val); }}
+              trackColor={{ false: c.gray[200], true: c.fire[400] }}
+              thumbColor={soundEffectsEnabled ? c.fire[600] : c.white}
+              ios_backgroundColor={c.gray[200]}
+              accessibilityLabel={t.profile.prefSoundEffects}
+            />
+          </View>
+
+          <View style={s.switchRow}>
+            <View style={s.switchInfo}>
+              <Text style={s.switchTitle}>{t.profile.prefHaptics}</Text>
+            </View>
+            <Switch
+              value={hapticsEnabled}
+              onValueChange={(val) => { setHapticsEnabled(val); if (val) haptics.selection(); }}
+              trackColor={{ false: c.gray[200], true: c.fire[400] }}
+              thumbColor={hapticsEnabled ? c.fire[600] : c.white}
+              ios_backgroundColor={c.gray[200]}
+              accessibilityLabel={t.profile.prefHaptics}
+            />
+          </View>
+
+          <Text style={[s.subLabel, { marginTop: SPACING.md }]}>{t.profile.prefCardDirection}</Text>
+          <View style={s.segment}>
+            {([
+              { mode: 'ku_to_tr_en', ku: `Kurdî → ${targetLangName}`, label: t.profile.prefCardDirKuTrEn },
+              { mode: 'tr_en_to_ku', ku: `${targetLangName} → Kurdî`, label: t.profile.prefCardDirTrEnKu },
+            ] as const).map((opt) => {
+              const active = cardDirection === opt.mode;
+              return (
+                <TouchableOpacity
+                  key={opt.mode}
+                  style={[s.segmentItem, active && s.segmentItemActive]}
+                  onPress={() => { haptics.selection(); setCardDirection(opt.mode); }}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={opt.label}
+                >
+                  <Ionicons name="swap-horizontal-outline" size={18} color={active ? '#FFFFFF' : c.gray[500]} />
+                  <Text style={[s.segmentKu, active && s.segmentLabelActive]}>{opt.ku}</Text>
+                  <Text style={[s.segmentEn, active && s.segmentSubActive]}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Achievements */}
+        <View style={s.section}>
+          <UpperText style={s.sectionTitle}>{lang === 'tr' ? 'Başarımlar' : 'Achievements'}</UpperText>
+          <Text style={s.subLabel}>
+            {earnedBadgeCount} / {badgeProgress.length} · {lang === 'tr' ? 'Kazanılan Rozet' : 'Badges Earned'}
+          </Text>
+          {badgeProgress.map((bp, i) => (
+            <BadgeCard key={bp.def.id} def={bp.def} earned={bp.earned} index={i} />
+          ))}
         </View>
 
         {/* Help */}
