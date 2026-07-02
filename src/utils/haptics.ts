@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { useSettingsStore } from '../stores/settingsStore';
 
 /**
  * Thin wrapper around expo-haptics that degrades gracefully.
@@ -6,6 +7,9 @@ import * as Haptics from 'expo-haptics';
  * unsupported platform throw into UI handlers.
  */
 function run(fn: () => Promise<void>) {
+  const enabled = useSettingsStore.getState().hapticsEnabled;
+  if (!enabled) return;
+
   try {
     fn().catch(() => {});
   } catch {

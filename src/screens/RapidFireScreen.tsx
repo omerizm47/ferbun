@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, Dimensions
 } from 'react-native';
@@ -30,7 +30,7 @@ export default function RapidFireScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { colors: c, scheme } = useTheme();
-  const { t, lang } = useLang();
+  const { lang } = useLang();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const [score, setScore] = useState(0);
@@ -50,23 +50,22 @@ export default function RapidFireScreen() {
         if (val) {
           setHighScore(parseInt(val, 10));
         }
-      } catch (e) {
+      } catch {
         // no-op
       }
     })();
   }, []);
 
   // Update and save high score
-  const updateHighScore = async (newScore: number) => {
-    if (newScore > highScore) {
-      setHighScore(newScore);
-      try {
-        await AsyncStorage.setItem('@ferbun_rapid_fire_highscore', newScore.toString());
-      } catch (e) {
-        // no-op
+  const updateHighScore = useCallback(async (newScore: number) => {
+    setHighScore((prev) => {
+      if (newScore > prev) {
+        AsyncStorage.setItem('@ferbun_rapid_fire_highscore', newScore.toString()).catch(() => {});
+        return newScore;
       }
-    }
-  };
+      return prev;
+    });
+  }, []);
 
   // Generate a random card
   const generateNewCard = (): CardState => {
@@ -132,7 +131,7 @@ export default function RapidFireScreen() {
     if (gameState === 'gameover') {
       updateHighScore(score);
     }
-  }, [gameState, score]);
+  }, [gameState, score, updateHighScore]);
 
   // Swipe Shared Values
   const translateX = useSharedValue(0);

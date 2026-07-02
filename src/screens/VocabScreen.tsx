@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, StatusBar, TextInput, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, StatusBar, TextInput, TouchableOpacity, Modal, Pressable, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,6 +32,7 @@ export default function VocabScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWord, setSelectedWord] = useState<any>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'learning' | 'familiar' | 'mastered' | 'not_studied'>('all');
 
   // Normalize Kurdish characters for diacritic-insensitive search
   const normalizeString = (str: string) => {
@@ -77,19 +78,41 @@ export default function VocabScreen() {
   };
 
   const filteredWords = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const queryNormalized = normalizeString(searchQuery.trim());
+    if (!searchQuery.trim() && selectedFilter === 'all') return [];
+
+    const queryNormalized = searchQuery.trim() ? normalizeString(searchQuery.trim()) : '';
+
     return vocabulary.filter((word) => {
-      const kuNormalized = normalizeString(word.wordKu);
-      const enNormalized = normalizeString(word.wordEn);
-      const trNormalized = normalizeString(word.wordTr || '');
-      return (
-        kuNormalized.includes(queryNormalized) ||
-        enNormalized.includes(queryNormalized) ||
-        trNormalized.includes(queryNormalized)
-      );
+      // 1. Search Query filter
+      if (queryNormalized) {
+        const kuNormalized = normalizeString(word.wordKu);
+        const enNormalized = normalizeString(word.wordEn);
+        const trNormalized = normalizeString(word.wordTr || '');
+        const matchesQuery =
+          kuNormalized.includes(queryNormalized) ||
+          enNormalized.includes(queryNormalized) ||
+          trNormalized.includes(queryNormalized);
+        if (!matchesQuery) return false;
+      }
+
+      // 2. Mastery status filter
+      const mastery = vocabMastery[word.id];
+      if (selectedFilter === 'learning') {
+        return mastery && mastery.masteryLevel <= 1;
+      }
+      if (selectedFilter === 'familiar') {
+        return mastery && (mastery.masteryLevel === 2 || mastery.masteryLevel === 3);
+      }
+      if (selectedFilter === 'mastered') {
+        return mastery && mastery.masteryLevel >= 4;
+      }
+      if (selectedFilter === 'not_studied') {
+        return !mastery;
+      }
+
+      return true; // selectedFilter === 'all'
     });
-  }, [searchQuery]);
+  }, [searchQuery, selectedFilter, vocabMastery]);
 
   return (
     <View style={s.container}>
@@ -115,47 +138,74 @@ export default function VocabScreen() {
         )}
       </View>
 
-      {searchQuery.length > 0 ? (
-        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
-          {filteredWords.length === 0 ? (
+      {/* Filter Chips Row */}
+      <View style={s.filterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.filterScrollContent}
+        >
+          {([
+            { id: 'all', label: t.vocab.filterAll },
+            { id: 'learning', label: t.vocab.filterLearning },
+            { id: 'familiar', label: t.vocab.filterFamiliar },
+            { id: 'mastered', label: t.vocab.filterMastered },
+            { id: 'not_studied', label: t.vocab.filterNotStudied },
+          ] as const).map((filter) => {
+            const active = selectedFilter === filter.id;
+            return (
+              <TouchableOpacity
+                key={filter.id}
+                style={[s.filterChip, active && s.filterChipActive]}
+                onPress={() => {
+                  haptics.selection();
+                  setSelectedFilter(filter.id);
+                }}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[s.filterChipText, active && s.filterChipTextActive]}>
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {searchQuery.length > 0 || selectedFilter !== 'all' ? (
+        filteredWords.length === 0 ? (
+          <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
             <View style={s.emptySearch}>
               <Ionicons name="search-outline" size={48} color={c.gray[300]} style={{ marginBottom: 12 }} />
               <Text style={s.emptySearchText}>
                 {lang === 'tr' ? 'Sonuç bulunamadı' : 'No results found'}
               </Text>
             </View>
-          ) : (
-            filteredWords.map((word) => {
-              const mastery = vocabMastery[word.id];
-              let masteryColor = c.gray[200];
-              if (mastery) {
-                if (mastery.masteryLevel >= 4) masteryColor = c.kurdish[500];
-                else if (mastery.masteryLevel >= 2) masteryColor = c.warning;
-                else masteryColor = c.fire[400];
-              }
-
-              return (
-                <PressableScale
-                  key={word.id}
-                  style={s.wordRow}
-                  onPress={() => { haptics.selection(); setSelectedWord(word); }}
-                >
-                  <View style={s.wordRowLeft}>
-                    <Text style={s.wordRowKu}>{word.wordKu}</Text>
-                    <Text style={s.wordRowTranslation}>
-                      {lang === 'tr' ? word.wordTr || word.wordEn : word.wordEn}
-                    </Text>
-                  </View>
-                  <View style={s.wordRowRight}>
-                    <View style={[s.masteryIndicator, { backgroundColor: masteryColor }]} />
-                    <Ionicons name="chevron-forward" size={16} color={c.gray[300]} />
-                  </View>
-                </PressableScale>
-              );
-            })
-          )}
-          <View style={{ height: 40 }} />
-        </ScrollView>
+          </ScrollView>
+        ) : (
+          <FlatList
+            data={filteredWords}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item: word }) => (
+              <WordRow
+                word={word}
+                mastery={vocabMastery[word.id]}
+                c={c}
+                s={s}
+                lang={lang}
+                onPress={() => { haptics.selection(); setSelectedWord(word); }}
+              />
+            )}
+            style={s.scroll}
+            contentContainerStyle={[s.scrollContent, { paddingBottom: 40 }]}
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={true}
+          />
+        )
       ) : (
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
           {dueCount > 0 && (
@@ -307,6 +357,43 @@ export default function VocabScreen() {
   );
 }
 
+interface WordRowProps {
+  word: any;
+  mastery: any;
+  c: ThemeColors;
+  s: any;
+  lang: string;
+  onPress: () => void;
+}
+
+const WordRow = React.memo(({ word, mastery, c, s, lang, onPress }: WordRowProps) => {
+  let masteryColor = c.gray[200];
+  if (mastery) {
+    if (mastery.masteryLevel >= 4) masteryColor = c.kurdish[500];
+    else if (mastery.masteryLevel >= 2) masteryColor = c.warning;
+    else masteryColor = c.fire[400];
+  }
+
+  return (
+    <PressableScale
+      style={s.wordRow}
+      onPress={onPress}
+    >
+      <View style={s.wordRowLeft}>
+        <Text style={s.wordRowKu}>{word.wordKu}</Text>
+        <Text style={s.wordRowTranslation}>
+          {lang === 'tr' ? word.wordTr || word.wordEn : word.wordEn}
+        </Text>
+      </View>
+      <View style={s.wordRowRight}>
+        <View style={[s.masteryIndicator, { backgroundColor: masteryColor }]} />
+        <Ionicons name="chevron-forward" size={16} color={c.gray[300]} />
+      </View>
+    </PressableScale>
+  );
+});
+WordRow.displayName = 'WordRow';
+
 const makeStyles = (c: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.cream[50] },
   scroll: { flex: 1 },
@@ -335,6 +422,14 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   searchIcon: { marginRight: SPACING.xs },
   searchInput: { flex: 1, height: 44, fontSize: FONT_SIZE.sm, color: c.midnight[800] },
   clearBtn: { padding: 4 },
+
+  // Filter chips
+  filterWrapper: { marginBottom: SPACING.md },
+  filterScrollContent: { paddingHorizontal: SPACING.lg, gap: SPACING.xs },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.full, backgroundColor: c.white, borderWidth: 1, borderColor: c.gray[100], ...SHADOWS.sm },
+  filterChipActive: { backgroundColor: c.fire[600], borderColor: c.fire[600] },
+  filterChipText: { fontSize: FONT_SIZE.xs, fontWeight: '600', color: c.gray[500] },
+  filterChipTextActive: { color: '#FFFFFF' },
 
   // Word list search row
   wordRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.white, padding: SPACING.md, borderRadius: RADIUS.lg, marginBottom: 8, borderWidth: 1, borderColor: c.gray[100], ...SHADOWS.sm },

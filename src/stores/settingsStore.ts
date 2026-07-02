@@ -15,11 +15,17 @@ interface SettingsState {
   reminderHour: number;
   /** Target XP per day for the goal ring. */
   dailyGoalXp: number;
+  soundEffectsEnabled: boolean;
+  hapticsEnabled: boolean;
+  cardDirection: 'ku_to_tr_en' | 'tr_en_to_ku';
   hydrated: boolean;
 
   setNotificationsEnabled: (enabled: boolean) => void;
   setReminderHour: (hour: number) => void;
   setDailyGoalXp: (xp: number) => void;
+  setSoundEffectsEnabled: (enabled: boolean) => void;
+  setHapticsEnabled: (enabled: boolean) => void;
+  setCardDirection: (dir: 'ku_to_tr_en' | 'tr_en_to_ku') => void;
   loadFromStorage: () => Promise<void>;
 }
 
@@ -27,6 +33,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   notificationsEnabled: false,
   reminderHour: DEFAULT_REMINDER_HOUR,
   dailyGoalXp: DEFAULT_DAILY_GOAL_XP,
+  soundEffectsEnabled: true,
+  hapticsEnabled: true,
+  cardDirection: 'ku_to_tr_en',
   hydrated: false,
 
   setNotificationsEnabled: (enabled) => {
@@ -41,6 +50,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ dailyGoalXp: xp });
     persist(get());
   },
+  setSoundEffectsEnabled: (enabled) => {
+    set({ soundEffectsEnabled: enabled });
+    persist(get());
+  },
+  setHapticsEnabled: (enabled) => {
+    set({ hapticsEnabled: enabled });
+    persist(get());
+  },
+  setCardDirection: (dir) => {
+    set({ cardDirection: dir });
+    persist(get());
+  },
 
   loadFromStorage: async () => {
     try {
@@ -53,6 +74,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             typeof parsed.reminderHour === 'number' ? parsed.reminderHour : DEFAULT_REMINDER_HOUR,
           dailyGoalXp:
             typeof parsed.dailyGoalXp === 'number' ? parsed.dailyGoalXp : DEFAULT_DAILY_GOAL_XP,
+          soundEffectsEnabled: parsed.soundEffectsEnabled !== false,
+          hapticsEnabled: parsed.hapticsEnabled !== false,
+          cardDirection: parsed.cardDirection === 'tr_en_to_ku' ? 'tr_en_to_ku' : 'ku_to_tr_en',
         });
       }
     } catch (e) {
@@ -70,6 +94,9 @@ function persist(s: SettingsState) {
       notificationsEnabled: s.notificationsEnabled,
       reminderHour: s.reminderHour,
       dailyGoalXp: s.dailyGoalXp,
+      soundEffectsEnabled: s.soundEffectsEnabled,
+      hapticsEnabled: s.hapticsEnabled,
+      cardDirection: s.cardDirection,
     }),
   ).catch(() => {});
 }

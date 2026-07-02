@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { lightColors, darkColors, ThemeColors } from './index';
+import { lightColors, darkColors } from './index';
 import BrandSplash from '../components/ui/BrandSplash';
 import { ThemeContext, ThemeContextValue, Scheme, ThemeMode } from './themeContext';
 

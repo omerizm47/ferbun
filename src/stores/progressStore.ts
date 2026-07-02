@@ -253,11 +253,11 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     if (!lastActive) return; // New user or reset state
     if (lastActive === today) return; // Already active today or checked today
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toDateString();
+    const lastActiveTime = new Date(lastActive).getTime();
+    const nowTime = new Date().getTime();
+    const hoursDiff = (nowTime - lastActiveTime) / (1000 * 60 * 60);
 
-    if (lastActive !== yesterdayStr) {
+    if (hoursDiff > 36) {
       set({ streakCount: 0 });
       get().saveToStorage();
     }
@@ -270,13 +270,17 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
     if (lastActive === today) return; // Already updated today
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toDateString();
-
     let newStreak = state.streakCount;
-    if (lastActive === yesterdayStr) {
-      newStreak += 1;
+    if (lastActive) {
+      const lastActiveTime = new Date(lastActive).getTime();
+      const nowTime = new Date().getTime();
+      const hoursDiff = (nowTime - lastActiveTime) / (1000 * 60 * 60);
+
+      if (hoursDiff <= 36) {
+        newStreak += 1;
+      } else {
+        newStreak = 1;
+      }
     } else {
       newStreak = 1;
     }
@@ -424,24 +428,32 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEY);
       if (data) {
-        const parsed = JSON.parse(data);
-        const totalXp = parsed.totalXp || 0;
-        set({
-          displayName: parsed.displayName || '',
-          avatarIcon: parsed.avatarIcon || 'sunny',
-          avatarColor: parsed.avatarColor || '#E85D00',
-          totalXp,
-          // Derive level from XP so a stored level can never drift out of sync.
-          currentLevel: Math.floor(totalXp / XP_PER_LEVEL) + 1,
-          streakCount: parsed.streakCount || 0,
-          lastActiveDate: parsed.lastActiveDate || null,
-          dailyXp: parsed.dailyXp || 0,
-          dailyXpDate: parsed.dailyXpDate || null,
-          lessonProgress: parsed.lessonProgress || {},
-          vocabMastery: parsed.vocabMastery || {},
-          completedStories: parsed.completedStories || {},
-          maxComboEver: parsed.maxComboEver || 0,
-        });
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(data);
+        } catch (parseError) {
+          console.warn('[Fêrbûn Progress] Stored JSON progress data was corrupted, loading safe default state.', parseError);
+        }
+
+        if (parsed && typeof parsed === 'object') {
+          const totalXp = parsed.totalXp || 0;
+          set({
+            displayName: parsed.displayName || '',
+            avatarIcon: parsed.avatarIcon || 'sunny',
+            avatarColor: parsed.avatarColor || '#E85D00',
+            totalXp,
+            // Derive level from XP so a stored level can never drift out of sync.
+            currentLevel: Math.floor(totalXp / XP_PER_LEVEL) + 1,
+            streakCount: parsed.streakCount || 0,
+            lastActiveDate: parsed.lastActiveDate || null,
+            dailyXp: parsed.dailyXp || 0,
+            dailyXpDate: parsed.dailyXpDate || null,
+            lessonProgress: parsed.lessonProgress || {},
+            vocabMastery: parsed.vocabMastery || {},
+            completedStories: parsed.completedStories || {},
+            maxComboEver: parsed.maxComboEver || 0,
+          });
+        }
       }
     } catch (e) {
       console.error('Failed to load progress:', e);

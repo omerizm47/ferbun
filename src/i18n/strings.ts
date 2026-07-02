@@ -61,6 +61,11 @@ const en: UiStrings = {
   vocab: {
     title: 'Vocabulary',
     words: 'words',
+    filterAll: 'All',
+    filterLearning: 'Learning',
+    filterFamiliar: 'Familiar',
+    filterMastered: 'Mastered',
+    filterNotStudied: 'Not Studied',
   },
   unit: {
     notFoundTitle: 'Unit not found',
@@ -147,6 +152,12 @@ const en: UiStrings = {
     symbol: 'Symbol',
     color: 'Color',
     colorA11y: (label) => `${label} colour`,
+    preferences: 'PREFERENCES',
+    prefSoundEffects: 'Sound Effects',
+    prefHaptics: 'Vibration & Haptics',
+    prefCardDirection: 'Flashcard Direction',
+    prefCardDirKuTrEn: 'Kurdî → English',
+    prefCardDirTrEnKu: 'English → Kurdî',
   },
   lesson: {
     coach: [
@@ -276,6 +287,11 @@ const tr: UiStrings = {
   vocab: {
     title: 'Sözcükler',
     words: 'kelime',
+    filterAll: 'Hepsi',
+    filterLearning: 'Öğreniliyor',
+    filterFamiliar: 'Aşina',
+    filterMastered: 'Ustalaşıldı',
+    filterNotStudied: 'Çalışılmadı',
   },
   unit: {
     notFoundTitle: 'Ünite bulunamadı',
@@ -362,6 +378,12 @@ const tr: UiStrings = {
     symbol: 'Simge',
     color: 'Renk',
     colorA11y: (label) => `${label} rengi`,
+    preferences: 'TERCİHLER',
+    prefSoundEffects: 'Ses Efektleri',
+    prefHaptics: 'Titreşim & Haptik',
+    prefCardDirection: 'Kart Çalışma Yönü',
+    prefCardDirKuTrEn: 'Kurdî → Türkçe',
+    prefCardDirTrEnKu: 'Türkçe → Kurdî',
   },
   lesson: {
     coach: [

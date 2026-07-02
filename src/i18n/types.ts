@@ -75,6 +75,11 @@ export interface UiStrings {
     title: string;
     /** Noun in "{n} words" theme counts. */
     words: string;
+    filterAll: string;
+    filterLearning: string;
+    filterFamiliar: string;
+    filterMastered: string;
+    filterNotStudied: string;
   };
   // Unit (lesson list) screen. tag* render under an uppercase style, so they are
   // stored already-uppercased (Turkish with correct İ/I).
@@ -173,6 +178,12 @@ export interface UiStrings {
     symbol: string;
     color: string;
     colorA11y: (label: string) => string;
+    preferences: string;
+    prefSoundEffects: string;
+    prefHaptics: string;
+    prefCardDirection: string;
+    prefCardDirKuTrEn: string;
+    prefCardDirTrEnKu: string;
   };
   // Lesson screen. *Gloss/stat/kicker labels render under uppercase styles, so
   // they are stored already-uppercased (Turkish with correct İ).

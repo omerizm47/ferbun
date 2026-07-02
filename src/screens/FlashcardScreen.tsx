@@ -13,6 +13,7 @@ import { vocabGloss, vocabExample } from '../i18n/content';
 import { getVocabByTheme, getVocabById, VOCAB_THEMES } from '../data/vocabulary';
 import { VocabWord } from '../data/types';
 import { useProgressStore, selectWeakVocabIds } from '../stores/progressStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -33,6 +34,7 @@ export default function FlashcardScreen() {
   const isWeak = mode === 'weak';
   const insets = useSafeAreaInsets();
   const { updateVocabMastery, getDueVocabIds, completeVocabReview, vocabMastery } = useProgressStore();
+  const cardDirection = useSettingsStore((st) => st.cardDirection);
   // The queue is snapshotted once at mount: answering pushes a word's next
   // review into the future, which would otherwise shrink the list mid-session.
   const words = useMemo(() => {
@@ -279,9 +281,15 @@ export default function FlashcardScreen() {
             <View style={styles.cardCorner} pointerEvents="none">
               <KilimDiamond size={26} color={c.gray[100]} />
             </View>
-            <Text style={[styles.cardLabel, { color: c.gray[300] }]}>Kurdî</Text>
-            <Text style={[styles.cardWord, { color: c.gray[300] }]}>{queue[currentIndex + 1].wordKu}</Text>
-            {queue[currentIndex + 1].gender && (
+            <Text style={[styles.cardLabel, { color: c.gray[300] }]}>
+              {cardDirection === 'tr_en_to_ku' ? t.flashcard.back : 'Kurdî'}
+            </Text>
+            <Text style={[styles.cardWord, { color: c.gray[300] }]} numberOfLines={2} adjustsFontSizeToFit>
+              {cardDirection === 'tr_en_to_ku'
+                ? vocabGloss(queue[currentIndex + 1], lang)
+                : queue[currentIndex + 1].wordKu}
+            </Text>
+            {cardDirection !== 'tr_en_to_ku' && queue[currentIndex + 1].gender && (
               <Text style={[styles.genderBadge, { backgroundColor: c.gray[50], color: c.gray[300] }]}>
                 {queue[currentIndex + 1].gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
               </Text>
@@ -312,39 +320,61 @@ export default function FlashcardScreen() {
               style={styles.cardWrap}
               onPress={flip}
               accessibilityRole="button"
-              accessibilityLabel={isFlipped ? `${vocabGloss(word, lang)}. ${t.flashcard.back}` : `${word.wordKu}. ${t.flashcard.kurdish}`}
+              accessibilityLabel={
+                cardDirection === 'tr_en_to_ku'
+                  ? (isFlipped ? `${word.wordKu}. ${t.flashcard.kurdish}` : `${vocabGloss(word, lang)}. ${t.flashcard.back}`)
+                  : (isFlipped ? `${vocabGloss(word, lang)}. ${t.flashcard.back}` : `${word.wordKu}. ${t.flashcard.kurdish}`)
+              }
               accessibilityHint={t.flashcard.flipHint}
             >
-              {/* Front — Kurdish */}
+              {/* Front — Translation or Kurdish */}
               <Animated.View style={[styles.card, styles.cardFace, frontStyle]}>
-                <View style={[styles.cardTopBar, { backgroundColor: accent }]} />
+                <View style={[styles.cardTopBar, { backgroundColor: cardDirection === 'tr_en_to_ku' ? c.kurdish[500] : accent }]} />
                 <View style={styles.cardSun} pointerEvents="none">
-                  <KurdishSun size={170} color={accent} />
+                  <KurdishSun size={170} color={cardDirection === 'tr_en_to_ku' ? c.kurdish[500] : accent} />
                 </View>
                 <View style={styles.cardCorner} pointerEvents="none">
-                  <KilimDiamond size={26} color={accent} />
+                  <KilimDiamond size={26} color={cardDirection === 'tr_en_to_ku' ? c.kurdish[500] : accent} />
                 </View>
 
+                <Text style={[styles.cardLabel, { color: cardDirection === 'tr_en_to_ku' ? c.kurdish[600] : accent }]}>
+                  {cardDirection === 'tr_en_to_ku' ? t.flashcard.back : 'Kurdî'}
+                </Text>
+                <Text style={styles.cardWord} numberOfLines={2} adjustsFontSizeToFit>
+                  {cardDirection === 'tr_en_to_ku' ? vocabGloss(word, lang) : word.wordKu}
+                </Text>
 
-
-                <Text style={[styles.cardLabel, { color: accent }]}>Kurdî</Text>
-                <Text style={styles.cardWord}>{word.wordKu}</Text>
-                {word.gender && (
-                  <Text style={styles.genderBadge}>
-                    {word.gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
-                  </Text>
+                {cardDirection === 'tr_en_to_ku' ? (
+                  <>
+                    <Text style={styles.cardPos}>{word.partOfSpeech}</Text>
+                    {word.exampleKu && (
+                      <View style={[styles.exampleBox, { backgroundColor: c.gray[50], borderLeftWidth: 3, borderLeftColor: c.kurdish[400] }]}>
+                        <Text style={[styles.exampleEn, { color: c.midnight[800], fontStyle: 'italic' }]}>{vocabExample(word, lang)}</Text>
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  word.gender && (
+                    <Text style={styles.genderBadge}>
+                      {word.gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
+                    </Text>
+                  )
                 )}
+
                 <View style={styles.tapHintRow}>
                   <Ionicons name="sync-outline" size={14} color={c.gray[300]} />
                   <Text style={styles.tapHint}>{t.flashcard.tapReveal}</Text>
                 </View>
               </Animated.View>
 
-              {/* Back — English */}
+              {/* Back — Kurdish or Translation */}
               <Animated.View style={[styles.card, styles.cardFace, backStyle]}>
-                <View style={[styles.cardTopBar, { backgroundColor: c.kurdish[500] }]} />
+                <View style={[styles.cardTopBar, { backgroundColor: cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500] }]} />
+                <View style={styles.cardSun} pointerEvents="none">
+                  <KurdishSun size={170} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
+                </View>
                 <View style={styles.cardCorner} pointerEvents="none">
-                  <KilimDiamond size={26} color={c.kurdish[500]} />
+                  <KilimDiamond size={26} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
                 </View>
 
                 {/* Normal Speaker Button */}
@@ -358,7 +388,7 @@ export default function FlashcardScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Listen Kurdish pronunciation"
                 >
-                  <Ionicons name="volume-medium-outline" size={20} color={c.kurdish[500]} />
+                  <Ionicons name="volume-medium-outline" size={20} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
                 </TouchableOpacity>
 
                 {/* Slow Speaker Button */}
@@ -372,12 +402,26 @@ export default function FlashcardScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Listen slowly"
                 >
-                  <Ionicons name="volume-low-outline" size={20} color={c.kurdish[500]} />
+                  <Ionicons name="volume-low-outline" size={20} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
                 </TouchableOpacity>
 
-                <Text style={[styles.cardLabel, { color: c.kurdish[600] }]}>{t.flashcard.back}</Text>
-                <Text style={styles.cardTranslation}>{vocabGloss(word, lang)}</Text>
-                <Text style={styles.cardPos}>{word.partOfSpeech}</Text>
+                <Text style={[styles.cardLabel, { color: cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[600] }]}>
+                  {cardDirection === 'tr_en_to_ku' ? 'Kurdî' : t.flashcard.back}
+                </Text>
+                <Text style={styles.cardTranslation}>
+                  {cardDirection === 'tr_en_to_ku' ? word.wordKu : vocabGloss(word, lang)}
+                </Text>
+
+                {cardDirection === 'tr_en_to_ku' ? (
+                  word.gender && (
+                    <Text style={styles.genderBadge}>
+                      {word.gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
+                    </Text>
+                  )
+                ) : (
+                  <Text style={styles.cardPos}>{word.partOfSpeech}</Text>
+                )}
+
                 {word.exampleKu && (
                   <View style={styles.exampleBox}>
                     <Text style={styles.exampleKu}>{word.exampleKu}</Text>
