@@ -244,3 +244,110 @@ export function NewrozFlame({
     svgContent
   );
 }
+
+export function KurdishHorn({ size = 40, color = COLORS.fire[500] }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      <Path
+        d="M20 30 L20 16 C20 10 13 8 8 13 C3 18 8 25 13 20 L16 17 M20 16 C20 10 27 8 32 13 C37 18 32 25 27 20 L24 17"
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx="8" cy="13" r="1.5" fill={color} />
+      <Circle cx="32" cy="13" r="1.5" fill={color} />
+    </Svg>
+  );
+}
+
+export function KurdishSahmaran({ size = 40, color = COLORS.fire[500] }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      <Path
+        d="M20 6 L25 14 L33 14 L28 21 L31 29 L20 25 L9 29 L12 21 L7 14 L15 14 Z"
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 16 C16 18 16 26 20 28 C24 26 24 18 20 16"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+      />
+      <Circle cx="20" cy="22" r="2.5" fill={color} />
+      <Circle cx="20" cy="9" r="1.5" fill={color} />
+      <Circle cx="9" cy="14" r="1.5" fill={color} />
+      <Circle cx="31" cy="14" r="1.5" fill={color} />
+    </Svg>
+  );
+}
+
+export function KurdishTreeOfLife({ size = 40, color = COLORS.fire[500] }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      <Path
+        d="M20 34 L20 8 M20 26 L28 18 M20 26 L12 18 M20 20 L30 10 M20 20 L10 10 M20 14 L26 8 M20 14 L14 8"
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Circle cx="20" cy="8" r="2" fill={color} />
+      <Circle cx="28" cy="18" r="1.5" fill={color} />
+      <Circle cx="12" cy="18" r="1.5" fill={color} />
+      <Circle cx="30" cy="10" r="1.5" fill={color} />
+      <Circle cx="10" cy="10" r="1.5" fill={color} />
+      <Circle cx="26" cy="8" r="1.5" fill={color} />
+      <Circle cx="14" cy="8" r="1.5" fill={color} />
+    </Svg>
+  );
+}
+
+export function KurdishEagle({ size = 40, color = COLORS.fire[500] }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      <Path
+        d="M20 28 L12 24 L6 16 L12 16 L8 10 L20 14 M20 28 L28 24 L34 16 L28 16 L32 10 L20 14"
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 14 L20 34 M17 32 H23 M17 34 H23"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+      />
+      <Circle cx="13" cy="12" r="1.5" fill={color} />
+      <Circle cx="27" cy="12" r="1.5" fill={color} />
+    </Svg>
+  );
+}
+
+export function KurdishKilimChest({ size = 40, color = COLORS.fire[500] }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      <Path
+        d="M6 10 H34 V30 H6 Z M12 15 H28 V25 H12 Z"
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M2 15 H6 M2 25 H6 M38 15 H34 M38 25 H34 M20 10 V30 M6 20 H34"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}

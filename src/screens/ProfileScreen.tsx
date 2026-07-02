@@ -107,7 +107,6 @@ export default function ProfileScreen() {
   const setNotificationsEnabled = useSettingsStore((st) => st.setNotificationsEnabled);
   const setReminderHour = useSettingsStore((st) => st.setReminderHour);
   const setDailyGoalXp = useSettingsStore((st) => st.setDailyGoalXp);
-  const reminderContent = { title: t.reminders.notifTitle, body: t.reminders.notifBody };
 
   // iOS will not re-prompt after a denial, so fall back to opening Settings.
   const onToggleReminders = async (value: boolean) => {
@@ -122,7 +121,7 @@ export default function ProfileScreen() {
         return;
       }
       setNotificationsEnabled(true);
-      await scheduleDailyReminder(reminderHour, reminderContent);
+      await scheduleDailyReminder(reminderHour, lang);
     } else {
       setNotificationsEnabled(false);
       await cancelDailyReminder();
@@ -131,7 +130,7 @@ export default function ProfileScreen() {
   const onPickTime = async (hour: number) => {
     haptics.selection();
     setReminderHour(hour);
-    if (notificationsEnabled) await scheduleDailyReminder(hour, reminderContent);
+    if (notificationsEnabled) await scheduleDailyReminder(hour, lang);
   };
   const onPickGoal = (xp: number) => {
     haptics.selection();

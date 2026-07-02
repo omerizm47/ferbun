@@ -77,6 +77,11 @@ const en: UiStrings = {
   vocab: {
     title: 'Vocabulary',
     words: 'words',
+    filterAll: 'All',
+    filterLearning: 'Learning',
+    filterFamiliar: 'Familiar',
+    filterMastered: 'Mastered',
+    filterNotStudied: 'Not Studied',
   },
   unit: {
     notFoundTitle: 'Unit not found',
@@ -167,6 +172,12 @@ const en: UiStrings = {
     symbol: 'Symbol',
     color: 'Color',
     colorA11y: (label) => `${label} colour`,
+    preferences: 'PREFERENCES',
+    prefSoundEffects: 'Sound Effects',
+    prefHaptics: 'Vibration & Haptics',
+    prefCardDirection: 'Flashcard Direction',
+    prefCardDirKuTrEn: 'Kurdî → English',
+    prefCardDirTrEnKu: 'English → Kurdî',
   },
   lesson: {
     coach: [
@@ -232,6 +243,8 @@ const en: UiStrings = {
     goalPickerTitle: 'DAILY XP GOAL',
     notifTitle: 'Keep your streak alive',
     notifBody: 'A few minutes of Kurdish keeps your Newroz flame burning.',
+    wordOfDayTitle: 'Word of the Day 🌟',
+    wordOfDayBody: (word, meaning) => `Today's word is "${word}" (${meaning}). Practice a few minutes to grow your streak!`,
     permTitle: 'Notifications are off',
     permMessage: 'To get daily reminders, allow notifications for Fêrbûn in your device settings.',
     openSettings: 'Open Settings',
@@ -315,6 +328,11 @@ const tr: UiStrings = {
   vocab: {
     title: 'Sözcükler',
     words: 'kelime',
+    filterAll: 'Hepsi',
+    filterLearning: 'Öğreniliyor',
+    filterFamiliar: 'Aşina',
+    filterMastered: 'Ustalaşıldı',
+    filterNotStudied: 'Çalışılmadı',
   },
   unit: {
     notFoundTitle: 'Ünite bulunamadı',
@@ -405,6 +423,12 @@ const tr: UiStrings = {
     symbol: 'Simge',
     color: 'Renk',
     colorA11y: (label) => `${label} rengi`,
+    preferences: 'TERCİHLER',
+    prefSoundEffects: 'Ses Efektleri',
+    prefHaptics: 'Titreşim & Haptik',
+    prefCardDirection: 'Kart Çalışma Yönü',
+    prefCardDirKuTrEn: 'Kurdî → Türkçe',
+    prefCardDirTrEnKu: 'Türkçe → Kurdî',
   },
   lesson: {
     coach: [
@@ -470,6 +494,8 @@ const tr: UiStrings = {
     goalPickerTitle: 'GÜNLÜK XP HEDEFİ',
     notifTitle: 'Serini canlı tut',
     notifBody: 'Birkaç dakikalık Kürtçe, Newroz ateşini yanık tutar.',
+    wordOfDayTitle: 'Günün Kelimesi 🌟',
+    wordOfDayBody: (word, meaning) => `Bugünün kelimesi: "${word}" (${meaning}). Serini büyütmek için birkaç dakika pratik yap!`,
     permTitle: 'Bildirimler kapalı',
     permMessage: 'Günlük hatırlatıcılar için cihaz ayarlarından Fêrbûn bildirimlerine izin ver.',
     openSettings: 'Ayarları Aç',

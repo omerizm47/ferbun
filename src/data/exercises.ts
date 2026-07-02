@@ -9,20 +9,20 @@ const E: Record<string, Exercise[]> = {
   l1_1: [
     { id: 'e1', lessonId: 'l1_1', type: 'multiple_choice', questionKu: 'silav', questionEn: 'What does this word mean?', options: ['hello', 'goodbye', 'thank you', 'please'], correctAnswer: 'hello', questionTr: 'Bu kelime ne demek?', optionsTr: ['merhaba', 'hoşça kal', 'teşekkürler', 'lütfen'], correctAnswerTr: 'merhaba', order: 1 },
     { id: 'e2', lessonId: 'l1_1', type: 'multiple_choice', questionEn: 'How do you say "thanks" in Kurdish?', options: ['spas', 'silav', 'heval', 'rojbaş'], correctAnswer: 'spas', questionTr: '"teşekkürler" Kürtçe nasıl denir?', optionsTr: ['spas', 'silav', 'heval', 'rojbaş'], correctAnswerTr: 'spas', order: 2 },
-    { id: 'e3', lessonId: 'l1_1', type: 'translation', questionEn: 'Write "good day" in Kurdish.', correctAnswer: 'rojbaş', questionTr: '"iyi günler" kelimesini Kürtçe yaz.', order: 3 },
+    { id: 'e3', lessonId: 'l1_1', type: 'writing', questionEn: 'Write "good day" in Kurdish.', correctAnswer: 'rojbaş', questionTr: '"iyi günler" kelimesini Kürtçe yaz.', order: 3 },
     { id: 'e4', lessonId: 'l1_1', type: 'multiple_choice', questionKu: 'heval', questionEn: 'What does this word mean?', options: ['friend', 'family', 'teacher', 'guest'], correctAnswer: 'friend', questionTr: 'Bu kelime ne demek?', optionsTr: ['arkadaş', 'aile', 'öğretmen', 'misafir'], correctAnswerTr: 'arkadaş', order: 4 },
     { id: 'e5', lessonId: 'l1_1', type: 'multiple_choice', questionKu: 'Silav li te!', questionEn: 'What does this phrase mean?', options: ['Hello to you!', 'Goodbye!', 'Thank you!', 'How are you?'], correctAnswer: 'Hello to you!', questionTr: 'Bu ifade ne demek?', optionsTr: ['Sana selam!', 'Hoşça kal!', 'Teşekkürler!', 'Nasılsın?'], correctAnswerTr: 'Sana selam!', order: 5 },
-    { id: 'e6', lessonId: 'l1_1', type: 'translation', questionEn: 'Write "friend" in Kurdish.', correctAnswer: 'heval', questionTr: '"arkadaş" kelimesini Kürtçe yaz.', order: 6 },
+    { id: 'e6', lessonId: 'l1_1', type: 'writing', questionEn: 'Write "friend" in Kurdish.', correctAnswer: 'heval', questionTr: '"arkadaş" kelimesini Kürtçe yaz.', order: 6 },
   ],
 
   // U1L2: Yes, No & Common Words
   l1_2: [
     { id: 'e7', lessonId: 'l1_2', type: 'multiple_choice', questionEn: 'How do you say "yes" in Kurdish?', options: ['erê', 'na', 'baş', 'ne'], correctAnswer: 'erê', questionTr: '"evet" Kürtçe nasıl denir?', optionsTr: ['erê', 'na', 'baş', 'ne'], correctAnswerTr: 'erê', order: 1 },
-    { id: 'e8', lessonId: 'l1_2', type: 'translation', questionEn: 'Write "no" in Kurdish.', correctAnswer: 'na', questionTr: '"hayır" kelimesini Kürtçe yaz.', order: 2 },
+    { id: 'e8', lessonId: 'l1_2', type: 'writing', questionEn: 'Write "no" in Kurdish.', correctAnswer: 'na', questionTr: '"hayır" kelimesini Kürtçe yaz.', order: 2 },
     { id: 'e9', lessonId: 'l1_2', type: 'multiple_choice', questionKu: 'baş', questionEn: 'What does this word mean?', options: ['good', 'bad', 'big', 'small'], correctAnswer: 'good', questionTr: 'Bu kelime ne demek?', optionsTr: ['iyi', 'kötü', 'büyük', 'küçük'], correctAnswerTr: 'iyi', order: 3 },
     { id: 'e10', lessonId: 'l1_2', type: 'multiple_choice', questionKu: 'Baş e.', questionEn: 'What does this phrase mean?', options: ['It is good.', 'It is bad.', 'It is big.', 'It is not.'], correctAnswer: 'It is good.', questionTr: 'Bu ifade ne demek?', optionsTr: ['İyi.', 'Kötü.', 'Büyük.', 'Değil.'], correctAnswerTr: 'İyi.', order: 4 },
     { id: 'e11', lessonId: 'l1_2', type: 'true_false', questionKu: 'na = yes', questionEn: 'Is this translation correct?', correctAnswer: 'False', explanation: '"Na" means "no." "Erê" means "yes."', questionKuTr: 'na = evet', questionTr: 'Bu çeviri doğru mu?', explanationTr: '"Na" "hayır" demek. "Erê" "evet" demek.', order: 5 },
-    { id: 'e12', lessonId: 'l1_2', type: 'translation', questionEn: 'Write "good" in Kurdish.', correctAnswer: 'baş', questionTr: '"iyi" kelimesini Kürtçe yaz.', order: 6 },
+    { id: 'e12', lessonId: 'l1_2', type: 'writing', questionEn: 'Write "good" in Kurdish.', correctAnswer: 'baş', questionTr: '"iyi" kelimesini Kürtçe yaz.', order: 6 },
   ],
 
   // U1L3: I am, You are (Grammar)
@@ -32,15 +32,15 @@ const E: Record<string, Exercise[]> = {
     { id: 'e15', lessonId: 'l1_3', type: 'multiple_choice', questionKu: 'Ew kurd e.', questionEn: 'What does this sentence mean?', options: ['He/She is Kurdish.', 'I am Kurdish.', 'We are Kurdish.', 'You are Kurdish.'], correctAnswer: 'He/She is Kurdish.', questionTr: 'Bu cümle ne demek?', optionsTr: ['O Kürt.', 'Ben Kürdüm.', 'Biz Kürdüz.', 'Sen Kürtsün.'], correctAnswerTr: 'O Kürt.', order: 3 },
     { id: 'e16', lessonId: 'l1_3', type: 'multiple_choice', questionKu: 'Ne baş e.', questionEn: 'What does this sentence mean?', options: ['It is not good.', 'It is good.', 'It is very good.', 'Is it good?'], correctAnswer: 'It is not good.', explanation: '"Ne" goes before what is negated.', questionTr: 'Bu cümle ne demek?', optionsTr: ['İyi değil.', 'İyi.', 'Çok iyi.', 'İyi mi?'], correctAnswerTr: 'İyi değil.', explanationTr: '"Ne" olumsuzlanan şeyin önüne gelir.', order: 4 },
     { id: 'e17', lessonId: 'l1_3', type: 'fill_blank', questionKu: 'Em kurd ____.', questionEn: 'Complete: "We are Kurdish."', correctAnswer: 'in', questionTr: 'Tamamla: "Biz Kürdüz."', order: 5 },
-    { id: 'e18', lessonId: 'l1_3', type: 'translation', questionEn: 'Translate to Kurdish: "It is good."', correctAnswer: 'Baş e.', questionTr: 'Kürtçeye çevir: "İyi."', order: 6 },
+    { id: 'e18', lessonId: 'l1_3', type: 'writing', questionEn: 'Translate to Kurdish: "It is good."', correctAnswer: 'Baş e.', questionTr: 'Kürtçeye çevir: "İyi."', order: 6 },
   ],
 
   // U1L4: Review Basics
   l1_4: [
     { id: 'e19', lessonId: 'l1_4', type: 'multiple_choice', questionKu: 'Silav!', questionEn: 'What does this mean?', options: ['Hello!', 'Goodbye!', 'Thanks!', 'Sorry!'], correctAnswer: 'Hello!', questionTr: 'Bu ne demek?', optionsTr: ['Merhaba!', 'Hoşça kal!', 'Teşekkürler!', 'Özür dilerim!'], correctAnswerTr: 'Merhaba!', order: 1 },
-    { id: 'e20', lessonId: 'l1_4', type: 'translation', questionEn: 'Write "thanks" in Kurdish.', correctAnswer: 'spas', questionTr: '"teşekkürler" kelimesini Kürtçe yaz.', order: 2 },
+    { id: 'e20', lessonId: 'l1_4', type: 'writing', questionEn: 'Write "thanks" in Kurdish.', correctAnswer: 'spas', questionTr: '"teşekkürler" kelimesini Kürtçe yaz.', order: 2 },
     { id: 'e21', lessonId: 'l1_4', type: 'multiple_choice', questionEn: 'How do you say "I am Kurdish"?', options: ['Ez kurd im.', 'Tu kurd î.', 'Ew kurd e.', 'Na.'], correctAnswer: 'Ez kurd im.', questionTr: '"Ben Kürdüm" nasıl denir?', optionsTr: ['Ez kurd im.', 'Tu kurd î.', 'Ew kurd e.', 'Na.'], correctAnswerTr: 'Ez kurd im.', order: 3 },
-    { id: 'e22', lessonId: 'l1_4', type: 'translation', questionEn: 'Write "yes" in Kurdish.', correctAnswer: 'erê', questionTr: '"evet" kelimesini Kürtçe yaz.', order: 4 },
+    { id: 'e22', lessonId: 'l1_4', type: 'writing', questionEn: 'Write "yes" in Kurdish.', correctAnswer: 'erê', questionTr: '"evet" kelimesini Kürtçe yaz.', order: 4 },
     { id: 'e23', lessonId: 'l1_4', type: 'multiple_choice', questionKu: 'heval', questionEn: 'What does this word mean?', options: ['friend', 'guest', 'teacher', 'city'], correctAnswer: 'friend', questionTr: 'Bu kelime ne demek?', optionsTr: ['arkadaş', 'misafir', 'öğretmen', 'şehir'], correctAnswerTr: 'arkadaş', order: 5 },
     { id: 'e24', lessonId: 'l1_4', type: 'fill_blank', questionKu: 'Ew ne kurd ____.', questionEn: 'Complete: "He is not Kurdish."', correctAnswer: 'e', questionTr: 'Tamamla: "O Kürt değil."', order: 6 },
   ],
@@ -49,21 +49,21 @@ const E: Record<string, Exercise[]> = {
   l2_1: [
     { id: 'e25', lessonId: 'l2_1', type: 'multiple_choice', questionKu: 'bav', questionEn: 'What does this word mean?', options: ['father', 'mother', 'brother', 'sister'], correctAnswer: 'father', questionTr: 'Bu kelime ne demek?', optionsTr: ['baba', 'anne', 'erkek kardeş', 'kız kardeş'], correctAnswerTr: 'baba', order: 1 },
     { id: 'e26', lessonId: 'l2_1', type: 'multiple_choice', questionEn: 'How do you say "mother" in Kurdish?', options: ['dê', 'bav', 'xwişk', 'bira'], correctAnswer: 'dê', questionTr: '"anne" Kürtçe nasıl denir?', optionsTr: ['dê', 'bav', 'xwişk', 'bira'], correctAnswerTr: 'dê', order: 2 },
-    { id: 'e27', lessonId: 'l2_1', type: 'translation', questionEn: 'Write "brother" in Kurdish.', correctAnswer: 'bira', questionTr: '"erkek kardeş" kelimesini Kürtçe yaz.', order: 3 },
+    { id: 'e27', lessonId: 'l2_1', type: 'writing', questionEn: 'Write "brother" in Kurdish.', correctAnswer: 'bira', questionTr: '"erkek kardeş" kelimesini Kürtçe yaz.', order: 3 },
     { id: 'e28', lessonId: 'l2_1', type: 'multiple_choice', questionKu: 'xwişk', questionEn: 'What does this word mean?', options: ['sister', 'brother', 'daughter', 'son'], correctAnswer: 'sister', questionTr: 'Bu kelime ne demek?', optionsTr: ['kız kardeş', 'erkek kardeş', 'kız (çocuk)', 'oğul'], correctAnswerTr: 'kız kardeş', order: 4 },
     { id: 'e29', lessonId: 'l2_1', type: 'multiple_choice', questionKu: 'zarok', questionEn: 'What does this word mean?', options: ['child', 'person', 'woman', 'man'], correctAnswer: 'child', questionTr: 'Bu kelime ne demek?', optionsTr: ['çocuk', 'insan', 'kadın', 'erkek'], correctAnswerTr: 'çocuk', order: 5 },
     { id: 'e30', lessonId: 'l2_1', type: 'multiple_choice', questionKu: 'kur', questionEn: 'What does this word mean?', options: ['boy, son', 'girl, daughter', 'child', 'father'], correctAnswer: 'boy, son', questionTr: 'Bu kelime ne demek?', optionsTr: ['oğlan, oğul', 'kız, kız evlat', 'çocuk', 'baba'], correctAnswerTr: 'oğlan, oğul', order: 6 },
-    { id: 'e31', lessonId: 'l2_1', type: 'translation', questionEn: 'Write "family" in Kurdish.', correctAnswer: 'malbat', questionTr: '"aile" kelimesini Kürtçe yaz.', order: 7 },
+    { id: 'e31', lessonId: 'l2_1', type: 'writing', questionEn: 'Write "family" in Kurdish.', correctAnswer: 'malbat', questionTr: '"aile" kelimesini Kürtçe yaz.', order: 7 },
   ],
 
   // U2L2: People & Roles
   l2_2: [
     { id: 'e32', lessonId: 'l2_2', type: 'multiple_choice', questionKu: 'mirov', questionEn: 'What does this word mean?', options: ['person', 'family', 'friend', 'village'], correctAnswer: 'person', questionTr: 'Bu kelime ne demek?', optionsTr: ['insan', 'aile', 'arkadaş', 'köy'], correctAnswerTr: 'insan', order: 1 },
     { id: 'e33', lessonId: 'l2_2', type: 'multiple_choice', questionKu: 'jin', questionEn: 'What does this word mean?', options: ['woman, wife', 'man, husband', 'girl', 'boy'], correctAnswer: 'woman, wife', questionTr: 'Bu kelime ne demek?', optionsTr: ['kadın, eş', 'erkek, koca', 'kız', 'oğlan'], correctAnswerTr: 'kadın, eş', order: 2 },
-    { id: 'e34', lessonId: 'l2_2', type: 'translation', questionEn: 'Write "man, husband" in Kurdish.', correctAnswer: 'mêr', questionTr: '"erkek, koca" kelimesini Kürtçe yaz.', order: 3 },
+    { id: 'e34', lessonId: 'l2_2', type: 'writing', questionEn: 'Write "man, husband" in Kurdish.', correctAnswer: 'mêr', questionTr: '"erkek, koca" kelimesini Kürtçe yaz.', order: 3 },
     { id: 'e35', lessonId: 'l2_2', type: 'multiple_choice', questionKu: 'mamoste', questionEn: 'What does this word mean?', options: ['teacher', 'student', 'doctor', 'friend'], correctAnswer: 'teacher', questionTr: 'Bu kelime ne demek?', optionsTr: ['öğretmen', 'öğrenci', 'doktor', 'arkadaş'], correctAnswerTr: 'öğretmen', order: 4 },
     { id: 'e36', lessonId: 'l2_2', type: 'multiple_choice', questionKu: 'şagirt', questionEn: 'What does this word mean?', options: ['student', 'teacher', 'youth', 'elder'], correctAnswer: 'student', questionTr: 'Bu kelime ne demek?', optionsTr: ['öğrenci', 'öğretmen', 'genç', 'yaşlı'], correctAnswerTr: 'öğrenci', order: 5 },
-    { id: 'e37', lessonId: 'l2_2', type: 'translation', questionEn: 'Write "people" in Kurdish.', correctAnswer: 'xelk', questionTr: '"halk" kelimesini Kürtçe yaz.', order: 6 },
+    { id: 'e37', lessonId: 'l2_2', type: 'writing', questionEn: 'Write "people" in Kurdish.', correctAnswer: 'xelk', questionTr: '"halk" kelimesini Kürtçe yaz.', order: 6 },
   ],
 
   // U2L3: My, Your, His (Grammar)

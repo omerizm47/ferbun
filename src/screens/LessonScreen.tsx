@@ -31,6 +31,7 @@ import TranslationExercise from '../components/exercises/TranslationExercise';
 import MatchPairsExercise from '../components/exercises/MatchPairsExercise';
 import TrueFalseExercise from '../components/exercises/TrueFalseExercise';
 import FillBlankExercise from '../components/exercises/FillBlankExercise';
+import WritingExercise from '../components/exercises/WritingExercise';
 import { pronounce } from '../utils/speech';
 import { playSound } from '../utils/sounds';
 import PressableScale from '../components/ui/PressableScale';
@@ -153,11 +154,14 @@ export default function LessonScreen() {
       const comboBonusXp = maxCombo >= 10 ? 5 : (maxCombo >= 5 ? 3 : 0);
       const totalXp = xpBase + comboBonusXp;
       
-      const result = completeLesson(lessonId, score, totalXp);
+      const result = completeLesson(lessonId, score, totalXp, maxCombo);
       // Queue any milestone celebrations to play over the finish screen.
       const queued: Celebration[] = [];
       if (result.streakMilestone) queued.push({ kind: 'streak', tier: result.streakMilestone });
       if (result.leveledUp) queued.push({ kind: 'level', level: result.newLevel });
+      if (result.newBadgeIds) {
+        result.newBadgeIds.forEach((badgeId) => queued.push({ kind: 'badge', badgeId }));
+      }
       setCelebrations(queued);
       if (queued.length === 0) haptics.success();
     } else {
@@ -364,6 +368,8 @@ export default function LessonScreen() {
         return <TrueFalseExercise exercise={currentExercise} onAnswer={handleAnswer} disabled={showFeedback} />;
       case 'fill_blank':
         return <FillBlankExercise exercise={currentExercise} onAnswer={handleAnswer} disabled={showFeedback} />;
+      case 'writing':
+        return <WritingExercise exercise={currentExercise} onAnswer={handleAnswer} disabled={showFeedback} />;
       default:
         return null;
     }

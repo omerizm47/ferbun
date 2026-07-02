@@ -20,13 +20,15 @@ import LessonScreen from '../screens/LessonScreen';
 import UnitScreen from '../screens/UnitScreen';
 import FlashcardScreen from '../screens/FlashcardScreen';
 import StoryScreen from '../screens/StoryScreen';
+import RapidFireScreen from '../screens/RapidFireScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   Lesson: { lessonId: string; unitId: string };
   Unit: { unitId: string; courseId: string };
-  Flashcard: { theme?: string; mode?: 'review' };
+  Flashcard: { theme?: string; mode?: 'review' | 'weak' };
   Story: { storyId: string };
+  RapidFire: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -50,7 +52,7 @@ export default function AppNavigator() {
   const showOnboarding = useOnboardingStore((s) => s.showOnboarding);
   const hydrate = useOnboardingStore((s) => s.hydrate);
   const complete = useOnboardingStore((s) => s.complete);
-  const { chosen, t } = useLang();
+  const { chosen, lang } = useLang();
   const { colors: c, scheme } = useTheme();
 
   // Match React Navigation's scene/window background to the active scheme so the
@@ -82,10 +84,10 @@ export default function AppNavigator() {
       await useSettingsStore.getState().loadFromStorage();
       const { notificationsEnabled, reminderHour } = useSettingsStore.getState();
       if (notificationsEnabled) {
-        await scheduleDailyReminder(reminderHour, { title: t.reminders.notifTitle, body: t.reminders.notifBody });
+        await scheduleDailyReminder(reminderHour, lang);
       }
     })();
-  }, [t]);
+  }, [lang]);
 
   if (showOnboarding === null) return <BrandSplash colors={c} />; // loading
 
@@ -116,6 +118,7 @@ export default function AppNavigator() {
         />
         <Stack.Screen name="Flashcard" component={FlashcardScreen} />
         <Stack.Screen name="Story" component={StoryScreen} />
+        <Stack.Screen name="RapidFire" component={RapidFireScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
