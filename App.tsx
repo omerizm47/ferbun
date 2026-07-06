@@ -6,7 +6,6 @@ import { LanguageProvider } from './src/i18n/LanguageProvider';
 import { runContentValidation } from './src/data/validate';
 import AppNavigator from './src/navigation/AppNavigator';
 import { preloadSounds } from './src/utils/sounds';
-import { primeSpeech } from './src/utils/speech';
 
 export default function App() {
   // Surface any content-authoring mistakes (unanswerable question, empty lesson,
@@ -14,7 +13,6 @@ export default function App() {
   useEffect(() => {
     runContentValidation();
     preloadSounds();
-    primeSpeech();
   }, []);
 
   return (

@@ -32,9 +32,7 @@ import MatchPairsExercise from '../components/exercises/MatchPairsExercise';
 import TrueFalseExercise from '../components/exercises/TrueFalseExercise';
 import FillBlankExercise from '../components/exercises/FillBlankExercise';
 import WritingExercise from '../components/exercises/WritingExercise';
-import { pronounce } from '../utils/speech';
 import { playSound } from '../utils/sounds';
-import PressableScale from '../components/ui/PressableScale';
 
 const ENCOURAGEMENTS = [
   { ku: 'Aferîn!', en: 'Well done!', tr: 'Aferin!' },
@@ -304,45 +302,13 @@ export default function LessonScreen() {
           <Text style={styles.teachSub}>{t.lesson.learnFirstSub}</Text>
           {teachCards.map((card, i) => (
             <Animated.View key={`${card.ku}-${i}`} entering={FadeInUp.delay(i * 60).duration(300)}>
-              <PressableScale
-                style={styles.teachCard}
-                onPress={() => {
-                  haptics.selection();
-                  pronounce(card.ku);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`${card.ku}. ${t.common.listen}`}
-              >
+              <View style={styles.teachCard}>
                 <View style={styles.teachCardHeader}>
                   <Text style={styles.teachKu}>{card.ku}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Ionicons name="volume-medium-outline" size={20} color={c.fire[500]} />
-                    <TouchableOpacity
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        pronounce(card.ku, true);
-                        haptics.light();
-                      }}
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 15,
-                        backgroundColor: c.cream[100],
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        borderWidth: 1,
-                        borderColor: c.gray[200],
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel={t.common.listenSlow}
-                    >
-                      <Ionicons name="volume-low-outline" size={18} color={c.fire[600]} />
-                    </TouchableOpacity>
-                  </View>
                 </View>
                 <View style={styles.teachDivider} />
                 <Text style={styles.teachEn}>{card.en}</Text>
-              </PressableScale>
+              </View>
             </Animated.View>
           ))}
         </ScrollView>

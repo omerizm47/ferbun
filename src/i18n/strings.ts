@@ -17,8 +17,6 @@ const en: UiStrings = {
     check: 'Check',
     goBack: 'Go back',
     save: 'Save',
-    listen: 'Listen to Kurdish pronunciation',
-    listenSlow: 'Listen slowly',
   },
   coach: {
     gotIt: 'Got it',
@@ -268,8 +266,6 @@ const tr: UiStrings = {
     check: 'Kontrol et',
     goBack: 'Geri dön',
     save: 'Kaydet',
-    listen: 'Kürtçe telaffuzu dinle',
-    listenSlow: 'Yavaş dinle',
   },
   coach: {
     gotIt: 'Anladım',

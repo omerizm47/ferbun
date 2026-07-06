@@ -13,7 +13,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
 import { toIconName } from '../utils/icons';
-import { speakKurdish } from '../utils/speech';
 import ScreenHeader from '../components/ui/ScreenHeader';
 import MotifTile from '../components/ui/MotifTile';
 import PressableScale from '../components/ui/PressableScale';
@@ -304,15 +303,6 @@ export default function VocabScreen() {
                       </Text>
                     )}
                   </View>
-                  <TouchableOpacity
-                    style={[s.soundBtn, { backgroundColor: c.fireSoft }]}
-                    onPress={() => {
-                      haptics.light();
-                      speakKurdish(selectedWord.wordKu);
-                    }}
-                  >
-                    <Ionicons name="volume-medium-outline" size={24} color={c.fire[600]} />
-                  </TouchableOpacity>
                 </View>
 
                 <View style={s.detailDivider} />

@@ -1,11 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { SPACING, FONT_SIZE, TYPOGRAPHY, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
-import { useT } from '../../i18n/LanguageProvider';
 import { KilimDiamond } from '../ui/KurdishDecorations';
-import { pronounce } from '../../utils/speech';
 
 interface Props {
   /** Short Kurmanji · English instruction, e.g. "HILBIJÊRE · CHOOSE". */
@@ -22,7 +19,6 @@ interface Props {
  */
 export default function QuestionPrompt({ kicker, questionKu, questionEn }: Props) {
   const c = useColors();
-  const t = useT();
   const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.wrap}>
@@ -30,29 +26,7 @@ export default function QuestionPrompt({ kicker, questionKu, questionEn }: Props
         <KilimDiamond size={13} color={c.fire[400]} />
         <Text style={styles.kicker}>{kicker}</Text>
       </View>
-      {questionKu ? (
-        <View style={styles.kuRow}>
-          <TouchableOpacity
-            style={styles.kuBtn}
-            onPress={() => pronounce(questionKu)}
-            accessibilityRole="button"
-            accessibilityLabel={`${questionKu}. ${t.common.listen}`}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.ku}>{questionKu}</Text>
-            <Ionicons name="volume-medium-outline" size={22} color={c.fire[500]} style={{ marginTop: 2 }} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.slowBtn}
-            onPress={() => pronounce(questionKu, true)}
-            accessibilityRole="button"
-            accessibilityLabel={t.common.listenSlow}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="volume-low-outline" size={20} color={c.fire[600]} />
-          </TouchableOpacity>
-        </View>
-      ) : null}
+      {questionKu ? <Text style={styles.ku}>{questionKu}</Text> : null}
       {questionEn ? <Text style={styles.en}>{questionEn}</Text> : null}
     </View>
   );

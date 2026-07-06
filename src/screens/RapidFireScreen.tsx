@@ -16,7 +16,6 @@ import { useLang } from '../i18n/LanguageProvider';
 import { vocabulary } from '../data/vocabulary';
 import { haptics } from '../utils/haptics';
 import { playSound } from '../utils/sounds';
-import { speakKurdish } from '../utils/speech';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -293,16 +292,6 @@ export default function RapidFireScreen() {
               onHandlerStateChange={onHandlerStateChange}
             >
               <Animated.View style={[styles.gameCard, cardStyle, { backgroundColor: c.white }]}>
-                <TouchableOpacity
-                  style={styles.speakerBtn}
-                  onPress={() => {
-                    haptics.light();
-                    speakKurdish(card.word.wordKu);
-                  }}
-                >
-                  <Ionicons name="volume-medium-outline" size={24} color={c.fire[600]} />
-                </TouchableOpacity>
-
                 <View style={styles.cardContent}>
                   <Text style={styles.cardWordKu}>{card.word.wordKu}</Text>
                   <View style={styles.divider} />

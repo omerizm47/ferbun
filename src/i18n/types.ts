@@ -27,10 +27,6 @@ export interface UiStrings {
     check: string;
     goBack: string;
     save: string;
-    /** A11y label for the normal-speed pronunciation button. */
-    listen: string;
-    /** A11y label for the slow-speed pronunciation button. */
-    listenSlow: string;
   };
   // First-run coach-mark (spotlight) chrome. Step content lives in home.coach /
   // lesson.coach; these are the shared control labels.

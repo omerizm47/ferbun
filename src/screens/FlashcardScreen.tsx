@@ -21,7 +21,6 @@ import { KurdishSun, KilimBorder, KilimDiamond } from '../components/ui/KurdishD
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import CelebrationOverlay, { Celebration } from '../components/ui/CelebrationOverlay';
-import { speakKurdish } from '../utils/speech';
 import { playSound } from '../utils/sounds';
 
 type RoutePropType = RouteProp<RootStackParamList, 'Flashcard'>;
@@ -376,34 +375,6 @@ export default function FlashcardScreen() {
                 <View style={styles.cardCorner} pointerEvents="none">
                   <KilimDiamond size={26} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
                 </View>
-
-                {/* Normal Speaker Button */}
-                <TouchableOpacity
-                  style={styles.speakerBtn}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    speakKurdish(word.wordKu);
-                    haptics.light();
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Listen Kurdish pronunciation"
-                >
-                  <Ionicons name="volume-medium-outline" size={20} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
-                </TouchableOpacity>
-
-                {/* Slow Speaker Button */}
-                <TouchableOpacity
-                  style={[styles.speakerBtn, { right: 58 }]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    speakKurdish(word.wordKu, true);
-                    haptics.light();
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Listen slowly"
-                >
-                  <Ionicons name="volume-low-outline" size={20} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
-                </TouchableOpacity>
 
                 <Text style={[styles.cardLabel, { color: cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[600] }]}>
                   {cardDirection === 'tr_en_to_ku' ? 'Kurdî' : t.flashcard.back}
