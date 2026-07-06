@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { SPACING, RADIUS, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
 import { haptics } from '../../utils/haptics';
+import { useLang } from '../../i18n/LanguageProvider';
 
 /**
  * A thin horizontal strip of Kurdish special-character buttons shown above
@@ -29,6 +30,7 @@ interface Props {
 
 export default function KurdishKeyboardRow({ onInsert, showUppercase = false, onToggleCase }: Props) {
   const c = useColors();
+  const { lang } = useLang();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const chars = showUppercase ? CHARS_UPPER : CHARS_LOWER;
@@ -51,7 +53,7 @@ export default function KurdishKeyboardRow({ onInsert, showUppercase = false, on
             }}
             activeOpacity={0.65}
             accessibilityRole="button"
-            accessibilityLabel={`Insert ${char}`}
+            accessibilityLabel={lang === 'tr' ? `${char} ekle` : `Insert ${char}`}
           >
             <Text style={styles.char}>{char}</Text>
           </TouchableOpacity>
@@ -65,7 +67,7 @@ export default function KurdishKeyboardRow({ onInsert, showUppercase = false, on
             }}
             activeOpacity={0.65}
             accessibilityRole="button"
-            accessibilityLabel={showUppercase ? 'Küçük harfe geç' : 'Büyük harfe geç'}
+            accessibilityLabel={lang === 'tr' ? (showUppercase ? 'Küçük harfe geç' : 'Büyük harfe geç') : (showUppercase ? 'Switch to lowercase' : 'Switch to uppercase')}
           >
             <Text style={[styles.char, styles.toggleChar]}>
               {showUppercase ? 'a⇧' : 'A⇧'}

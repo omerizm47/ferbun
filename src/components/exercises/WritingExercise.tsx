@@ -6,7 +6,7 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '..
 import { useTheme } from '../../theme/ThemeProvider';
 import { Exercise } from '../../data/types';
 import { haptics } from '../../utils/haptics';
-import { checkTypedAnswer } from '../../utils/answers';
+import { gradeTypedAnswer } from '../../utils/answers';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, resolveTypedAnswer } from '../../i18n/content';
 import Button from '../ui/Button';
@@ -22,7 +22,7 @@ import KurdishKeyboardRow from '../ui/KurdishKeyboardRow';
 
 interface Props {
   exercise: Exercise;
-  onAnswer: (correct: boolean) => void;
+  onAnswer: (correct: boolean, opts?: { exact?: boolean }) => void;
   disabled: boolean;
 }
 
@@ -42,9 +42,9 @@ export default function WritingExercise({ exercise, onAnswer, disabled }: Props)
     if (disabled || submitted || !input.trim()) return;
     Keyboard.dismiss();
     setSubmitted(true);
-    const correct = checkTypedAnswer(input, resolveTypedAnswer(exercise, lang));
-    if (correct) haptics.success(); else haptics.error();
-    onAnswer(correct);
+    const grade = gradeTypedAnswer(input, resolveTypedAnswer(exercise, lang));
+    if (grade.correct) haptics.success(); else haptics.error();
+    onAnswer(grade.correct, { exact: grade.exact });
   };
 
   const handleInsert = (char: string) => {

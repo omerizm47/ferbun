@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
+import { useLang } from '../../i18n/LanguageProvider';
 
 export type OptionState = 'idle' | 'selected' | 'correct' | 'wrong';
 
@@ -24,11 +25,12 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
  */
 export default function OptionRow({ label, index, state, onPress, disabled }: Props) {
   const c = useColors();
+  const { lang } = useLang();
   const styles = useMemo(() => makeStyles(c), [c]);
   const isSelected = state === 'selected';
   const isCorrect = state === 'correct';
   const isWrong = state === 'wrong';
-  const a11yValue = isCorrect ? ', correct answer' : isWrong ? ', incorrect' : '';
+  const a11yValue = isCorrect ? (lang === 'tr' ? ', doğru cevap' : ', correct answer') : isWrong ? (lang === 'tr' ? ', yanlış' : ', incorrect') : '';
   return (
     <TouchableOpacity
       style={[styles.option, SHADOWS.sm, isSelected && styles.selected, isCorrect && styles.correct, isWrong && styles.wrong]}

@@ -16,6 +16,7 @@ import { toIconName } from '../utils/icons';
 import ScreenHeader from '../components/ui/ScreenHeader';
 import MotifTile from '../components/ui/MotifTile';
 import PressableScale from '../components/ui/PressableScale';
+import UpperText from '../components/ui/UpperText';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -132,7 +133,7 @@ export default function VocabScreen() {
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => { haptics.selection(); setSearchQuery(''); }} style={s.clearBtn}>
+          <TouchableOpacity onPress={() => { haptics.selection(); setSearchQuery(''); }} style={s.clearBtn} accessibilityRole="button" accessibilityLabel={lang === 'tr' ? 'Aramayı temizle' : 'Clear search'}>
             <Ionicons name="close-circle" size={16} color={c.gray[400]} />
           </TouchableOpacity>
         )}
@@ -298,9 +299,9 @@ export default function VocabScreen() {
                   <View>
                     <Text style={s.detailWordKu}>{selectedWord.wordKu}</Text>
                     {selectedWord.partOfSpeech && (
-                      <Text style={s.detailPartOfSpeech}>
+                      <UpperText style={s.detailPartOfSpeech}>
                         {formatPartOfSpeech(selectedWord.partOfSpeech, selectedWord.gender)}
-                      </Text>
+                      </UpperText>
                     )}
                   </View>
                 </View>

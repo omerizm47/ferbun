@@ -5,6 +5,7 @@ import { SPACING, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
 import { useT } from '../../i18n/LanguageProvider';
 import { KilimBorder, KurdishSun } from './KurdishDecorations';
+import UpperText from './UpperText';
 
 interface ScreenHeaderProps {
   /** Kurmanji title — leads the header to anchor Kurdish identity. */
@@ -55,7 +56,7 @@ export default function ScreenHeader({
           </Pressable>
         )}
         <View style={styles.titleArea}>
-          {titleEn && <Text style={[styles.overline, { color: tone }]} numberOfLines={1}>{titleEn}</Text>}
+          {titleEn && <UpperText style={[styles.overline, { color: tone }]} numberOfLines={1}>{titleEn}</UpperText>}
           <Text style={styles.title} numberOfLines={1} accessibilityRole="header">{titleKu}</Text>
         </View>
         {right ? <View style={styles.right}>{right}</View> : null}

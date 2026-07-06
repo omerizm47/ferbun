@@ -200,6 +200,7 @@ export default function ProfileScreen() {
                 totalXp: 0, currentLevel: 1, streakCount: 0, lastActiveDate: null,
                 dailyXp: 0, dailyXpDate: null,
                 lessonProgress: {}, vocabMastery: {}, completedStories: {},
+                maxComboEver: 0,
                 avatarIcon: 'sunny', avatarColor: '#E85D00',
               });
               haptics.success();
@@ -684,7 +685,7 @@ export default function ProfileScreen() {
               onSubmitEditing={saveProfile}
             />
 
-            <Text style={s.fieldLabel}>{t.profile.symbol}</Text>
+            <UpperText style={s.fieldLabel}>{t.profile.symbol}</UpperText>
             <View style={s.optionGrid}>
               {AVATAR_ICONS.map((opt) => {
                 const selected = iconChoice === opt.icon;

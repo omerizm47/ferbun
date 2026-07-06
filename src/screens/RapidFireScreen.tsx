@@ -173,6 +173,7 @@ export default function RapidFireScreen() {
       setCombo(0);
       setTimeLeft((t) => Math.max(0, t - 2)); // penalize 2 seconds
       haptics.error();
+      playSound('wrong');
     }
 
     setCard(generateNewCard());
@@ -261,7 +262,7 @@ export default function RapidFireScreen() {
             {combo >= 3 && (
               <Animated.View entering={ZoomIn} style={styles.comboBadge}>
                 <Ionicons name="flame" size={14} color="#FFFFFF" />
-                <Text style={styles.comboText}>{combo} COMBO</Text>
+                <Text style={styles.comboText}>{combo} {lang === 'tr' ? 'KOMBO' : 'COMBO'}</Text>
               </Animated.View>
             )}
             <View style={styles.timeBadge}>
@@ -334,7 +335,7 @@ export default function RapidFireScreen() {
           <View style={styles.sunWrap}>
             <Ionicons name="trophy" size={84} color="#F59E0B" />
           </View>
-          <Text style={styles.titleKu}>Yarış Bitti!</Text>
+          <Text style={styles.titleKu}>Dem Qediya!</Text>
           <Text style={styles.titleEn}>
             {lang === 'tr' ? 'Süreniz sona erdi.' : 'Time is up.'}
           </Text>

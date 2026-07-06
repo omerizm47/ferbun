@@ -270,7 +270,7 @@ export default function LessonScreen() {
               <Text style={styles.statValue}>+{totalXpEarned}</Text>
               <UpperText style={styles.statLabel}>{t.lesson.xpLabel}</UpperText>
               {comboBonusXp > 0 && (
-                <Text style={styles.bonusText}>+{comboBonusXp} XP Bonus</Text>
+                <Text style={styles.bonusText}>+{comboBonusXp} {lang === 'tr' ? 'XP Bonusu' : 'XP Bonus'}</Text>
               )}
             </View>
           </View>
@@ -360,7 +360,7 @@ export default function LessonScreen() {
         <Text style={styles.counterText}>{currentIndex + 1}/{sessionExercises.length}</Text>
       </View>
 
-      <View style={styles.exerciseArea} key={currentExercise.id}>
+      <View style={styles.exerciseArea} key={`${currentIndex}-${currentExercise.id}`}>
         {renderExercise()}
       </View>
 
@@ -398,9 +398,9 @@ export default function LessonScreen() {
               {endedCombo >= 3 && (
                 <Animated.View entering={FadeInUp.duration(300)} style={styles.comboBrokenBadge}>
                   <Ionicons name="flame-outline" size={14} color={c.gray[400]} />
-                  <Text style={styles.comboBrokenText}>
+                  <UpperText style={styles.comboBrokenText}>
                     {lang === 'tr' ? `Kombo bitti (En Yüksek: ${endedCombo})` : `Combo broke (Max: ${endedCombo})`}
-                  </Text>
+                  </UpperText>
                 </Animated.View>
               )}
               <Text style={styles.correctAnswerLabel}>BERSIVA RAST · {t.exercises.correctAnswer}</Text>
