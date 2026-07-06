@@ -458,7 +458,6 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   detailWordKu: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: c.midnight[800] },
   detailPartOfSpeech: { fontSize: FONT_SIZE.xs, color: c.gray[400], textTransform: 'uppercase', marginTop: 2 },
-  soundBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   detailDivider: { height: 1, backgroundColor: c.gray[100], marginVertical: SPACING.xs },
   detailSection: { gap: 4 },
   detailLabel: { fontSize: 10, fontWeight: '800', color: c.gray[400], letterSpacing: 1 },
