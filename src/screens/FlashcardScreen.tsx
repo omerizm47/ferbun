@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, Pressable,
 } from 'react-native';
@@ -150,16 +150,21 @@ export default function FlashcardScreen() {
     return { opacity };
   });
 
+  // Blocks a second fling from double-triggering know/don't-know during the exit animation.
+  const isSwipingRef = useRef(false);
+
   const triggerKnow = () => {
     handleKnow();
     translateX.value = 0;
     translateY.value = 0;
+    isSwipingRef.current = false;
   };
 
   const triggerDontKnow = () => {
     handleDontKnow();
     translateX.value = 0;
     translateY.value = 0;
+    isSwipingRef.current = false;
   };
 
   const onGestureEvent = (event: any) => {
@@ -169,12 +174,15 @@ export default function FlashcardScreen() {
 
   const onHandlerStateChange = (event: any) => {
     if (event.nativeEvent.state === 5) { // ENDED
+      if (isSwipingRef.current) return;
       const { translationX } = event.nativeEvent;
       if (translationX > 120) {
+        isSwipingRef.current = true;
         translateX.value = withTiming(500, { duration: 250 }, () => {
           runOnJS(triggerKnow)();
         });
       } else if (translationX < -120) {
+        isSwipingRef.current = true;
         translateX.value = withTiming(-500, { duration: 250 }, () => {
           runOnJS(triggerDontKnow)();
         });

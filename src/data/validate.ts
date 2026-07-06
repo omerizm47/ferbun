@@ -84,7 +84,13 @@ export function validateContent(): string[] {
     if (!story.paragraphs || story.paragraphs.length === 0) {
       problems.push(`Story "${story.id}" has no paragraphs.`);
     }
+    if (story.comprehensionQuestions.length === 0) {
+      problems.push(`Story "${story.id}" has no comprehension questions.`);
+    }
     story.comprehensionQuestions.forEach((q, i) => {
+      if (!q.options || q.options.length < 2) {
+        problems.push(`Story "${story.id}" question ${i + 1} has fewer than 2 options.`);
+      }
       if (!q.options.includes(q.correctAnswer)) {
         problems.push(`Story "${story.id}" question ${i + 1} correctAnswer "${q.correctAnswer}" is not among its options.`);
       }

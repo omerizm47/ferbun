@@ -68,29 +68,26 @@ export default function RapidFireScreen() {
 
   // Generate a random card
   const generateNewCard = (): CardState => {
-    const randomIndex = Math.floor(Math.random() * vocabulary.length);
-    const word = vocabulary[randomIndex];
-    const isCorrect = Math.random() < 0.5;
-    let meaning = '';
+    const word = vocabulary[Math.floor(Math.random() * vocabulary.length)];
+    const meaningOf = (w: typeof word) => (lang === 'tr' ? w.wordTr || w.wordEn : w.wordEn);
+    const targetMeaning = meaningOf(word);
+    const showCorrect = Math.random() < 0.5 || vocabulary.length <= 1;
 
-    if (isCorrect || vocabulary.length <= 1) {
-      meaning = lang === 'tr' ? word.wordTr || word.wordEn : word.wordEn;
-    } else {
-      let wrongWord = word;
-      let attempts = 0;
-      while (wrongWord.id === word.id && attempts < 10) {
-        const idx = Math.floor(Math.random() * vocabulary.length);
-        wrongWord = vocabulary[idx];
-        attempts++;
-      }
-      meaning = lang === 'tr' ? wrongWord.wordTr || wrongWord.wordEn : wrongWord.wordEn;
+    if (showCorrect) {
+      return { word, candidateMeaning: targetMeaning, isCandidateCorrect: true };
     }
 
-    return {
-      word,
-      candidateMeaning: meaning,
-      isCandidateCorrect: isCorrect,
-    };
+    // Pick a distractor that differs by MEANING (not just id), so a "wrong" card
+    // never accidentally shows a correct translation (e.g. two words share a gloss).
+    let wrongWord = word;
+    let attempts = 0;
+    while ((wrongWord.id === word.id || meaningOf(wrongWord) === targetMeaning) && attempts < 10) {
+      wrongWord = vocabulary[Math.floor(Math.random() * vocabulary.length)];
+      attempts++;
+    }
+    const wrongMeaning = meaningOf(wrongWord);
+    // If no distinct meaning was found, label truthfully so the right swipe isn't penalised.
+    return { word, candidateMeaning: wrongMeaning, isCandidateCorrect: wrongMeaning === targetMeaning };
   };
 
   // Start the game
@@ -103,27 +100,28 @@ export default function RapidFireScreen() {
     setGameState('playing');
   };
 
-  // Handle countdown
+  // Handle countdown — the interval only decrements (pure); the terminal
+  // game-over side effects live in the effect below so they never run inside a
+  // state updater (which would double-fire under StrictMode).
   useEffect(() => {
-    if (gameState === 'playing') {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            setGameState('gameover');
-            playSound('success'); // plays success sound when finishing
-            haptics.success();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
+    if (gameState !== 'playing') return;
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [gameState]);
+
+  // End the game when the clock hits zero (from a tick or a wrong-answer penalty).
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft === 0) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setGameState('gameover');
+      playSound('success');
+      haptics.success();
+    }
+  }, [gameState, timeLeft]);
 
   // Save high score on game over
   useEffect(() => {

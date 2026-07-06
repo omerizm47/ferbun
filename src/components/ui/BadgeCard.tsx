@@ -63,6 +63,8 @@ export default function BadgeCard({ def, earned, index = 0 }: Props) {
     <Animated.View
       entering={FadeInUp.delay(index * 40).duration(300)}
       style={[styles.card, !earned && styles.cardLocked]}
+      accessible
+      accessibilityLabel={`${name}. ${earned ? (lang === 'tr' ? 'Kazanıldı' : 'Earned') : (lang === 'tr' ? 'Kilitli' : 'Locked')}. ${desc}`}
     >
       {/* Badge icon circle */}
       <View
