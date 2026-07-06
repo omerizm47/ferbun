@@ -13,6 +13,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useProgressStore } from '../stores/progressStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
+import { shuffle } from '../utils/shuffle';
 import ScreenHeader from '../components/ui/ScreenHeader';
 import EmptyState from '../components/ui/EmptyState';
 import Button from '../components/ui/Button';
@@ -46,6 +47,15 @@ export default function StoryScreen() {
   const { t, lang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
   const barStyle = scheme === 'dark' ? 'light-content' : 'dark-content';
+
+  // Shuffle the current question's options so the correct answer isn't always
+  // first (the data lists the correct answer first). Re-shuffles only when the
+  // question or language changes, so options never jump around on re-render.
+  const shuffledOptions = useMemo(() => {
+    const q = story?.comprehensionQuestions?.[quizIndex];
+    if (!q) return [] as string[];
+    return shuffle(resolveStoryQuestion(q, lang).options);
+  }, [story, quizIndex, lang]);
 
   if (!story) {
     return (
@@ -183,7 +193,7 @@ export default function StoryScreen() {
           </View>
           <Text style={s.quizQuestion}>{rq.question}</Text>
           <View style={s.quizOptions}>
-            {rq.options.map((opt, i) => {
+            {shuffledOptions.map((opt, i) => {
               const isSelected = quizAnswer === opt;
               const isCorrect = sameAnswer(opt, rq.correct);
               const state: OptionState = quizAnswer
