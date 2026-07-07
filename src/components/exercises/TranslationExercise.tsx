@@ -28,7 +28,10 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
   const inputRef = useRef<TextInput>(null);
 
   const handleSubmit = () => {
-    if (disabled || submitted || !input.trim()) return;
+    if (disabled || submitted) return;
+    // Empty field: focus the input (open the keyboard) instead of a dead no-op,
+    // so Check always responds and the learner is never stuck.
+    if (!input.trim()) { inputRef.current?.focus(); return; }
     Keyboard.dismiss();
     setSubmitted(true);
     const grade = gradeTypedAnswer(input, resolveTypedAnswer(exercise, lang));
@@ -73,7 +76,7 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
         />
       )}
       {!disabled && (
-        <Button label={t.common.check} onPress={handleSubmit} disabled={!input.trim()} haptic={false} style={styles.checkBtn} />
+        <Button label={t.common.check} onPress={handleSubmit} haptic={false} style={styles.checkBtn} />
       )}
     </KeyboardAvoidingView>
   );
