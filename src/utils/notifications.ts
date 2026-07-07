@@ -105,9 +105,10 @@ export async function scheduleDailyReminder(
       await Notifications.scheduleNotificationAsync({
         content: { title, body },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: scheduledDate,
           channelId: CHANNEL_ID,
-        } as any,
+        },
       });
     }
   } catch (e) {
