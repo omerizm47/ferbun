@@ -82,10 +82,17 @@ export async function scheduleDailyReminder(
     const t = STRINGS[lang];
     const now = new Date();
 
-    for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
+    // Schedule up to 7 upcoming daily reminders — including today when the
+    // chosen hour is still ahead — so a user who enables reminders in the
+    // morning gets one the same evening instead of waiting a full day.
+    let scheduled = 0;
+    for (let dayOffset = 0; dayOffset <= 7 && scheduled < 7; dayOffset++) {
       const scheduledDate = new Date();
       scheduledDate.setDate(now.getDate() + dayOffset);
       scheduledDate.setHours(hour, 0, 0, 0);
+
+      // Skip any slot already in the past (e.g. today's hour has elapsed).
+      if (scheduledDate.getTime() <= now.getTime()) continue;
 
       // Determine day of the year for a stable word selection
       const startOfYear = new Date(scheduledDate.getFullYear(), 0, 0);
@@ -103,13 +110,14 @@ export async function scheduleDailyReminder(
       const body = t.reminders.wordOfDayBody(wordKu, meaning);
 
       await Notifications.scheduleNotificationAsync({
-        content: { title, body },
+        content: { title, body, sound: 'default' },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: scheduledDate,
           channelId: CHANNEL_ID,
         },
       });
+      scheduled++;
     }
   } catch (e) {
     console.error('Failed to schedule daily reminders:', e);
