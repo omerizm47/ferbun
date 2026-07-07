@@ -44,6 +44,12 @@
           "color": "#E85D00"
         }
       ]
-    ]
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/76993b45-c830-4319-82f3-f56b6082357a"
+    }
   }
 }
