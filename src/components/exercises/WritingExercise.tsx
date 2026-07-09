@@ -117,7 +117,7 @@ export default function WritingExercise({ exercise, onAnswer, disabled }: Props)
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1 },
-    inner: { flex: 1, paddingHorizontal: 0 },
+    inner: { paddingHorizontal: 0 },
     kicker: {
       ...TYPOGRAPHY.kicker,
       color: c.fire[600],
