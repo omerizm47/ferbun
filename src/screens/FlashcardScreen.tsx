@@ -58,6 +58,8 @@ export default function FlashcardScreen() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
+  // Suppresses the answer sheet during a swipe so it doesn't flash after the card flies out.
+  const [isSwiping, setIsSwiping] = useState(false);
 
   const spin = useSharedValue(0);
   const frontStyle = useAnimatedStyle(() => ({
@@ -158,6 +160,7 @@ export default function FlashcardScreen() {
     translateX.value = 0;
     translateY.value = 0;
     isSwipingRef.current = false;
+    setIsSwiping(false);
   };
 
   const triggerDontKnow = () => {
@@ -165,6 +168,7 @@ export default function FlashcardScreen() {
     translateX.value = 0;
     translateY.value = 0;
     isSwipingRef.current = false;
+    setIsSwiping(false);
   };
 
   const onGestureEvent = (event: any) => {
@@ -178,11 +182,13 @@ export default function FlashcardScreen() {
       const { translationX } = event.nativeEvent;
       if (translationX > 120) {
         isSwipingRef.current = true;
+        setIsSwiping(true);
         translateX.value = withTiming(500, { duration: 250 }, () => {
           runOnJS(triggerKnow)();
         });
       } else if (translationX < -120) {
         isSwipingRef.current = true;
+        setIsSwiping(true);
         translateX.value = withTiming(-500, { duration: 250 }, () => {
           runOnJS(triggerDontKnow)();
         });
@@ -414,7 +420,7 @@ export default function FlashcardScreen() {
       </View>
 
       {/* Actions */}
-      {isFlipped && (
+      {isFlipped && !isSwiping && (
         <Animated.View entering={FadeInUp.duration(260)} style={[styles.actionSheet, { paddingBottom: insets.bottom + SPACING.md }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetPromptRow}>
