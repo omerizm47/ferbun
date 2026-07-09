@@ -473,6 +473,204 @@ export const stories: Story[] = [
       { question: 'How is Azad after a day?', options: ['Well and happy', 'Still sick', 'Very tired', 'At school'], correctAnswer: 'Well and happy', questionTr: 'Bir gün sonra Azad nasıl?', optionsTr: ['İyi ve mutlu', 'Hâlâ hasta', 'Çok yorgun', 'Okulda'], correctAnswerTr: 'İyi ve mutlu' },
     ],
   },
+  {
+    id: 's10',
+    title: 'Adem Hunermend',
+    titleEn: 'Adem the Artist',
+    level: 'beginner',
+    description: 'A short story about Adem, a young Kurdish painter.',
+    titleTr: 'Ressam Adem',
+    descriptionTr: 'Genç Kürt ressam Adem hakkında kısa bir hikaye.',
+    icon: 'color-palette',
+    accent: '#A65C4A',
+    paragraphs: [
+      [
+        { ku: 'Adem', en: 'Adem', tr: 'Adem' }, { ku: 'hunermendekî', en: 'an artist', tr: 'bir sanatçı' },
+        { ku: 'ciwan', en: 'young', tr: 'genç' }, { ku: 'e.', en: 'is.', tr: '…dir.' },
+      ],
+      [
+        { ku: 'Ew', en: 'He', tr: 'O' }, { ku: 'li', en: 'in', tr: '…de' }, { ku: 'bajarê', en: 'city (of)', tr: 'şehri (…in)' },
+        { ku: 'Amedê', en: 'Amed (Diyarbakir)', tr: 'Amed (Diyarbakır)' }, { ku: 'dijî.', en: 'lives.', tr: 'yaşar.' },
+      ],
+      [
+        { ku: 'Adem', en: 'Adem', tr: 'Adem' }, { ku: 'her', en: 'every', tr: 'her' }, { ku: 'roj', en: 'day', tr: 'gün' },
+        { ku: 'wêneyan', en: 'paintings', tr: 'resimler' }, { ku: 'çêdike.', en: 'makes.', tr: 'yapar.' },
+      ],
+      [
+        { ku: 'Ew', en: 'He', tr: 'O' }, { ku: 'ji', en: 'of', tr: '…i' }, { ku: 'çiyayan', en: 'mountains', tr: 'dağları' },
+        { ku: 'û', en: 'and', tr: 've' }, { ku: 'gulan', en: 'flowers', tr: 'çiçekleri' },
+        { ku: 'hez', en: 'loves', tr: 'sever' }, { ku: 'dike.', en: '(does).', tr: '(eder).' },
+      ],
+      [
+        { ku: 'Rengên', en: 'colors (of)', tr: 'renkleri (…in)' }, { ku: 'wî', en: 'his', tr: 'onun' },
+        { ku: 'sor,', en: 'red,', tr: 'kırmızı,' }, { ku: 'kesk', en: 'green', tr: 'yeşil' }, { ku: 'û', en: 'and', tr: 've' },
+        { ku: 'zer', en: 'yellow', tr: 'sarı' }, { ku: 'in.', en: 'are.', tr: '…dır.' },
+      ],
+      [
+        { ku: 'Mirov', en: 'People', tr: 'İnsanlar' }, { ku: 'ji', en: 'from', tr: '…den' }, { ku: 'gelek', en: 'many', tr: 'birçok' },
+        { ku: 'deran', en: 'places', tr: 'yerler' }, { ku: 'tên', en: 'come', tr: 'gelir' }, { ku: 'û', en: 'and', tr: 've' },
+        { ku: 'wêneyên', en: 'paintings (of)', tr: 'resimleri (…in)' }, { ku: 'wî', en: 'his', tr: 'onun' },
+        { ku: 'dibînin.', en: 'see.', tr: 'görür.' },
+      ],
+      [
+        { ku: 'Adem', en: 'Adem', tr: 'Adem' }, { ku: 'bi', en: 'with', tr: 'ile' }, { ku: 'hunera', en: 'art (of)', tr: 'sanatı (…in)' },
+        { ku: 'xwe', en: 'his own', tr: 'kendi' }, { ku: 'pir', en: 'very', tr: 'çok' },
+        { ku: 'kêfxweş', en: 'happy', tr: 'mutlu' }, { ku: 'e.', en: 'is.', tr: '…dir.' },
+      ],
+    ],
+    comprehensionQuestions: [
+      { question: "What is Adem's job?", options: ['He is an artist', 'He is a doctor', 'He is a teacher', 'He is a farmer'], correctAnswer: 'He is an artist', questionTr: 'Adem’in mesleği nedir?', optionsTr: ['Sanatçıdır', 'Doktordur', 'Öğretmendir', 'Çiftçidir'], correctAnswerTr: 'Sanatçıdır' },
+      { question: 'Where does Adem live?', options: ['In Amed', 'In Istanbul', 'In a village', 'By the sea'], correctAnswer: 'In Amed', questionTr: 'Adem nerede yaşar?', optionsTr: ['Amed’de', 'İstanbul’da', 'Bir köyde', 'Deniz kenarında'], correctAnswerTr: 'Amed’de' },
+      { question: 'What does Adem love?', options: ['Mountains and flowers', 'The sea', 'Cars', 'Music'], correctAnswer: 'Mountains and flowers', questionTr: 'Adem neyi sever?', optionsTr: ['Dağları ve çiçekleri', 'Denizi', 'Arabaları', 'Müziği'], correctAnswerTr: 'Dağları ve çiçekleri' },
+    ],
+  },
+  {
+    id: 's11',
+    title: 'Bijîşk Kanî',
+    titleEn: 'Kani the Doctor',
+    level: 'beginner',
+    description: 'A story about Kani, a kind and skilled Kurdish doctor.',
+    titleTr: 'Doktor Kanî',
+    descriptionTr: 'İyi kalpli ve yetenekli Kürt doktor Kanî hakkında bir hikaye.',
+    icon: 'pulse',
+    accent: '#2E7D6E',
+    paragraphs: [
+      [
+        { ku: 'Kanî', en: 'Kani', tr: 'Kanî' }, { ku: 'bijîşkeke', en: 'a doctor', tr: 'bir doktor' },
+        { ku: 'jêhatî', en: 'skilled', tr: 'yetenekli' }, { ku: 'ye.', en: 'is.', tr: '…dir.' },
+      ],
+      [
+        { ku: 'Ew', en: 'She', tr: 'O' }, { ku: 'li', en: 'at', tr: '…de' },
+        { ku: 'nexweşxaneyê', en: 'the hospital', tr: 'hastanede' }, { ku: 'kar', en: 'work', tr: 'iş' }, { ku: 'dike.', en: 'does.', tr: 'yapar.' },
+      ],
+      [
+        { ku: 'Her', en: 'Every', tr: 'Her' }, { ku: 'roj', en: 'day', tr: 'gün' }, { ku: 'gelek', en: 'many', tr: 'birçok' },
+        { ku: 'nexweş', en: 'patients', tr: 'hasta' }, { ku: 'tên', en: 'come', tr: 'gelir' }, { ku: 'cem', en: 'to', tr: '…e' },
+        { ku: 'wê.', en: 'her.', tr: 'ona.' },
+      ],
+      [
+        { ku: 'Kanî', en: 'Kani', tr: 'Kanî' }, { ku: 'bi', en: 'with', tr: 'ile' }, { ku: 'dilovanî', en: 'kindness', tr: 'şefkat' },
+        { ku: 'li', en: 'at', tr: '…e' }, { ku: 'wan', en: 'them', tr: 'onlara' }, { ku: 'dinêre.', en: 'looks.', tr: 'bakar.' },
+      ],
+      [
+        { ku: 'Ew', en: 'She', tr: 'O' }, { ku: 'derman', en: 'medicine', tr: 'ilaç' }, { ku: 'dide', en: 'gives', tr: 'verir' },
+        { ku: 'nexweşan.', en: 'to the patients.', tr: 'hastalara.' },
+      ],
+      [
+        { ku: 'Nexweş', en: 'The patients', tr: 'Hastalar' }, { ku: 'sax', en: 'healthy', tr: 'sağlıklı' }, { ku: 'dibin', en: 'become', tr: 'olur' },
+        { ku: 'û', en: 'and', tr: 've' }, { ku: 'vedigerin', en: 'return', tr: 'döner' }, { ku: 'malê.', en: 'home.', tr: 'eve.' },
+      ],
+      [
+        { ku: 'Herkes', en: 'Everyone', tr: 'Herkes' }, { ku: 'ji', en: 'with', tr: '…den' }, { ku: 'Kanî', en: 'Kani', tr: 'Kanî' },
+        { ku: 'razî', en: 'pleased', tr: 'memnun' }, { ku: 'ye.', en: 'is.', tr: '…dir.' },
+      ],
+    ],
+    comprehensionQuestions: [
+      { question: "What is Kani's job?", options: ['She is a doctor', 'She is a teacher', 'She is an artist', 'She is a seller'], correctAnswer: 'She is a doctor', questionTr: 'Kanî’nin mesleği nedir?', optionsTr: ['Doktordur', 'Öğretmendir', 'Sanatçıdır', 'Satıcıdır'], correctAnswerTr: 'Doktordur' },
+      { question: 'Where does Kani work?', options: ['At the hospital', 'At a school', 'In a shop', 'At home'], correctAnswer: 'At the hospital', questionTr: 'Kanî nerede çalışır?', optionsTr: ['Hastanede', 'Okulda', 'Dükkânda', 'Evde'], correctAnswerTr: 'Hastanede' },
+      { question: 'What does Kani give the patients?', options: ['Medicine', 'Bread', 'Money', 'Books'], correctAnswer: 'Medicine', questionTr: 'Kanî hastalara ne verir?', optionsTr: ['İlaç', 'Ekmek', 'Para', 'Kitap'], correctAnswerTr: 'İlaç' },
+    ],
+  },
+  {
+    id: 's12',
+    title: 'Firoşkar Alî',
+    titleEn: 'Ali the Seller',
+    level: 'beginner',
+    description: 'A story about Ali, a cheerful seller in the market.',
+    titleTr: 'Satıcı Ali',
+    descriptionTr: 'Çarşıdaki neşeli satıcı Ali hakkında bir hikaye.',
+    icon: 'storefront',
+    accent: '#C0862E',
+    paragraphs: [
+      [
+        { ku: 'Alî', en: 'Ali', tr: 'Ali' }, { ku: 'firoşkarekî', en: 'a seller', tr: 'bir satıcı' },
+        { ku: 'dilgeş', en: 'cheerful', tr: 'neşeli' }, { ku: 'e.', en: 'is.', tr: '…dir.' },
+      ],
+      [
+        { ku: 'Dikaneke', en: 'A shop', tr: 'Bir dükkân' }, { ku: 'wî', en: 'of his', tr: 'onun' }, { ku: 'li', en: 'in', tr: '…de' },
+        { ku: 'sûkê', en: 'the market', tr: 'çarşıda' }, { ku: 'heye.', en: 'there is.', tr: 'var.' },
+      ],
+      [
+        { ku: 'Ew', en: 'He', tr: 'O' }, { ku: 'fêkî', en: 'fruit', tr: 'meyve' }, { ku: 'û', en: 'and', tr: 've' },
+        { ku: 'sebzeyan', en: 'vegetables', tr: 'sebzeler' }, { ku: 'difiroşe.', en: 'sells.', tr: 'satar.' },
+      ],
+      [
+        { ku: 'Sêv,', en: 'Apples,', tr: 'Elmalar,' }, { ku: 'tirî', en: 'grapes', tr: 'üzümler' }, { ku: 'û', en: 'and', tr: 've' },
+        { ku: 'firangoşên', en: 'tomatoes (of)', tr: 'domatesleri (…in)' }, { ku: 'wî', en: 'his', tr: 'onun' },
+        { ku: 'pir', en: 'very', tr: 'çok' }, { ku: 'taze', en: 'fresh', tr: 'taze' }, { ku: 'ne.', en: 'are.', tr: '…dır.' },
+      ],
+      [
+        { ku: 'Mişterî', en: 'Customers', tr: 'Müşteriler' }, { ku: 'her', en: 'every', tr: 'her' }, { ku: 'roj', en: 'day', tr: 'gün' },
+        { ku: 'tên', en: 'come', tr: 'gelir' }, { ku: 'dikana', en: 'shop (of)', tr: 'dükkânına (…in)' }, { ku: 'wî.', en: 'his.', tr: 'onun.' },
+      ],
+      [
+        { ku: 'Alî', en: 'Ali', tr: 'Ali' }, { ku: 'bi', en: 'with', tr: 'ile' }, { ku: 'kêfxweşî', en: 'joy', tr: 'neşe' },
+        { ku: 'bi', en: 'with', tr: 'ile' }, { ku: 'wan', en: 'them', tr: 'onlar' }, { ku: 're', en: '(with)', tr: '(ile)' },
+        { ku: 'diaxive.', en: 'talks.', tr: 'konuşur.' },
+      ],
+      [
+        { ku: 'Bazara', en: 'trade (of)', tr: 'ticareti (…in)' }, { ku: 'wî', en: 'his', tr: 'onun' }, { ku: 'her', en: 'every', tr: 'her' },
+        { ku: 'tim', en: 'time', tr: 'zaman' }, { ku: 'baş', en: 'good', tr: 'iyi' }, { ku: 'e.', en: 'is.', tr: '…dir.' },
+      ],
+    ],
+    comprehensionQuestions: [
+      { question: "What is Ali's job?", options: ['He is a seller', 'He is a doctor', 'He is a teacher', 'He is a driver'], correctAnswer: 'He is a seller', questionTr: 'Ali’nin mesleği nedir?', optionsTr: ['Satıcıdır', 'Doktordur', 'Öğretmendir', 'Şofördür'], correctAnswerTr: 'Satıcıdır' },
+      { question: 'What does Ali sell?', options: ['Fruit and vegetables', 'Cars', 'Clothes', 'Books'], correctAnswer: 'Fruit and vegetables', questionTr: 'Ali ne satar?', optionsTr: ['Meyve ve sebze', 'Araba', 'Giysi', 'Kitap'], correctAnswerTr: 'Meyve ve sebze' },
+      { question: "Where is Ali's shop?", options: ['In the market', 'By the sea', 'In a school', 'In a village'], correctAnswer: 'In the market', questionTr: 'Ali’nin dükkânı nerede?', optionsTr: ['Çarşıda', 'Deniz kenarında', 'Okulda', 'Köyde'], correctAnswerTr: 'Çarşıda' },
+    ],
+  },
+  {
+    id: 's13',
+    title: 'Messi û Futbol',
+    titleEn: 'Messi and Football',
+    level: 'intermediate',
+    description: 'A short story about Lionel Messi, the football star.',
+    titleTr: 'Messi ve Futbol',
+    descriptionTr: 'Futbol yıldızı Lionel Messi hakkında kısa bir hikaye.',
+    icon: 'football',
+    accent: '#3F6FB0',
+    paragraphs: [
+      [
+        { ku: 'Messi', en: 'Messi', tr: 'Messi' }, { ku: 'yek', en: 'one', tr: 'bir' }, { ku: 'ji', en: 'of', tr: '…in' },
+        { ku: 'baştirîn', en: 'best', tr: 'en iyi' }, { ku: 'futbolîstên', en: 'footballers (of)', tr: 'futbolcuları (…in)' },
+        { ku: 'dinyayê', en: 'the world', tr: 'dünyanın' }, { ku: 'ye.', en: 'is.', tr: '…dir.' },
+      ],
+      [
+        { ku: 'Ew', en: 'He', tr: 'O' }, { ku: 'ji', en: 'from', tr: '…den' }, { ku: 'welatê', en: 'country (of)', tr: 'ülkesi (…in)' },
+        { ku: 'Arjantînê', en: 'Argentina', tr: 'Arjantin' }, { ku: 'ye.', en: 'is.', tr: '…dir.' },
+      ],
+      [
+        { ku: 'Messi', en: 'Messi', tr: 'Messi' }, { ku: 'ji', en: 'from', tr: '…den' }, { ku: 'zaroktiya', en: 'childhood (of)', tr: 'çocukluğu (…in)' },
+        { ku: 'xwe', en: 'his own', tr: 'kendi' }, { ku: 've', en: '(since)', tr: '(beri)' }, { ku: 'bi', en: 'with', tr: 'ile' },
+        { ku: 'topê', en: 'the ball', tr: 'topla' }, { ku: 'dilîze.', en: 'plays.', tr: 'oynar.' },
+      ],
+      [
+        { ku: 'Ew', en: 'He', tr: 'O' }, { ku: 'pir', en: 'very', tr: 'çok' }, { ku: 'bilez', en: 'fast', tr: 'hızlı' },
+        { ku: 'e', en: 'is', tr: '…dir' }, { ku: 'û', en: 'and', tr: 've' }, { ku: 'gelek', en: 'many', tr: 'birçok' },
+        { ku: 'golan', en: 'goals', tr: 'gol' }, { ku: 'dike.', en: 'scores.', tr: 'atar.' },
+      ],
+      [
+        { ku: 'Bi', en: 'By', tr: '…ca' }, { ku: 'milyonan', en: 'millions', tr: 'milyonlarca' }, { ku: 'mirov', en: 'people', tr: 'insan' },
+        { ku: 'jê', en: 'him', tr: 'onu' }, { ku: 'hez', en: 'love', tr: 'sever' }, { ku: 'dikin.', en: '(do).', tr: '(eder).' },
+      ],
+      [
+        { ku: 'Di', en: 'In', tr: '…de' }, { ku: 'sala', en: 'year (of)', tr: 'yılı (…in)' }, { ku: '2022an', en: '2022', tr: '2022' },
+        { ku: 'de,', en: '(in),', tr: '(…de),' }, { ku: 'wî', en: 'he', tr: 'o' }, { ku: 'bi', en: 'with', tr: 'ile' },
+        { ku: 'Arjantînê', en: 'Argentina', tr: 'Arjantin' }, { ku: 'Kûpaya', en: 'Cup (of)', tr: 'Kupası (…in)' },
+        { ku: 'Cîhanê', en: 'the World', tr: 'Dünya' }, { ku: 'bir.', en: 'won.', tr: 'kazandı.' },
+      ],
+      [
+        { ku: 'Messi', en: 'Messi', tr: 'Messi' }, { ku: 'ji', en: 'for', tr: '…için' }, { ku: 'bo', en: '(for)', tr: '(için)' },
+        { ku: 'gelek', en: 'many', tr: 'birçok' }, { ku: 'zarokan', en: 'children', tr: 'çocuk' },
+        { ku: 'mînakek', en: 'an example', tr: 'bir örnek' }, { ku: 'e.', en: 'is.', tr: '…tir.' },
+      ],
+    ],
+    comprehensionQuestions: [
+      { question: 'Where is Messi from?', options: ['Argentina', 'Brazil', 'Spain', 'France'], correctAnswer: 'Argentina', questionTr: 'Messi nereli?', optionsTr: ['Arjantin', 'Brezilya', 'İspanya', 'Fransa'], correctAnswerTr: 'Arjantin' },
+      { question: 'What does Messi play?', options: ['Football', 'Basketball', 'Tennis', 'Music'], correctAnswer: 'Football', questionTr: 'Messi ne oynar?', optionsTr: ['Futbol', 'Basketbol', 'Tenis', 'Müzik'], correctAnswerTr: 'Futbol' },
+      { question: 'What did Messi win in 2022?', options: ['The World Cup', 'An Oscar', 'A race', 'Nothing'], correctAnswer: 'The World Cup', questionTr: '2022’de Messi ne kazandı?', optionsTr: ['Dünya Kupası’nı', 'Bir Oscar', 'Bir yarış', 'Hiçbir şey'], correctAnswerTr: 'Dünya Kupası’nı' },
+    ],
+  },
 ];
 
 export const getStoryById = (id: string) => stories.find((s) => s.id === id);
