@@ -654,7 +654,7 @@ export const stories: Story[] = [
         { ku: 'jê', en: 'him', tr: 'onu' }, { ku: 'hez', en: 'love', tr: 'sever' }, { ku: 'dikin.', en: '(do).', tr: '(eder).' },
       ],
       [
-        { ku: 'Di', en: 'In', tr: '…de' }, { ku: 'sala', en: 'year (of)', tr: 'yılı (…in)' }, { ku: '2022an', en: '2022', tr: '2022' },
+        { ku: 'Di', en: 'In', tr: '…de' }, { ku: 'sala', en: 'year (of)', tr: 'yılı (…in)' }, { ku: "2022'an", en: '2022', tr: '2022' },
         { ku: 'de,', en: '(in),', tr: '(…de),' }, { ku: 'wî', en: 'he', tr: 'o' }, { ku: 'bi', en: 'with', tr: 'ile' },
         { ku: 'Arjantînê', en: 'Argentina', tr: 'Arjantin' }, { ku: 'Kûpaya', en: 'Cup (of)', tr: 'Kupası (…in)' },
         { ku: 'Cîhanê', en: 'the World', tr: 'Dünya' }, { ku: 'bir.', en: 'won.', tr: 'kazandı.' },
