@@ -71,8 +71,9 @@
 
   /* Trust row */
   .trust{display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:18px; position:relative; z-index:1}
-  .chip{font-size:12.5px; font-weight:800; color:var(--fire800); background:var(--fire100);
+  .chip{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:800; color:var(--fire800); background:var(--fire100);
     padding:6px 12px; border-radius:999px}
+  .chip svg{width:13px; height:13px}
 
   /* Word of day card */
   .wotd{margin-top:20px; background:linear-gradient(135deg,var(--fire600),var(--fire500));
@@ -88,7 +89,8 @@
   .feat{display:flex; gap:14px; align-items:flex-start; background:var(--white);
     border-radius:18px; padding:16px 18px; box-shadow:0 8px 20px rgba(122,47,0,.08)}
   .feat .ic{width:42px; height:42px; flex:0 0 auto; border-radius:12px; display:grid; place-items:center;
-    background:var(--fire100); font-size:22px}
+    background:var(--fire100); color:var(--fire700)}
+  .feat .ic svg{width:22px; height:22px}
   .feat h3{font-size:16px; font-weight:900}
   .feat p{font-size:14px; color:var(--muted); font-weight:600; margin-top:2px}
 
@@ -126,9 +128,9 @@
     </div>
 
     <div class="trust">
-      <span class="chip" data-t="chip1">✓ Free</span>
-      <span class="chip" data-t="chip2">✓ No account</span>
-      <span class="chip" data-t="chip3">✓ No ads</span>
+      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-t="chip1">Free</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-t="chip2">No account</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-t="chip3">No ads</span></span>
     </div>
   </section>
 
@@ -141,10 +143,10 @@
   </section>
 
   <section class="features">
-    <div class="feat"><div class="ic">📚</div><div><h3 data-t="f1t">Bite-sized lessons</h3><p data-t="f1p">Learn by doing, with instant feedback after every answer.</p></div></div>
-    <div class="feat"><div class="ic">🃏</div><div><h3 data-t="f2t">Themed flashcards</h3><p data-t="f2p">Build vocabulary word by word and track what you've mastered.</p></div></div>
-    <div class="feat"><div class="ic">📖</div><div><h3 data-t="f3t">Kurdish stories</h3><p data-t="f3p">Read short stories and tap any word to see its meaning.</p></div></div>
-    <div class="feat"><div class="ic">🔥</div><div><h3 data-t="f4t">Daily streaks</h3><p data-t="f4p">Keep your Newroz flame alive, from a candle to the Newroz fire.</p></div></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 5-5.5"/></svg></div><div><h3 data-t="f1t">Bite-sized lessons</h3><p data-t="f1p">Learn by doing, with instant feedback after every answer.</p></div></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="12" height="13" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/></svg></div><div><h3 data-t="f2t">Themed flashcards</h3><p data-t="f2p">Build vocabulary word by word and track what you've mastered.</p></div></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-1.7-1.3-4-1.8-8-1.3V18c4-.5 6.3 0 8 1.3 1.7-1.3 4-1.8 8-1.3V5.7c-4-.5-6.3 0-8 1.3z"/><path d="M12 7v12.3"/></svg></div><div><h3 data-t="f3t">Kurdish stories</h3><p data-t="f3p">Read short stories and tap any word to see its meaning.</p></div></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c.6 3 3.5 4.4 3.5 8a3.5 3.5 0 0 1-7 0c0-1.2.4-2 .9-2.8.4.9 1.3 1.3 1.3 1.3C10.4 6.9 12 5.2 12 3z"/></svg></div><div><h3 data-t="f4t">Daily streaks</h3><p data-t="f4p">Keep your Newroz flame alive, from a candle to the Newroz fire.</p></div></div>
   </section>
 
   <div class="social">
@@ -152,7 +154,7 @@
   </div>
 
   <p class="foot">
-    Made with <span class="heart">♥</span> to keep Kurmancî alive<br />
+    Made to help keep Kurmancî alive.<br />
     <a href="./index.html" data-t="supportLink">Support</a> · <a href="./privacy-policy.html" data-t="privacyLink">Privacy</a>
   </p>
 
@@ -171,7 +173,7 @@
       tagline:"Learn Kurdish, the friendly way",
       sub:"Kurmancî lessons, flashcards & stories — learn in English or Turkish.",
       iosSmall:"Download on the", andSmall:"Get it on",
-      chip1:"✓ Free", chip2:"✓ No account", chip3:"✓ No ads",
+      chip1:"Free", chip2:"No account", chip3:"No ads",
       wotdKicker:"Kurdish word of the day", wotdMean:"hello · merhaba", wotdEx:"“Silav li te!” — Hello to you!",
       f1t:"Bite-sized lessons", f1p:"Learn by doing, with instant feedback after every answer.",
       f2t:"Themed flashcards", f2p:"Build vocabulary word by word and track what you've mastered.",
@@ -183,7 +185,7 @@
       tagline:"Kürtçe öğrenmenin keyifli yolu",
       sub:"Kurmancî dersleri, kelime kartları ve hikâyeler — İngilizce ya da Türkçe öğren.",
       iosSmall:"İndir:", andSmall:"İndir:",
-      chip1:"✓ Ücretsiz", chip2:"✓ Hesap yok", chip3:"✓ Reklam yok",
+      chip1:"Ücretsiz", chip2:"Hesap yok", chip3:"Reklam yok",
       wotdKicker:"Günün Kürtçe kelimesi", wotdMean:"merhaba · hello", wotdEx:"“Silav li te!” — Sana selam!",
       f1t:"Kısa dersler", f1p:"Yaparak öğren, her cevaptan sonra anında geri bildirim.",
       f2t:"Temalı kelime kartları", f2p:"Kelime kelime ilerle, öğrendiklerini takip et.",
