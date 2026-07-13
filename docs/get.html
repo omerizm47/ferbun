@@ -30,7 +30,11 @@
   body{
     font-family:'Nunito','Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
     color:var(--ink); background:var(--cream100);
-    background-image:radial-gradient(1200px 600px at 50% -10%, var(--fire100), transparent 60%);
+    background-image:
+      radial-gradient(900px 480px at 50% -6%, var(--fire200), transparent 55%),
+      radial-gradient(600px 420px at 100% 4%, var(--fire100), transparent 50%),
+      radial-gradient(620px 480px at 0% 10%, #FFF1DF, transparent 45%);
+    background-attachment:fixed;
     -webkit-font-smoothing:antialiased; line-height:1.5;
   }
   .wrap{max-width:560px; margin:0 auto; padding:22px 20px 48px}
@@ -100,6 +104,22 @@
   .foot{margin-top:22px; text-align:center; font-size:12.5px; color:var(--muted); font-weight:600}
   .foot a{color:var(--muted); font-weight:800}
   .heart{color:var(--fire600)}
+
+  /* Section heading */
+  .sec-title{margin:32px 4px 14px; font-size:13px; font-weight:900; letter-spacing:2px;
+    text-transform:uppercase; color:var(--fire700); text-align:center}
+
+  /* Screenshot gallery (App Store style) */
+  .gallery{display:flex; gap:14px; overflow-x:auto; scroll-snap-type:x mandatory;
+    padding:6px 4px 12px; margin:0 -4px; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+  .gallery::-webkit-scrollbar{display:none}
+  .gallery img{height:430px; width:auto; border-radius:22px; scroll-snap-align:center; flex:0 0 auto;
+    box-shadow:0 16px 34px rgba(122,47,0,.22)}
+
+  /* Reveal-on-load */
+  @keyframes fadeUp{from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none}}
+  .reveal{opacity:0; animation:fadeUp .6s cubic-bezier(.2,.7,.2,1) both}
+  @media (prefers-reduced-motion:reduce){ .reveal{opacity:1; animation:none} }
 </style>
 </head>
 <body>
@@ -110,7 +130,7 @@
     <button data-lang="tr" aria-pressed="false">TR</button>
   </div>
 
-  <section class="hero">
+  <section class="hero reveal">
     <img class="badge" src="icon.png" alt="Fêrbûn app icon" />
     <h1 class="brand">Fêrbûn</h1>
     <p class="tagline" data-t="tagline">Learn Kurdish, the friendly way</p>
@@ -134,7 +154,17 @@
     </div>
   </section>
 
-  <section class="wotd" aria-label="Word of the day">
+  <section class="reveal" style="animation-delay:.05s" aria-label="Screenshots">
+    <div class="sec-title" data-t="seeTitle">See it in action</div>
+    <div class="gallery">
+      <img src="shot-1.jpg" alt="Fêrbûn home screen" loading="lazy" />
+      <img src="shot-2.jpg" alt="A Fêrbûn lesson" loading="lazy" />
+      <img src="shot-3.jpg" alt="Fêrbûn flashcards" loading="lazy" />
+      <img src="shot-4.jpg" alt="Daily streak" loading="lazy" />
+    </div>
+  </section>
+
+  <section class="wotd reveal" style="animation-delay:.1s" aria-label="Word of the day">
     <svg class="diamond" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 2 98 50 50 98 2 50z" fill="none" stroke="#fff" stroke-width="6"/><path d="M50 20 80 50 50 80 20 50z" fill="none" stroke="#fff" stroke-width="4"/></svg>
     <div class="kicker" data-t="wotdKicker">Kurdish word of the day</div>
     <div class="word">silav</div>
@@ -142,18 +172,19 @@
     <div class="ex" data-t="wotdEx">“Silav li te!” — Hello to you!</div>
   </section>
 
-  <section class="features">
+  <div class="sec-title reveal" data-t="featTitle" style="animation-delay:.12s">What's inside</div>
+  <section class="features reveal" style="animation-delay:.15s">
     <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 5-5.5"/></svg></div><div><h3 data-t="f1t">Bite-sized lessons</h3><p data-t="f1p">Learn by doing, with instant feedback after every answer.</p></div></div>
     <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="12" height="13" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/></svg></div><div><h3 data-t="f2t">Themed flashcards</h3><p data-t="f2p">Build vocabulary word by word and track what you've mastered.</p></div></div>
     <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-1.7-1.3-4-1.8-8-1.3V18c4-.5 6.3 0 8 1.3 1.7-1.3 4-1.8 8-1.3V5.7c-4-.5-6.3 0-8 1.3z"/><path d="M12 7v12.3"/></svg></div><div><h3 data-t="f3t">Kurdish stories</h3><p data-t="f3p">Read short stories and tap any word to see its meaning.</p></div></div>
     <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c.6 3 3.5 4.4 3.5 8a3.5 3.5 0 0 1-7 0c0-1.2.4-2 .9-2.8.4.9 1.3 1.3 1.3 1.3C10.4 6.9 12 5.2 12 3z"/></svg></div><div><h3 data-t="f4t">Daily streaks</h3><p data-t="f4p">Keep your Newroz flame alive, from a candle to the Newroz fire.</p></div></div>
   </section>
 
-  <div class="social">
+  <div class="social reveal">
     <a href="https://instagram.com/ferbunlearnkurdish" target="_blank" rel="noopener">Follow @ferbunlearnkurdish →</a>
   </div>
 
-  <p class="foot">
+  <p class="foot reveal">
     Made to help keep Kurmancî alive.<br />
     <a href="./index.html" data-t="supportLink">Support</a> · <a href="./privacy-policy.html" data-t="privacyLink">Privacy</a>
   </p>
@@ -179,6 +210,7 @@
       f2t:"Themed flashcards", f2p:"Build vocabulary word by word and track what you've mastered.",
       f3t:"Kurdish stories", f3p:"Read short stories and tap any word to see its meaning.",
       f4t:"Daily streaks", f4p:"Keep your Newroz flame alive, from a candle to the Newroz fire.",
+      seeTitle:"See it in action", featTitle:"What's inside",
       supportLink:"Support", privacyLink:"Privacy"
     },
     tr: {
@@ -191,6 +223,7 @@
       f2t:"Temalı kelime kartları", f2p:"Kelime kelime ilerle, öğrendiklerini takip et.",
       f3t:"Kürtçe hikâyeler", f3p:"Kısa hikâyeler oku, kelimeye dokun anlamını gör.",
       f4t:"Günlük seri", f4p:"Newroz ateşini canlı tut: mumdan Newroz ateşine.",
+      seeTitle:"Uygulamayı gör", featTitle:"İçinde neler var",
       supportLink:"Destek", privacyLink:"Gizlilik"
     }
   };
