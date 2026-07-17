@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, ScrollView, Alert,
 } from 'react-native';
-import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -227,7 +227,7 @@ export default function LessonScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.finishScreen}>
-          <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.medalWrap}>
+          <Animated.View entering={ZoomIn.duration(320)} style={styles.medalWrap}>
             <View style={styles.medalRays} pointerEvents="none">
               <KurdishSun size={150} color={c.fire[200]} />
             </View>
@@ -301,7 +301,7 @@ export default function LessonScreen() {
           <Text style={styles.teachTitle}>{t.lesson.learnFirst}</Text>
           <Text style={styles.teachSub}>{t.lesson.learnFirstSub}</Text>
           {teachCards.map((card, i) => (
-            <Animated.View key={`${card.ku}-${i}`} entering={FadeInUp.delay(i * 60).duration(300)}>
+            <Animated.View key={`${card.ku}-${i}`} entering={FadeIn.delay(i * 50).duration(260)}>
               <View style={styles.teachCard}>
                 <View style={styles.teachCardHeader}>
                   <Text style={styles.teachKu}>{card.ku}</Text>
