@@ -46,8 +46,8 @@ function FloatingHero({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     y.value = withRepeat(
       withSequence(
-        withTiming(-10, { duration: 2200, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: 2200, easing: Easing.inOut(Easing.quad) }),
+        withTiming(-6, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
       ),
       -1,
       false,
@@ -266,7 +266,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
         <View style={[s.heroContent, { paddingTop: insets.top }]}>
           <FloatingHero key={currentSlide}>
-            <Animated.View entering={ZoomIn.springify().damping(20)}>
+            <Animated.View entering={ZoomIn.duration(360)}>
               {renderHero(slide.hero, hs, c, t.onboarding.preview)}
             </Animated.View>
           </FloatingHero>
