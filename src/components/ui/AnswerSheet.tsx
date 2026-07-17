@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withDelay, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
@@ -26,8 +26,8 @@ export default function AnswerSheet({ correct, bottomInset, style, children }: P
   const styles = useMemo(() => makeStyles(c), [c]);
   const scale = useSharedValue(0);
   useEffect(() => {
-    // Pop the emblem in just after the sheet rises, with a soft, subtle overshoot.
-    scale.value = withDelay(80, withSpring(1, { damping: 15, stiffness: 170, mass: 0.7 }));
+    // Ease the emblem in just after the sheet rises — calm, no bounce.
+    scale.value = withDelay(80, withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) }));
   }, [scale]);
   const emblemAnim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const accent = correct ? c.success : c.error;

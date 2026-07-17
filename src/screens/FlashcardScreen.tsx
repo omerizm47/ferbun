@@ -193,8 +193,8 @@ export default function FlashcardScreen() {
           runOnJS(triggerDontKnow)();
         });
       } else {
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
+        translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
+        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
     }
   };
