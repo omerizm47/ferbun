@@ -671,6 +671,54 @@ export const stories: Story[] = [
       { question: 'What did Messi win in 2022?', options: ['The World Cup', 'An Oscar', 'A race', 'Nothing'], correctAnswer: 'The World Cup', questionTr: '2022’de Messi ne kazandı?', optionsTr: ['Dünya Kupası’nı', 'Bir Oscar', 'Bir yarış', 'Hiçbir şey'], correctAnswerTr: 'Dünya Kupası’nı' },
     ],
   },
+  {
+    id: 's14',
+    title: 'Evîn Avahîsaz',
+    titleEn: 'Evîn the Architect',
+    level: 'beginner',
+    description: 'A short, warm story about Evîn, a kind architect.',
+    titleTr: 'Mimar Evîn',
+    descriptionTr: 'Nazik bir mimar olan Evîn hakkında kısa, sıcak bir hikaye.',
+    icon: 'business',
+    accent: '#9C5D7C',
+    paragraphs: [
+      [
+        { ku: 'Evîn', en: 'Evîn', tr: 'Evîn' }, { ku: 'avahîsazek', en: 'an architect', tr: 'bir mimar' },
+        { ku: 'e.', en: 'is.', tr: '…dır.' },
+      ],
+      [
+        { ku: 'Ew', en: 'She', tr: 'O' }, { ku: 'jineke', en: 'a woman', tr: 'bir kadın' }, { ku: 'jîr', en: 'clever', tr: 'akıllı' },
+        { ku: 'û', en: 'and', tr: 've' }, { ku: 'dilovan', en: 'kind', tr: 'iyi kalpli' }, { ku: 'e.', en: 'is.', tr: '…dır.' },
+      ],
+      [
+        { ku: 'Ew', en: 'She', tr: 'O' }, { ku: 'xaniyên', en: 'houses', tr: 'evler' }, { ku: 'spehî', en: 'beautiful', tr: 'güzel' },
+        { ku: 'çêdike.', en: 'builds.', tr: 'yapar.' },
+      ],
+      [
+        { ku: 'Ji', en: 'For', tr: '…için' }, { ku: 'bo', en: '(for)', tr: '(için)' }, { ku: 'wê,', en: 'her,', tr: 'ona,' },
+        { ku: 'her', en: 'every', tr: 'her' }, { ku: 'avahî', en: 'building', tr: 'bina' }, { ku: 'çîrokek', en: 'a story', tr: 'bir hikaye' },
+        { ku: 'e.', en: 'is.', tr: '…dir.' },
+      ],
+      [
+        { ku: 'Ew', en: 'She', tr: 'O' }, { ku: 'ji', en: 'from', tr: '…den' }, { ku: 'çiyayên', en: 'the mountains of', tr: 'dağlarından' },
+        { ku: 'Kurdistanê', en: 'Kurdistan', tr: 'Kürdistan’ın' }, { ku: 'îlham', en: 'inspiration', tr: 'ilham' },
+        { ku: 'digire.', en: 'takes.', tr: 'alır.' },
+      ],
+      [
+        { ku: 'Evîn', en: 'Evîn', tr: 'Evîn' }, { ku: 'hertim', en: 'always', tr: 'her zaman' }, { ku: 'alîkariya', en: 'the help of', tr: 'yardımını' },
+        { ku: 'me', en: 'us', tr: 'bize' }, { ku: 'dike.', en: 'does.', tr: 'eder.' },
+      ],
+      [
+        { ku: 'Spas', en: 'Thank you', tr: 'Teşekkürler' }, { ku: 'ji', en: 'to', tr: '(sana)' }, { ku: 'te', en: 'you', tr: 'sana' },
+        { ku: 're,', en: '(to),', tr: '(…e),' }, { ku: 'Evîn!', en: 'Evîn!', tr: 'Evîn!' },
+      ],
+    ],
+    comprehensionQuestions: [
+      { question: "What is Evîn's job?", options: ['Architect', 'Doctor', 'Teacher', 'Singer'], correctAnswer: 'Architect', questionTr: 'Evîn’in mesleği nedir?', optionsTr: ['Mimar', 'Doktor', 'Öğretmen', 'Şarkıcı'], correctAnswerTr: 'Mimar' },
+      { question: 'What does Evîn build?', options: ['Beautiful houses', 'Cars', 'Songs', 'Food'], correctAnswer: 'Beautiful houses', questionTr: 'Evîn ne yapar?', optionsTr: ['Güzel evler', 'Arabalar', 'Şarkılar', 'Yemek'], correctAnswerTr: 'Güzel evler' },
+      { question: 'Where does Evîn get her inspiration?', options: ['The mountains of Kurdistan', 'The sea', 'Books', 'The city'], correctAnswer: 'The mountains of Kurdistan', questionTr: 'Evîn nereden ilham alır?', optionsTr: ['Kürdistan’ın dağlarından', 'Denizden', 'Kitaplardan', 'Şehirden'], correctAnswerTr: 'Kürdistan’ın dağlarından' },
+    ],
+  },
 ];
 
 export const getStoryById = (id: string) => stories.find((s) => s.id === id);
