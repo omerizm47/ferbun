@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>Fêrbûn — iOS link diagnostic</title>
+<style>
+  body{font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       margin:0; padding:20px 16px 60px; background:#FFF9EB; color:#231606}
+  h1{font-size:20px; margin:0 0 6px}
+  p.sub{margin:0 0 18px; color:#8A6E52; font-size:14px}
+  .ua{background:#fff; border:1px solid rgba(122,47,0,.15); border-radius:10px;
+      padding:10px 12px; font-size:11px; word-break:break-all; color:#463218; margin-bottom:22px}
+  a.t{display:block; background:#231606; color:#fff; text-decoration:none;
+      padding:14px 16px; border-radius:12px; margin:0 0 6px; font-weight:700; font-size:15px}
+  a.t.control{background:#16803D}
+  .n{display:inline-block; min-width:26px; font-weight:800; opacity:.65}
+  .what{font-size:12.5px; color:#8A6E52; margin:0 0 18px 4px}
+  .hit{font-weight:800; color:#C44B00}
+</style>
+</head>
+<body>
+  <h1>iOS link diagnostic</h1>
+  <p class="sub">Tap each button in order. After each one, come back here and note what happened.
+     The number in brackets counts your taps — if it goes up, the tap registered.</p>
+
+  <div class="ua" id="ua"></div>
+
+  <a class="t" id="l1" href="https://apps.apple.com/tr/app/f%C3%AArb%C3%BBn-learn-kurdish/id6780297226" rel="noopener">
+    <span class="n">1.</span> Canonical universal link <span class="hit" data-c="1">[0]</span></a>
+  <p class="what">Plain anchor, TR storefront, 0 redirects. This is what the site uses now.</p>
+
+  <a class="t" id="l2" href="https://apps.apple.com/tr/app/f%C3%AArb%C3%BBn-learn-kurdish/id6780297226" target="_blank" rel="noopener">
+    <span class="n">2.</span> Same link, new tab <span class="hit" data-c="2">[0]</span></a>
+  <p class="what">Tests whether target="_blank" escapes the in-app browser.</p>
+
+  <a class="t" id="l3" href="https://apps.apple.com/app/id6780297226" rel="noopener">
+    <span class="n">3.</span> Short link (redirects) <span class="hit" data-c="3">[0]</span></a>
+  <p class="what">The old form. Tests whether the redirect was really the problem.</p>
+
+  <a class="t" id="l4" href="itms-apps://apps.apple.com/tr/app/id6780297226" rel="noopener">
+    <span class="n">4.</span> itms-apps:// scheme <span class="hit" data-c="4">[0]</span></a>
+  <p class="what">Custom scheme. Expected to be blocked, but worth confirming.</p>
+
+  <a class="t control" id="l5" href="https://example.com/" rel="noopener">
+    <span class="n">5.</span> CONTROL — plain website <span class="hit" data-c="5">[0]</span></a>
+  <p class="what"><b>Most important.</b> If this also does nothing, Instagram is blocking every
+     outbound link and the App Store is not the issue at all.</p>
+
+  <a class="t control" id="l6" href="https://omerizm47.github.io/ferbun/get.html" rel="noopener">
+    <span class="n">6.</span> CONTROL — same-site page <span class="hit" data-c="6">[0]</span></a>
+  <p class="what">Tests navigation within our own domain.</p>
+
+<script>
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  /* Count taps so we can tell "the tap never registered" apart from
+     "the tap registered but the navigation was blocked". */
+  var counts = {};
+  ['l1','l2','l3','l4','l5','l6'].forEach(function(id){
+    var n = id.slice(1);
+    counts[n] = 0;
+    document.getElementById(id).addEventListener('click', function(){
+      counts[n]++;
+      document.querySelector('[data-c="' + n + '"]').textContent = '[' + counts[n] + ']';
+      try { sessionStorage.setItem('taps', JSON.stringify(counts)); } catch (e) {}
+    });
+  });
+</script>
+</body>
+</html>
