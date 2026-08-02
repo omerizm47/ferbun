@@ -62,14 +62,6 @@
   .store b{font-size:17px; font-weight:800; line-height:1.05}
   .trust{margin-top:16px; text-align:center; font-size:13px; font-weight:600; color:var(--muted); letter-spacing:.2px}
 
-  /* Shown only inside iOS in-app browsers (Instagram etc.), whose WKWebView
-     cannot hand off apps.apple.com to the App Store app — the tap dies silently. */
-  .iab{margin-top:16px; background:var(--fire100); border:1px solid rgba(196,75,0,.2);
-    border-radius:14px; padding:13px 16px; font-size:13.5px; line-height:1.5;
-    color:var(--fire700); text-align:center}
-  .iab[hidden]{display:none}
-  .iab a{display:inline-block; margin-top:7px; font-weight:800; color:var(--fire700)}
-
   /* Section label */
   .label{font-family:var(--serif); font-weight:600; font-style:italic; font-size:19px; color:var(--ink);
     text-align:center; margin-bottom:16px}
@@ -136,11 +128,6 @@
       </a>
     </div>
     <p class="trust" data-t="trust">Free · No account · No ads · iOS &amp; Android</p>
-
-    <p class="iab" id="iabNote" hidden>
-      <span data-t="iabText">Instagram’s browser can’t open the App Store.</span><br />
-      <a href="#" id="iabOpen" data-t="iabAction">Open this page in Safari →</a>
-    </p>
   </section>
 
   <div class="kilim" aria-hidden="true"></div>
@@ -212,8 +199,6 @@
       sub:"A warm little app for Kurdish (Kurmancî) — lessons, flashcards and stories, in English or Turkish.",
       iosSmall:"Download on the", andSmall:"Get it on",
       trust:"Free · No account · No ads · iOS & Android",
-      iabText:"Instagram’s browser can’t open the App Store.",
-      iabAction:"Open this page in Safari →",
       seeTitle:"See it in your hand", featTitle:"What's inside",
       wotdKicker:"Peyva rojê · Word of the day", wotdMean:"hello · merhaba", wotdEx:"“Silav li te!” — Hello to you!",
       f1t:"Bite-sized lessons", f1p:"Learn by doing, with instant feedback after every answer.",
@@ -227,8 +212,6 @@
       sub:"Kürtçe (Kurmancî) için sıcacık bir uygulama — dersler, kelime kartları ve hikâyeler; İngilizce ya da Türkçe.",
       iosSmall:"İndir:", andSmall:"İndir:",
       trust:"Ücretsiz · Hesap yok · Reklam yok · iOS & Android",
-      iabText:"Instagram’ın tarayıcısı App Store’u açamıyor.",
-      iabAction:"Bu sayfayı Safari’de aç →",
       seeTitle:"Uygulamaya göz at", featTitle:"İçinde neler var",
       wotdKicker:"Peyva rojê · Günün kelimesi", wotdMean:"merhaba · hello", wotdEx:"“Silav li te!” — Sana selam!",
       f1t:"Kısa dersler", f1p:"Yaparak öğren, her cevaptan sonra anında geri bildirim.",
@@ -253,8 +236,8 @@
   setLang((navigator.language||'en').toLowerCase().indexOf('tr')===0 ? 'tr' : 'en');
 
   /* iOS in-app browsers (Instagram, Facebook, TikTok…) run a WKWebView that cannot
-     hand apps.apple.com off to the App Store app, so the button does nothing.
-     Surface an escape hatch instead of leaving a dead tap. */
+     hand apps.apple.com off to the App Store app, so the button would do nothing.
+     Route the tap out to Safari instead, which can. */
   (function(){
     var ua = navigator.userAgent || '';
     var inApp = /Instagram|FBAN|FBAV|FB_IAB|TikTok|Snapchat|Line\//i.test(ua);
@@ -269,20 +252,14 @@
        If the webview blocks the scheme nothing happens, so fall back to the normal
        link after a moment. A long elapsed time means we were backgrounded, i.e. it
        worked and timers were throttled. */
-    function toSafari(url){
+    iosBtn.addEventListener('click', function(e){
+      e.preventDefault();
       var t = Date.now();
-      window.location.href = 'x-safari-' + url;
+      window.location.href = 'x-safari-' + IOS_URL;
       setTimeout(function(){
         if (document.hidden || Date.now() - t > 2200) return;
-        window.open(url, '_blank');
+        window.open(IOS_URL, '_blank');
       }, 1300);
-    }
-
-    document.getElementById('iabNote').hidden = false;
-    iosBtn.addEventListener('click', function(e){ e.preventDefault(); toSafari(IOS_URL); });
-    document.getElementById('iabOpen').addEventListener('click', function(e){
-      e.preventDefault();
-      toSafari(window.location.href);
     });
   })();
 </script>
