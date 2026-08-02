@@ -262,11 +262,27 @@
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (!inApp || !isIOS) return;
 
+    var iosBtn = document.getElementById('ios');
+    var IOS_URL = iosBtn.href;
+
+    /* x-safari-<url> hands the URL to Safari, which CAN open the App Store natively.
+       If the webview blocks the scheme nothing happens, so fall back to the normal
+       link after a moment. A long elapsed time means we were backgrounded, i.e. it
+       worked and timers were throttled. */
+    function toSafari(url){
+      var t = Date.now();
+      window.location.href = 'x-safari-' + url;
+      setTimeout(function(){
+        if (document.hidden || Date.now() - t > 2200) return;
+        window.open(url, '_blank');
+      }, 1300);
+    }
+
     document.getElementById('iabNote').hidden = false;
+    iosBtn.addEventListener('click', function(e){ e.preventDefault(); toSafari(IOS_URL); });
     document.getElementById('iabOpen').addEventListener('click', function(e){
       e.preventDefault();
-      /* x-safari-<url> forces Safari to take over from a WKWebView on iOS. */
-      window.location.href = 'x-safari-' + window.location.href;
+      toSafari(window.location.href);
     });
   })();
 </script>
