@@ -13,9 +13,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors, COLORS } from '../theme';
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
-import { vocabulary } from '../data/vocabulary';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { haptics } from '../utils/haptics';
 import { playSound } from '../utils/sounds';
+import EmptyState from '../components/ui/EmptyState';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -29,8 +30,9 @@ export default function RapidFireScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { colors: c, scheme } = useTheme();
-  const { lang } = useLang();
+  const { t, lang } = useLang();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const { vocabulary } = useTrackContent();
 
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
@@ -201,6 +203,22 @@ export default function RapidFireScreen() {
       }
     }
   };
+
+  // A track with no words has nothing to draw a card from, so the game cannot start.
+  if (vocabulary.length === 0) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <EmptyState
+          icon="albums-outline"
+          titleKu="Peyv tune"
+          title={t.flashcard.noWordsTitle}
+          message={t.flashcard.noWordsMessage}
+          actionLabel={t.common.goBack}
+          onAction={() => navigation.goBack()}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

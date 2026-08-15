@@ -14,7 +14,9 @@
   "include": [
     "tools/**/*.ts",
     "src/data/**/*.ts",
+    "src/stores/progressMigration.ts",
     "src/utils/answers.ts",
+    "src/utils/badges.ts",
     "src/i18n/types.ts"
   ]
 }

@@ -66,6 +66,8 @@ const en: UiStrings = {
     continueKicker: 'CONTINUE',
     allDoneKicker: 'ALL DONE',
     allDoneSub: "You've finished every lesson",
+    emptyTrackKicker: 'NO LESSONS YET',
+    emptyTrackSub: 'Lessons for this language are being prepared. Check back soon.',
     coach: [
       { title: 'Your daily streak', description: 'Practice every day to keep your Newroz flame alive. Your streak and XP live up here.' },
       { title: 'Start a lesson', description: 'Tap any unlocked unit to open its lessons, answer quick exercises, and earn XP.' },
@@ -315,6 +317,8 @@ const tr: UiStrings = {
     continueKicker: 'DEVAM ET',
     allDoneKicker: 'HEPSİ BİTTİ',
     allDoneSub: 'Her dersi tamamladın',
+    emptyTrackKicker: 'HENÜZ DERS YOK',
+    emptyTrackSub: 'Bu dil için dersler hazırlanıyor. Yakında tekrar bak.',
     coach: [
       { title: 'Günlük serin', description: 'Newroz ateşini canlı tutmak için her gün pratik yap. Serin ve XP’in burada görünür.' },
       { title: 'Bir derse başla', description: 'Derslerini açmak için kilidi açık bir üniteye dokun, kısa alıştırmaları yanıtla ve XP kazan.' },

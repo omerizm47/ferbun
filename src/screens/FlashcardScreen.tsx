@@ -10,8 +10,8 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '..
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { vocabGloss, vocabExample } from '../i18n/content';
-import { getVocabByTheme, getVocabById, VOCAB_THEMES } from '../data/vocabulary';
 import { VocabWord } from '../data/types';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { useProgressStore, selectWeakVocabIds } from '../stores/progressStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -34,6 +34,7 @@ export default function FlashcardScreen() {
   const insets = useSafeAreaInsets();
   const { updateVocabMastery, getDueVocabIds, completeVocabReview, vocabMastery } = useProgressStore();
   const cardDirection = useSettingsStore((st) => st.cardDirection);
+  const { vocabThemes, getVocabByTheme, getVocabById } = useTrackContent();
   // The queue is snapshotted once at mount: answering pushes a word's next
   // review into the future, which would otherwise shrink the list mid-session.
   const words = useMemo(() => {
@@ -46,7 +47,7 @@ export default function FlashcardScreen() {
     return theme ? getVocabByTheme(theme) : [];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReview, isWeak, theme]);
-  const themeInfo = theme ? VOCAB_THEMES.find((t) => t.id === theme) : undefined;
+  const themeInfo = theme ? vocabThemes.find((t) => t.id === theme) : undefined;
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
   const styles = useMemo(() => makeStyles(c), [c]);

@@ -1,10 +1,22 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProgress, VocabMastery } from '../data/types';
+import { TrackId, getTrack } from '../data/tracks';
+import {
+  InactiveTracks,
+  PROGRESS_BACKUP_KEY,
+  PROGRESS_SCHEMA_VERSION,
+  PROGRESS_STORAGE_KEY,
+  PersistedProgress,
+  TRACK_IDS,
+  TrackProgress,
+  composeTracks,
+  emptyTrackProgress,
+  migrateProgress,
+  readTrackProgress,
+} from './progressMigration';
 import { XP_PER_LEVEL, STREAK_LEVELS } from '../theme';
-import { computeBadges, ProgressSnapshot } from '../utils/badges';
-import { stories } from '../data/stories';
-import { getTotalLessons } from '../data/courses';
+import { computeBadges, ProgressSnapshot, TrackSnapshot } from '../utils/badges';
 
 export type StreakLevel = typeof STREAK_LEVELS[keyof typeof STREAK_LEVELS];
 
@@ -82,13 +94,20 @@ interface ProgressState {
   dailyXpDate: string | null;
   maxComboEver: number;
 
-  // Progress
+  // Progress. The three flat maps always hold the *active* track, so every
+  // reader of them keeps working untouched; the other tracks sit parked in
+  // inactiveTracks until setActiveTrack swaps them in.
   lessonProgress: Record<string, UserProgress>;
   vocabMastery: Record<string, VocabMastery>;
   completedStories: Record<string, boolean>;
+  activeTrack: TrackId;
+  inactiveTracks: InactiveTracks;
+  /** False until loadFromStorage has finished. Saving before it does would stamp the v2 marker over live v1 data. */
+  hydrated: boolean;
 
   // Actions
   setDisplayName: (name: string) => void;
+  setActiveTrack: (next: TrackId) => void;
   setAvatar: (icon: string, color: string) => void;
   completeLesson: (lessonId: string, score: number, xp: number, maxCombo?: number) => LessonResult;
   updateVocabMastery: (vocabId: string, correct: boolean) => void;
@@ -106,7 +125,49 @@ interface ProgressState {
   saveToStorage: () => Promise<void>;
 }
 
-const STORAGE_KEY = '@ferbun_progress';
+/** The fields a badge snapshot is derived from, so a screen can pass the same subset. */
+export type SnapshotSource = Pick<
+  ProgressState,
+  | 'lessonProgress'
+  | 'vocabMastery'
+  | 'completedStories'
+  | 'streakCount'
+  | 'maxComboEver'
+  | 'activeTrack'
+  | 'inactiveTracks'
+>;
+
+/**
+ * One snapshot entry per track: the active track from the live flat maps, every
+ * other from inactiveTracks, each with the totals of its own corpus. A badge is
+ * then never measured against a denominator that belongs to another track.
+ */
+export function buildSnapshot(state: SnapshotSource): ProgressSnapshot {
+  const entry = (id: TrackId, progress: TrackProgress): TrackSnapshot => {
+    const content = getTrack(id).content;
+    return {
+      lessonProgress: progress.lessonProgress,
+      vocabMastery: progress.vocabMastery,
+      completedStories: progress.completedStories,
+      totalLessons: content.getTotalLessons(),
+      totalStories: content.stories.length,
+    };
+  };
+
+  const tracks: TrackSnapshot[] = [
+    entry(state.activeTrack, {
+      lessonProgress: state.lessonProgress,
+      vocabMastery: state.vocabMastery,
+      completedStories: state.completedStories,
+    }),
+  ];
+  for (const id of TRACK_IDS) {
+    if (id === state.activeTrack) continue;
+    tracks.push(entry(id, readTrackProgress(state.inactiveTracks, id) ?? emptyTrackProgress()));
+  }
+
+  return { tracks, streakCount: state.streakCount, maxComboEver: state.maxComboEver };
+}
 
 export const useProgressStore = create<ProgressState>((set, get) => ({
   displayName: '',
@@ -122,9 +183,37 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   lessonProgress: {},
   vocabMastery: {},
   completedStories: {},
+  activeTrack: 'kmr',
+  inactiveTracks: {},
+  hydrated: false,
 
   setDisplayName: (name: string) => {
     set({ displayName: name });
+    get().saveToStorage();
+  },
+
+  setActiveTrack: (next: TrackId) => {
+    const state = get();
+    if (state.activeTrack === next) return;
+
+    const parked: InactiveTracks = {
+      ...state.inactiveTracks,
+      [state.activeTrack]: {
+        lessonProgress: state.lessonProgress,
+        vocabMastery: state.vocabMastery,
+        completedStories: state.completedStories,
+      },
+    };
+    const incoming = readTrackProgress(parked, next) ?? emptyTrackProgress();
+    delete parked[next];
+
+    set({
+      activeTrack: next,
+      inactiveTracks: parked,
+      lessonProgress: incoming.lessonProgress,
+      vocabMastery: incoming.vocabMastery,
+      completedStories: incoming.completedStories,
+    });
     get().saveToStorage();
   },
 
@@ -135,17 +224,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
   completeLesson: (lessonId: string, score: number, xp: number, maxCombo?: number) => {
     const state = get();
-    const total = getTotalLessons();
-    const snapshotBefore: ProgressSnapshot = {
-      lessonProgress: state.lessonProgress,
-      vocabMastery: state.vocabMastery,
-      streakCount: state.streakCount,
-      completedStories: state.completedStories,
-      maxComboEver: state.maxComboEver,
-      totalLessons: total,
-      totalStories: stories.length,
-    };
-    const badgesBefore = computeBadges(snapshotBefore);
+    const badgesBefore = computeBadges(buildSnapshot(state));
 
     const existing = state.lessonProgress[lessonId];
     const prevLevel = state.currentLevel;
@@ -191,17 +270,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     const streakMilestone =
       newStreak > prevStreak && newTier.label !== prevTier.label ? newTier : null;
 
-    const finalState = get();
-    const snapshotAfter: ProgressSnapshot = {
-      lessonProgress: finalState.lessonProgress,
-      vocabMastery: finalState.vocabMastery,
-      streakCount: finalState.streakCount,
-      completedStories: finalState.completedStories,
-      maxComboEver: finalState.maxComboEver,
-      totalLessons: total,
-      totalStories: stories.length,
-    };
-    const badgesAfter = computeBadges(snapshotAfter);
+    const badgesAfter = computeBadges(buildSnapshot(get()));
     const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
 
     return { leveledUp: newLevel > prevLevel, newLevel, streakMilestone, newBadgeIds };
@@ -294,17 +363,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
   completeVocabReview: (xp: number) => {
     const state = get();
-    const total = getTotalLessons();
-    const snapshotBefore: ProgressSnapshot = {
-      lessonProgress: state.lessonProgress,
-      vocabMastery: state.vocabMastery,
-      streakCount: state.streakCount,
-      completedStories: state.completedStories,
-      maxComboEver: state.maxComboEver,
-      totalLessons: total,
-      totalStories: stories.length,
-    };
-    const badgesBefore = computeBadges(snapshotBefore);
+    const badgesBefore = computeBadges(buildSnapshot(state));
 
     const newXp = state.totalXp + xp;
     const newLevel = Math.floor(newXp / XP_PER_LEVEL) + 1;
@@ -320,17 +379,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     get().incrementStreak();
     get().saveToStorage();
 
-    const finalState = get();
-    const snapshotAfter: ProgressSnapshot = {
-      lessonProgress: finalState.lessonProgress,
-      vocabMastery: finalState.vocabMastery,
-      streakCount: finalState.streakCount,
-      completedStories: finalState.completedStories,
-      maxComboEver: finalState.maxComboEver,
-      totalLessons: total,
-      totalStories: stories.length,
-    };
-    const badgesAfter = computeBadges(snapshotAfter);
+    const badgesAfter = computeBadges(buildSnapshot(get()));
     const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
 
     return { leveledUp: newLevel > state.currentLevel, newLevel, newBadgeIds };
@@ -346,34 +395,14 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
   markStoryComplete: (storyId: string) => {
     const state = get();
-    const total = getTotalLessons();
-    const snapshotBefore: ProgressSnapshot = {
-      lessonProgress: state.lessonProgress,
-      vocabMastery: state.vocabMastery,
-      streakCount: state.streakCount,
-      completedStories: state.completedStories,
-      maxComboEver: state.maxComboEver,
-      totalLessons: total,
-      totalStories: stories.length,
-    };
-    const badgesBefore = computeBadges(snapshotBefore);
+    const badgesBefore = computeBadges(buildSnapshot(state));
 
     const alreadyDone = state.completedStories[storyId];
     if (alreadyDone) {
       get().incrementStreak();
       get().saveToStorage();
 
-      const finalState = get();
-      const snapshotAfter: ProgressSnapshot = {
-        lessonProgress: finalState.lessonProgress,
-        vocabMastery: finalState.vocabMastery,
-        streakCount: finalState.streakCount,
-        completedStories: finalState.completedStories,
-        maxComboEver: finalState.maxComboEver,
-        totalLessons: total,
-        totalStories: stories.length,
-      };
-      const badgesAfter = computeBadges(snapshotAfter);
+      const badgesAfter = computeBadges(buildSnapshot(get()));
       const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
 
       return { leveledUp: false, newLevel: state.currentLevel, newBadgeIds };
@@ -398,17 +427,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     get().incrementStreak();
     get().saveToStorage();
 
-    const finalState = get();
-    const snapshotAfter: ProgressSnapshot = {
-      lessonProgress: finalState.lessonProgress,
-      vocabMastery: finalState.vocabMastery,
-      streakCount: finalState.streakCount,
-      completedStories: finalState.completedStories,
-      maxComboEver: finalState.maxComboEver,
-      totalLessons: total,
-      totalStories: stories.length,
-    };
-    const badgesAfter = computeBadges(snapshotAfter);
+    const badgesAfter = computeBadges(buildSnapshot(get()));
     const newBadgeIds = Array.from(badgesAfter).filter((id) => !badgesBefore.has(id));
 
     return { leveledUp: newLevel > state.currentLevel, newLevel, newBadgeIds };
@@ -425,62 +444,96 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   getDueVocabIds: () => selectDueVocabIds(get().vocabMastery),
 
   loadFromStorage: async () => {
+    let loaded: PersistedProgress | null = null;
+    let migrated = false;
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
-      if (data) {
-        let parsed: any = null;
-        try {
-          parsed = JSON.parse(data);
-        } catch (parseError) {
-          console.warn('[Fêrbûn Progress] Stored JSON progress data was corrupted, loading safe default state.', parseError);
-        }
+      const raw = await AsyncStorage.getItem(PROGRESS_STORAGE_KEY);
+      const outcome = migrateProgress(raw);
+      loaded = outcome.value;
+      migrated = outcome.migrated;
 
-        if (parsed && typeof parsed === 'object') {
-          const totalXp = parsed.totalXp || 0;
-          set({
-            displayName: parsed.displayName || '',
-            avatarIcon: parsed.avatarIcon || 'sunny',
-            avatarColor: parsed.avatarColor || '#E85D00',
-            totalXp,
-            // Derive level from XP so a stored level can never drift out of sync.
-            currentLevel: Math.floor(totalXp / XP_PER_LEVEL) + 1,
-            streakCount: parsed.streakCount || 0,
-            lastActiveDate: parsed.lastActiveDate || null,
-            dailyXp: parsed.dailyXp || 0,
-            dailyXpDate: parsed.dailyXpDate || null,
-            lessonProgress: parsed.lessonProgress || {},
-            vocabMastery: parsed.vocabMastery || {},
-            completedStories: parsed.completedStories || {},
-            maxComboEver: parsed.maxComboEver || 0,
-          });
+      if (migrated && typeof raw === 'string') {
+        // The v1 string is the only way back if the user rolls back to an older
+        // build, so it is written before the new payload and only ever once.
+        const existingBackup = await AsyncStorage.getItem(PROGRESS_BACKUP_KEY);
+        if (existingBackup === null) {
+          await AsyncStorage.setItem(PROGRESS_BACKUP_KEY, raw);
         }
+        await AsyncStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(outcome.value));
       }
     } catch (e) {
       console.error('Failed to load progress:', e);
+    } finally {
+      if (loaded) {
+        const active = loaded.tracks[loaded.activeTrack];
+        const inactiveTracks: InactiveTracks = {};
+        for (const id of TRACK_IDS) {
+          if (id !== loaded.activeTrack) inactiveTracks[id] = loaded.tracks[id];
+        }
+        set({
+          displayName: loaded.displayName,
+          avatarIcon: loaded.avatarIcon,
+          avatarColor: loaded.avatarColor,
+          totalXp: loaded.totalXp,
+          // Derive level from XP so a stored level can never drift out of sync.
+          currentLevel: Math.floor(loaded.totalXp / XP_PER_LEVEL) + 1,
+          streakCount: loaded.streakCount,
+          lastActiveDate: loaded.lastActiveDate,
+          dailyXp: loaded.dailyXp,
+          dailyXpDate: loaded.dailyXpDate,
+          maxComboEver: loaded.maxComboEver,
+          activeTrack: loaded.activeTrack,
+          inactiveTracks,
+          lessonProgress: active.lessonProgress,
+          vocabMastery: active.vocabMastery,
+          completedStories: active.completedStories,
+          hydrated: true,
+        });
+        if (__DEV__) {
+          const kmr = loaded.tracks.kmr;
+          console.log(
+            `[Fêrbûn Progress] v1→v2 migration ${migrated ? 'ran' : 'not needed'}; kmr carries ` +
+              `${Object.keys(kmr.lessonProgress).length} lessons, ` +
+              `${Object.keys(kmr.vocabMastery).length} vocab entries, ` +
+              `${Object.keys(kmr.completedStories).length} stories; active track ${loaded.activeTrack}`,
+          );
+        }
+      } else {
+        set({ hydrated: true });
+      }
     }
   },
 
   saveToStorage: async () => {
+    const state = get();
+    // The one window where a write could stamp schemaVersion 2 over live v1
+    // data and skip the migration for good.
+    if (!state.hydrated) return;
     try {
-      const state = get();
-      await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          displayName: state.displayName,
-          avatarIcon: state.avatarIcon,
-          avatarColor: state.avatarColor,
-          totalXp: state.totalXp,
-          currentLevel: state.currentLevel,
-          streakCount: state.streakCount,
-          lastActiveDate: state.lastActiveDate,
-          dailyXp: state.dailyXp,
-          dailyXpDate: state.dailyXpDate,
-          lessonProgress: state.lessonProgress,
-          vocabMastery: state.vocabMastery,
-          completedStories: state.completedStories,
-          maxComboEver: state.maxComboEver,
-        })
-      );
+      const payload: PersistedProgress = {
+        schemaVersion: PROGRESS_SCHEMA_VERSION,
+        displayName: state.displayName,
+        avatarIcon: state.avatarIcon,
+        avatarColor: state.avatarColor,
+        totalXp: state.totalXp,
+        currentLevel: state.currentLevel,
+        streakCount: state.streakCount,
+        lastActiveDate: state.lastActiveDate,
+        dailyXp: state.dailyXp,
+        dailyXpDate: state.dailyXpDate,
+        maxComboEver: state.maxComboEver,
+        activeTrack: state.activeTrack,
+        tracks: composeTracks(
+          state.activeTrack,
+          {
+            lessonProgress: state.lessonProgress,
+            vocabMastery: state.vocabMastery,
+            completedStories: state.completedStories,
+          },
+          state.inactiveTracks,
+        ),
+      };
+      await AsyncStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       console.error('Failed to save progress:', e);
     }

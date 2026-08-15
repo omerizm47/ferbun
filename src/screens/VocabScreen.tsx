@@ -7,7 +7,7 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../theme';
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { themeLabel } from '../i18n/content';
-import { getVocabByTheme, VOCAB_THEMES, vocabulary } from '../data/vocabulary';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { useProgressStore, selectDueVocabIds, selectWeakVocabIds } from '../stores/progressStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,8 @@ export default function VocabScreen() {
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  
+  const { vocabulary, vocabThemes, getVocabByTheme } = useTrackContent();
+
   const vocabMastery = useProgressStore((st) => st.vocabMastery);
   const dueCount = useMemo(() => selectDueVocabIds(vocabMastery).length, [vocabMastery]);
   const weakCount = useMemo(() => selectWeakVocabIds(vocabMastery).length, [vocabMastery]);
@@ -113,7 +114,7 @@ export default function VocabScreen() {
 
       return true; // selectedFilter === 'all'
     });
-  }, [searchQuery, selectedFilter, vocabMastery]);
+  }, [searchQuery, selectedFilter, vocabMastery, vocabulary]);
 
   return (
     <View style={s.container}>
@@ -266,7 +267,7 @@ export default function VocabScreen() {
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </PressableScale>
 
-          {VOCAB_THEMES.map((theme) => {
+          {vocabThemes.map((theme) => {
             const words = getVocabByTheme(theme.id);
             return (
               <PressableScale key={theme.id} style={s.card} onPress={() => { haptics.selection(); navigation.navigate('Flashcard', { theme: theme.id }); }}>

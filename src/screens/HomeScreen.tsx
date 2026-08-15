@@ -11,7 +11,8 @@ import { useLang } from '../i18n/LanguageProvider';
 import { courseTitle, unitTitle } from '../i18n/content';
 import { useProgressStore, selectDueVocabIds, selectDailyXp } from '../stores/progressStore';
 import { useSettingsStore } from '../stores/settingsStore';
-import { courses } from '../data/courses';
+import type { Course } from '../data/types';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { KurdishSun, MountainSilhouette, NewrozFlame, KilimBorder, KilimDiamond } from '../components/ui/KurdishDecorations';
 import MotifTile from '../components/ui/MotifTile';
@@ -50,7 +51,7 @@ function getGreeting(): { ku: string; key: GreetKey } {
 }
 
 // First unlocked, not-yet-complete unit — surfaced as the "Continue" card.
-function findNextUnit(isLessonCompleted: (id: string) => boolean) {
+function findNextUnit(courses: Course[], isLessonCompleted: (id: string) => boolean) {
   for (let ci = 0; ci < courses.length; ci++) {
     const course = courses[ci];
     const prevCourse = courses[ci - 1];
@@ -78,6 +79,7 @@ export default function HomeScreen() {
   const s = useMemo(() => makeStyles(c), [c]);
   const { totalXp, currentLevel, streakCount, displayName, loadFromStorage, checkStreakValidity, isLessonCompleted, vocabMastery, dailyXp, dailyXpDate } = useProgressStore();
   const dailyGoalXp = useSettingsStore((st) => st.dailyGoalXp);
+  const { courses, getTotalLessons } = useTrackContent();
 
   useEffect(() => { loadFromStorage().then(() => checkStreakValidity()); }, [loadFromStorage, checkStreakValidity]);
 
@@ -91,7 +93,10 @@ export default function HomeScreen() {
   const greeting = getGreeting();
   const greetGloss = t.home.greeting[greeting.key];
   const firstName = displayName.trim().split(' ')[0];
-  const next = findNextUnit(isLessonCompleted);
+  const next = findNextUnit(courses, isLessonCompleted);
+  // No next unit means "everything done" only when there is something to do:
+  // an unauthored track has no next unit either, and must not read as finished.
+  const hasLessons = getTotalLessons() > 0;
 
   const coachSteps = HOME_COACH_CONFIG.map((cfg, i) => ({ ...cfg, ...t.home.coach[i] }));
   const coach = useCoachMarks(CM_HOME_KEY, HOME_COACH_CONFIG.length);
@@ -179,13 +184,22 @@ export default function HomeScreen() {
               </View>
             </View>
           </PressableScale>
-        ) : (
+        ) : hasLessons ? (
           <View style={s.doneCard}>
             <MotifTile icon="trophy" color={c.fire[500]} size={52} />
             <View style={s.heroInfo}>
               <Text style={[s.heroKicker, { color: c.fire[600] }]}>PÎROZ BE · {t.home.allDoneKicker}</Text>
               <Text style={s.heroTitle}>Te hemû qedand</Text>
               <Text style={s.heroSub}>{t.home.allDoneSub}</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={s.doneCard}>
+            <MotifTile icon="construct" color={c.gray[500]} size={52} />
+            <View style={s.heroInfo}>
+              <Text style={[s.heroKicker, { color: c.gray[600] }]}>BÊ DERS · {t.home.emptyTrackKicker}</Text>
+              <Text style={s.heroTitle}>Hê ders tune</Text>
+              <Text style={s.heroSub}>{t.home.emptyTrackSub}</Text>
             </View>
           </View>
         )}

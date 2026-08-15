@@ -2,16 +2,48 @@
 // with the rest of the data layer and runs under bare Node.
 // It proves each validator rule fires on its own fixture and on nothing else,
 // that every new rule stays inert for the Kurmanji track, that the shipped
-// Kurmanji corpus is still clean, and that the grader does not fold the ll/rr
-// digraphs (Thackston p. 88) into plain l and r.
+// Kurmanji corpus is still clean, that the grader does not fold the ll/rr
+// digraphs (Thackston p. 88) into plain l and r, that the track registry
+// answers an unknown id with Kurmanji instead of an inherited prototype member,
+// and that the v1→v2 progress migration carries a real user's stored blob
+// across without touching a single global.
 // All of it is shape, legality and provenance. Nothing here establishes that a
 // form is correct, idiomatic or current: that needs a speaker.
 // runContentValidation() is deliberately not called — it reads __DEV__, which
 // does not exist in Node.
 
+import { SORANI_LATIN, checkOrthography } from '../src/data/orthography';
+import { ALL_BADGES } from '../src/data/badges';
+import { TrackId, getTrack, isTrackId } from '../src/data/tracks';
 import { ContentIssue, KMR_POLICY, checkCitedEntries, checkLessonCoverage, validateContent, validateContentDetailed } from '../src/data/validate';
+import {
+  PROGRESS_BACKUP_KEY,
+  PROGRESS_SCHEMA_VERSION,
+  PROGRESS_STORAGE_KEY,
+  PersistedProgress,
+  composeTracks,
+  defaultProgress,
+  emptyTrackProgress,
+  migrateProgress,
+  readTrackProgress,
+} from '../src/stores/progressMigration';
 import { checkTypedAnswer } from '../src/utils/answers';
-import { BAD_ENTRIES, CLEAN_ENTRY, FIXTURE_CKB_POLICY, FIXTURE_LESSONS } from './content-selfcheck.fixture';
+import { TrackSnapshot, computeBadges } from '../src/utils/badges';
+import {
+  BAD_ENTRIES,
+  CLEAN_ENTRY,
+  EMPTY_CKB_TRACK,
+  FIXTURE_CKB_POLICY,
+  FIXTURE_LESSONS,
+  FULL_KMR_SNAPSHOT,
+  FULL_KMR_TRACK,
+  INHERITED_TRACK_PROGRESS,
+  MIXED_PROGRESS,
+  PARTIAL_CKB_TRACK,
+  ROLLBACK_V1_PROGRESS,
+  V1_GLOBAL_KEYS,
+  V1_PROGRESS,
+} from './content-selfcheck.fixture';
 
 const failures: string[] = [];
 let total = 0;
@@ -79,6 +111,321 @@ check('shipped corpus raises no info notes', corpusNotes.length === 0, summarise
 // (THK06:88), so folding them would mark a wrong answer correct.
 check("checkTypedAnswer('gul', 'gull') is false", checkTypedAnswer('gul', 'gull') === false);
 check("checkTypedAnswer('xor', 'xorr') is false", checkTypedAnswer('xor', 'xorr') === false);
+
+// 8. ORTH-03 closes a case that was silent, not one another rule already had:
+// whitespace is NFC clean and every space is in the legal inventory, so the
+// pre-ORTH-03 checks pass it and report a blank field as sound content.
+const BLANK_SAMPLE = '\u0020\u0020';
+const legalChars = new Set([
+  ...SORANI_LATIN.letters,
+  ...SORANI_LATIN.lettersUpper,
+  ...SORANI_LATIN.punctuation,
+]);
+check(
+  'the blank sample passes every check that predates ORTH-03',
+  BLANK_SAMPLE.normalize('NFC') === BLANK_SAMPLE && [...BLANK_SAMPLE].every((ch) => legalChars.has(ch)),
+);
+const blankIssues = checkOrthography(BLANK_SAMPLE, SORANI_LATIN);
+check(
+  'ORTH-03 is the only issue raised on the blank sample',
+  blankIssues.length === 1 && blankIssues[0].code === 'ORTH-03',
+  blankIssues.map((i) => i.code).join(',') || 'no issues',
+);
+
+// 9. Track registry. An object literal would resolve every Object.prototype
+// member as a registered track, which is why the registry is a Map.
+const literalRegistry: Record<string, unknown> = { kmr: 1, ckb: 1 };
+const inheritedId = 'toString';
+check(
+  'an object-literal registry resolves an inherited member as a track',
+  Boolean(literalRegistry[inheritedId]),
+);
+check(`getTrack('${inheritedId}') falls back to kmr`, getTrack(inheritedId).id === 'kmr', getTrack(inheritedId).id);
+check(`isTrackId('${inheritedId}') is false`, isTrackId(inheritedId) === false);
+check("isTrackId('ckb') is true", isTrackId('ckb') === true);
+
+const ckb = getTrack('ckb');
+check('ckb is registered as in_progress', ckb.policy.status === 'in_progress', ckb.policy.status);
+check(
+  'ckb is bound to the Thackston p. 88 alphabet',
+  ckb.policy.orthography === SORANI_LATIN,
+  ckb.policy.orthography?.id ?? 'null',
+);
+
+// 10. An unauthored track answers every accessor rather than throwing, so a
+// screen rendering it gets an empty state instead of a crash.
+const ckbContent = ckb.content;
+let ckbEmpty = false;
+let ckbThrew = '';
+try {
+  ckbEmpty =
+    ckbContent.courses.length === 0 &&
+    ckbContent.stories.length === 0 &&
+    ckbContent.vocabulary.length === 0 &&
+    ckbContent.vocabThemes.length === 0 &&
+    ckbContent.getCourseById('c1') === undefined &&
+    ckbContent.getUnitById('u1') === undefined &&
+    ckbContent.getLessonById('l1_1') === undefined &&
+    ckbContent.getTotalLessons() === 0 &&
+    ckbContent.getStoryById('s1') === undefined &&
+    ckbContent.getVocabByTheme('greetings').length === 0 &&
+    ckbContent.getVocabById('v1') === undefined &&
+    ckbContent.getExercisesForLesson('l1_1').length === 0 &&
+    ckbContent.getOrderedExercisesForLesson('l1_1').length === 0 &&
+    ckbContent.getLessonTeachCards('l1_1').length === 0;
+} catch (err) {
+  ckbThrew = err instanceof Error ? err.message : String(err);
+}
+check(
+  'every ckb accessor returns empty or undefined without throwing',
+  ckbEmpty && ckbThrew === '',
+  ckbThrew || 'an accessor returned a value',
+);
+
+// 11. Storage. The stub replays loadFromStorage's exact sequence over the real
+// migrateProgress: read, migrate, conditional backup write, single payload
+// write. Nothing here is a re-implementation of the migration itself.
+class MemoryStorage {
+  private items = new Map<string, string>();
+  private writes = new Map<string, number>();
+
+  getItem(key: string): string | null {
+    const found = this.items.get(key);
+    return found === undefined ? null : found;
+  }
+
+  setItem(key: string, value: string): void {
+    this.items.set(key, value);
+    this.writes.set(key, (this.writes.get(key) ?? 0) + 1);
+  }
+
+  writeCount(key: string): number {
+    return this.writes.get(key) ?? 0;
+  }
+}
+
+function replayLoad(storage: MemoryStorage, backupOnce = true): { value: PersistedProgress; migrated: boolean } {
+  const raw = storage.getItem(PROGRESS_STORAGE_KEY);
+  const { value, migrated } = migrateProgress(raw);
+  if (migrated && typeof raw === 'string') {
+    if (!backupOnce || storage.getItem(PROGRESS_BACKUP_KEY) === null) {
+      storage.setItem(PROGRESS_BACKUP_KEY, raw);
+    }
+    storage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(value));
+  }
+  return { value, migrated };
+}
+
+// What saveToStorage would write with the store still at its initial state,
+// which is the only state reachable before hydration. `gated` is the hydrated
+// check; passing false shows what the write would have destroyed without it.
+function replaySave(storage: MemoryStorage, hydrated: boolean, gated: boolean): boolean {
+  if (gated && !hydrated) return false;
+  const state = defaultProgress();
+  const payload: PersistedProgress = {
+    ...state,
+    schemaVersion: PROGRESS_SCHEMA_VERSION,
+    tracks: composeTracks(state.activeTrack, emptyTrackProgress(), {}),
+  };
+  storage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(payload));
+  return true;
+}
+
+function globalsOf(source: Record<string, unknown>): string {
+  return V1_GLOBAL_KEYS.map((key) => `${key}=${JSON.stringify(source[key])}`).join(';');
+}
+
+const v1Raw = JSON.stringify(V1_PROGRESS);
+const upgraded = new MemoryStorage();
+upgraded.setItem(PROGRESS_STORAGE_KEY, v1Raw);
+const firstLoad = replayLoad(upgraded);
+
+check('a v1 blob reports migrated', firstLoad.migrated === true);
+check(
+  'every global crosses the migration byte for byte',
+  globalsOf(firstLoad.value as unknown as Record<string, unknown>) === globalsOf(V1_PROGRESS),
+  globalsOf(firstLoad.value as unknown as Record<string, unknown>),
+);
+check(
+  'the three v1 maps land under tracks.kmr',
+  JSON.stringify(firstLoad.value.tracks.kmr) ===
+    JSON.stringify({
+      lessonProgress: V1_PROGRESS.lessonProgress,
+      vocabMastery: V1_PROGRESS.vocabMastery,
+      completedStories: V1_PROGRESS.completedStories,
+    }),
+  JSON.stringify(firstLoad.value.tracks.kmr),
+);
+check(
+  'ckb is seeded empty',
+  JSON.stringify(firstLoad.value.tracks.ckb) === JSON.stringify(emptyTrackProgress()),
+  JSON.stringify(firstLoad.value.tracks.ckb),
+);
+check('a v1 blob activates kmr', firstLoad.value.activeTrack === 'kmr', firstLoad.value.activeTrack);
+check('the backup holds the untouched v1 string', upgraded.getItem(PROGRESS_BACKUP_KEY) === v1Raw);
+
+const afterFirst = upgraded.getItem(PROGRESS_STORAGE_KEY);
+check(
+  'the stored payload carries the v2 marker',
+  (JSON.parse(afterFirst ?? 'null') as { schemaVersion?: number } | null)?.schemaVersion === PROGRESS_SCHEMA_VERSION,
+);
+const secondLoad = replayLoad(upgraded);
+check('a second load has nothing to migrate', secondLoad.migrated === false);
+check('a second load leaves the stored string identical', upgraded.getItem(PROGRESS_STORAGE_KEY) === afterFirst);
+check('a second load does not touch the backup', upgraded.writeCount(PROGRESS_BACKUP_KEY) === 1);
+
+// A rollback to 1.3.0 writes v1 again, so a later launch migrates a second
+// time. The backup must still hold the original, not the emptied rewrite.
+const rollbackRaw = JSON.stringify(ROLLBACK_V1_PROGRESS);
+const guarded = new MemoryStorage();
+guarded.setItem(PROGRESS_STORAGE_KEY, v1Raw);
+replayLoad(guarded);
+guarded.setItem(PROGRESS_STORAGE_KEY, rollbackRaw);
+replayLoad(guarded);
+check(
+  'the backup survives a second migration after a rollback',
+  guarded.getItem(PROGRESS_BACKUP_KEY) === v1Raw && guarded.writeCount(PROGRESS_BACKUP_KEY) === 1,
+);
+
+const unguarded = new MemoryStorage();
+unguarded.setItem(PROGRESS_STORAGE_KEY, v1Raw);
+replayLoad(unguarded, false);
+unguarded.setItem(PROGRESS_STORAGE_KEY, rollbackRaw);
+replayLoad(unguarded, false);
+check(
+  'without the write-once rule that rollback would replace the backup',
+  unguarded.getItem(PROGRESS_BACKUP_KEY) === rollbackRaw,
+);
+
+const fresh = new MemoryStorage();
+const freshLoad = replayLoad(fresh);
+check('a fresh install has nothing to migrate', freshLoad.migrated === false);
+check('a fresh install loads the defaults', JSON.stringify(freshLoad.value) === JSON.stringify(defaultProgress()));
+check(
+  'a fresh install writes neither key',
+  fresh.getItem(PROGRESS_STORAGE_KEY) === null && fresh.getItem(PROGRESS_BACKUP_KEY) === null,
+);
+const nullOutcome = migrateProgress(null);
+check(
+  'migrateProgress(null) is the fresh-install answer',
+  nullOutcome.migrated === false && JSON.stringify(nullOutcome.value) === JSON.stringify(defaultProgress()),
+);
+
+// A half-written blob: flat maps and a tracks key at the same time.
+const mixed = migrateProgress(JSON.stringify(MIXED_PROGRESS));
+const mixedLessons = mixed.value.tracks.kmr.lessonProgress;
+check('a per-track entry wins over the flat one', mixedLessons.l1_1?.score === 60, String(mixedLessons.l1_1?.score));
+check('a flat-only lesson survives the merge', mixedLessons.l1_2?.score === 80, String(mixedLessons.l1_2?.score));
+check('a track-only lesson survives the merge', mixedLessons.l2_1?.score === 90, String(mixedLessons.l2_1?.score));
+check(
+  'the flat vocab map survives an absent per-track one',
+  Object.keys(mixed.value.tracks.kmr.vocabMastery).length === 1,
+  String(Object.keys(mixed.value.tracks.kmr.vocabMastery).length),
+);
+
+// Same prototype trap as the registry, one level down in the stored blob.
+const inherited = migrateProgress(JSON.stringify(INHERITED_TRACK_PROGRESS));
+check(
+  `a stored activeTrack of '${inheritedId}' resolves to kmr`,
+  inherited.value.activeTrack === 'kmr',
+  inherited.value.activeTrack,
+);
+const storedTracks: Record<string, unknown> = { kmr: { lessonProgress: {} } };
+check(
+  'a bare index on a stored tracks map resolves an inherited member',
+  storedTracks[inheritedId] !== undefined,
+);
+check(
+  'readTrackProgress ignores the inherited member',
+  readTrackProgress(storedTracks, inheritedId as TrackId) === undefined,
+);
+
+// The hydrated gate. Without it the first save of a launch stamps the v2 marker
+// over data that has not been read yet, and the migration never runs again.
+const premature = new MemoryStorage();
+premature.setItem(PROGRESS_STORAGE_KEY, v1Raw);
+check('a save before hydration is refused', replaySave(premature, false, true) === false);
+check('the refused save leaves the v1 blob intact', premature.getItem(PROGRESS_STORAGE_KEY) === v1Raw);
+check('the refused save leaves the migration still to run', replayLoad(premature).migrated === true);
+
+const ungated = new MemoryStorage();
+ungated.setItem(PROGRESS_STORAGE_KEY, v1Raw);
+replaySave(ungated, false, false);
+const ungatedLoad = replayLoad(ungated);
+check(
+  'without the gate that save would erase the progress and skip the migration',
+  ungatedLoad.migrated === false &&
+    Object.keys(ungatedLoad.value.tracks.kmr.lessonProgress).length === 0 &&
+    ungated.getItem(PROGRESS_BACKUP_KEY) === null,
+);
+
+// 12. Badges. They are recomputed from state on every render and never stored,
+// so a completion rule that reads across tracks does not just mis-award: it
+// takes a badge back off a learner who had already earned it, the moment a
+// second track exists. Both naive shapes of the rule are run here alongside the
+// shipped one, so the guard is visible rather than asserted.
+function idsOf(set: Set<string>): string {
+  return [...set].sort().join(',');
+}
+
+function lessonsCompleted(track: TrackSnapshot): number {
+  return Object.values(track.lessonProgress).filter((l) => l.completed).length;
+}
+
+const soloEarned = computeBadges(FULL_KMR_SNAPSHOT);
+check(
+  'a learner who finished Kurmanji holds every badge in the catalogue',
+  soloEarned.size === ALL_BADGES.length,
+  `${soloEarned.size} of ${ALL_BADGES.length}`,
+);
+
+const withEmptyCkb = computeBadges({ ...FULL_KMR_SNAPSHOT, tracks: [FULL_KMR_TRACK, EMPTY_CKB_TRACK] });
+check(
+  'the empty ckb track leaves the earned set identical, id for id',
+  idsOf(withEmptyCkb) === idsOf(soloEarned),
+  idsOf(withEmptyCkb),
+);
+
+// Naive rule one: every track must be finished, and a track with nothing in it
+// is not finished. This is the rule that breaks on the ckb the app ships today.
+function everyTrackFinished(tracks: TrackSnapshot[]): boolean {
+  return tracks.every((t) => t.totalLessons > 0 && lessonsCompleted(t) >= t.totalLessons);
+}
+check(
+  'an every-track rule would revoke all_lessons as soon as the empty ckb track exists',
+  everyTrackFinished([FULL_KMR_TRACK]) && !everyTrackFinished([FULL_KMR_TRACK, EMPTY_CKB_TRACK]),
+);
+check('the shipped rule keeps all_lessons across the empty track', withEmptyCkb.has('all_lessons'));
+
+// Naive rule two: pool the counts. A part-finished second track drags the
+// pooled ratio under 1 and the badge disappears.
+function pooledTotalFinished(tracks: TrackSnapshot[]): boolean {
+  const done = tracks.reduce((n, t) => n + lessonsCompleted(t), 0);
+  const outOf = tracks.reduce((n, t) => n + t.totalLessons, 0);
+  return outOf > 0 && done >= outOf;
+}
+const withPartialCkb = computeBadges({ ...FULL_KMR_SNAPSHOT, tracks: [FULL_KMR_TRACK, PARTIAL_CKB_TRACK] });
+check(
+  'a pooled-total rule would revoke all_lessons on a part-finished ckb track',
+  pooledTotalFinished([FULL_KMR_TRACK]) && !pooledTotalFinished([FULL_KMR_TRACK, PARTIAL_CKB_TRACK]),
+);
+check(
+  'a part-finished second track revokes nothing, all_lessons and all_stories included',
+  [...soloEarned].every((id) => withPartialCkb.has(id)) &&
+    withPartialCkb.has('all_lessons') &&
+    withPartialCkb.has('all_stories'),
+  idsOf(withPartialCkb),
+);
+check(
+  'counting badges sum across tracks, so a second track only ever adds to them',
+  computeBadges({ ...FULL_KMR_SNAPSHOT, tracks: [EMPTY_CKB_TRACK, PARTIAL_CKB_TRACK] }).has('first_lesson') &&
+    withPartialCkb.has('ten_lessons'),
+);
+check(
+  'an empty track alone earns neither completion badge',
+  computeBadges({ tracks: [EMPTY_CKB_TRACK], streakCount: 0 }).size === 0,
+  idsOf(computeBadges({ tracks: [EMPTY_CKB_TRACK], streakCount: 0 })),
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { vocabulary } from '../data/vocabulary';
+import { getActiveTrackContent } from '../hooks/useTrackContent';
 import { Lang } from '../i18n/types';
 import { STRINGS } from '../i18n/strings';
 
@@ -78,6 +78,11 @@ export async function scheduleDailyReminder(
   try {
     await ensureAndroidChannel();
     await Notifications.cancelAllScheduledNotificationsAsync();
+
+    // A track with no words has no word of the day: leave the queue cleared
+    // rather than reading vocabulary[dayOfYear % 0], which is vocabulary[NaN].
+    const { vocabulary } = getActiveTrackContent();
+    if (vocabulary.length === 0) return;
 
     const t = STRINGS[lang];
     const now = new Date();

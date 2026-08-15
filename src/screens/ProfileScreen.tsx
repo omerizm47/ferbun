@@ -8,10 +8,10 @@ import { SPACING, RADIUS, FONT_SIZE, XP_PER_LEVEL, SHADOWS, TYPOGRAPHY, ThemeCol
 import { useTheme, ThemeMode } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { Lang } from '../i18n/types';
-import { useProgressStore } from '../stores/progressStore';
-import { getTotalLessons } from '../data/courses';
-import { stories } from '../data/stories';
-import { computeBadges, ProgressSnapshot } from '../utils/badges';
+import { useProgressStore, buildSnapshot } from '../stores/progressStore';
+import { PROGRESS_BACKUP_KEY, PROGRESS_STORAGE_KEY } from '../stores/progressMigration';
+import { getTrack } from '../data/tracks';
+import { computeBadges } from '../utils/badges';
 import { ALL_BADGES } from '../data/badges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedProgressBar from '../components/ui/AnimatedProgressBar';
@@ -91,12 +91,13 @@ export default function ProfileScreen() {
   const { colors: c, mode, setMode, scheme } = useTheme();
   const { t, lang, setLang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories, maxComboEver } = useProgressStore();
+  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories, maxComboEver, activeTrack, inactiveTracks } = useProgressStore();
   const streakLevel = getStreakLevel();
   const completed = Object.values(lessonProgress).filter((p) => p.completed).length;
-  const total = getTotalLessons();
+  const total = getTrack(activeTrack).content.getTotalLessons();
   const xpInLevel = totalXp % XP_PER_LEVEL;
-  const progressPct = Math.round((completed / total) * 100);
+  // A track with no lessons authored yet reads 0%, not 0/0 as NaN%.
+  const progressPct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(displayName);
@@ -120,18 +121,19 @@ export default function ProfileScreen() {
   const targetLangName = lang === 'tr' ? 'Türkçe' : 'English';
 
   const badgeProgress = useMemo(() => {
-    const snapshot: ProgressSnapshot = {
-      lessonProgress,
-      vocabMastery,
-      streakCount,
-      completedStories,
-      maxComboEver,
-      totalLessons: getTotalLessons(),
-      totalStories: stories.length,
-    };
-    const earned = computeBadges(snapshot);
+    const earned = computeBadges(
+      buildSnapshot({
+        lessonProgress,
+        vocabMastery,
+        completedStories,
+        streakCount,
+        maxComboEver,
+        activeTrack,
+        inactiveTracks,
+      }),
+    );
     return ALL_BADGES.map((def) => ({ def, earned: earned.has(def.id) }));
-  }, [lessonProgress, vocabMastery, streakCount, completedStories, maxComboEver]);
+  }, [lessonProgress, vocabMastery, streakCount, completedStories, maxComboEver, activeTrack, inactiveTracks]);
   const earnedBadgeCount = badgeProgress.filter((b) => b.earned).length;
 
   // iOS will not re-prompt after a denial, so fall back to opening Settings.
@@ -194,12 +196,15 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.removeItem('@ferbun_progress');
+              // The v1 backup goes too: the user asked to erase their progress,
+              // and a shadow copy on disk would come back at the next migration.
+              await AsyncStorage.multiRemove([PROGRESS_STORAGE_KEY, PROGRESS_BACKUP_KEY]);
               useProgressStore.setState({
                 displayName: '',
                 totalXp: 0, currentLevel: 1, streakCount: 0, lastActiveDate: null,
                 dailyXp: 0, dailyXpDate: null,
                 lessonProgress: {}, vocabMastery: {}, completedStories: {},
+                activeTrack: 'kmr', inactiveTracks: {}, hydrated: true,
                 maxComboEver: 0,
                 avatarIcon: 'sunny', avatarColor: '#E85D00',
               });

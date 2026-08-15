@@ -11,7 +11,7 @@
 
 import { courses } from './courses';
 import { getExercisesForLesson } from './exercises';
-import { checkOrthography, OrthographySpec } from './orthography';
+import { SORANI_LATIN, checkOrthography, OrthographySpec } from './orthography';
 import { resolveCitation } from './sources';
 import { stories } from './stories';
 import { VOCAB_THEMES, getVocabByTheme } from './vocabulary';
@@ -52,6 +52,17 @@ export const KMR_POLICY: TrackPolicy = {
   orthography: null,
   requireCitation: false,
   requireBothGlosses: false,
+};
+
+// In force from the first Sorani entry authored, not retrofitted afterwards:
+// spelled in the p. 88 alphabet, cited, and glossed in both bridge languages.
+export const CKB_POLICY: TrackPolicy = {
+  id: 'ckb',
+  label: 'Sorani',
+  status: 'in_progress',
+  orthography: SORANI_LATIN,
+  requireCitation: true,
+  requireBothGlosses: true,
 };
 
 // Wiring point, not dead code: exported and covered by fixtures, but nothing

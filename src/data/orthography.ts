@@ -71,15 +71,23 @@ export const DIGRAPH_MINIMAL_PAIRS = [
 ];
 
 /**
- * Reports at most one orthography issue per string: a non-NFC string trips
- * ORTH-02 and nothing else, otherwise the first illegal character trips ORTH-01.
+ * Reports at most one orthography issue per string: an empty or whitespace-only
+ * string trips ORTH-03, a non-NFC string trips ORTH-02, otherwise the first
+ * illegal character trips ORTH-01.
  * Never rewrites the input and never collapses runs, so digraphs pass untouched.
  */
 export function checkOrthography(
   text: string,
   spec: OrthographySpec,
-): { code: 'ORTH-01' | 'ORTH-02'; detail: string }[] {
-  const issues: { code: 'ORTH-01' | 'ORTH-02'; detail: string }[] = [];
+): { code: 'ORTH-01' | 'ORTH-02' | 'ORTH-03'; detail: string }[] {
+  const issues: { code: 'ORTH-01' | 'ORTH-02' | 'ORTH-03'; detail: string }[] = [];
+
+  // First, because an empty string is already NFC and has no illegal character:
+  // every check below it passes, and the entry would be reported as clean.
+  if (text.trim() === '') {
+    issues.push({ code: 'ORTH-03', detail: 'string is empty or whitespace only, expected a taught form' });
+    return issues;
+  }
 
   if (text.normalize('NFC') !== text) {
     issues.push({ code: 'ORTH-02', detail: 'string is not in Unicode NFC, store the precomposed form' });

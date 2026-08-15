@@ -6,6 +6,13 @@
  * earned. Unearned badges are absent from the set. Callers can diff against
  * a previous snapshot to detect newly-earned badges and trigger a celebration.
  *
+ * The snapshot carries one entry per track. Counting badges sum across tracks,
+ * so a second track can only ever add to them. The two completion badges ask
+ * whether some track that has content in it is finished, never whether the
+ * cross-track total is: badges are derived on every render and never stored,
+ * so a rule whose denominator grew when a track was added would quietly take a
+ * badge back off a learner who had already earned it.
+ *
  * All thresholds are conservative first-ship values; tune them based on user
  * retention data once you have enough cohort signal.
  */
@@ -17,28 +24,48 @@ export interface BadgeProgress {
   earned: boolean;
 }
 
-export interface ProgressSnapshot {
+/** One track's stored progress alongside the size of that track's corpus. */
+export interface TrackSnapshot {
   lessonProgress: Record<string, { completed: boolean; score?: number }>;
   vocabMastery: Record<string, { masteryLevel: number }>;
-  streakCount: number;
   completedStories: Record<string, boolean>;
-  maxComboEver?: number;
   totalLessons: number;
   totalStories: number;
+}
+
+export interface ProgressSnapshot {
+  tracks: TrackSnapshot[];
+  streakCount: number;
+  maxComboEver?: number;
 }
 
 export function computeBadges(p: ProgressSnapshot): Set<string> {
   const earned = new Set<string>();
 
-  const completedLessons = Object.values(p.lessonProgress).filter((l) => l.completed).length;
-  const masteredWords = Object.values(p.vocabMastery).filter((m) => m.masteryLevel >= 4).length;
-  const completedStoriesCount = Object.values(p.completedStories).filter(Boolean).length;
-  const hasPerfect = Object.values(p.lessonProgress).some((l) => l.completed && (l.score ?? 0) >= 100);
+  let completedLessons = 0;
+  let masteredWords = 0;
+  let completedStoriesCount = 0;
+  let hasPerfect = false;
+  let aTrackIsFullyLearned = false;
+  let aTrackIsFullyRead = false;
+
+  for (const track of p.tracks) {
+    const lessonsDone = Object.values(track.lessonProgress).filter((l) => l.completed);
+    const storiesDone = Object.values(track.completedStories).filter(Boolean);
+    completedLessons += lessonsDone.length;
+    masteredWords += Object.values(track.vocabMastery).filter((m) => m.masteryLevel >= 4).length;
+    completedStoriesCount += storiesDone.length;
+    if (lessonsDone.some((l) => (l.score ?? 0) >= 100)) hasPerfect = true;
+    // An unauthored track has nothing to finish, so it can neither award the
+    // completion badge nor dilute a track that has genuinely been finished.
+    if (track.totalLessons > 0 && lessonsDone.length >= track.totalLessons) aTrackIsFullyLearned = true;
+    if (track.totalStories > 0 && storiesDone.length >= track.totalStories) aTrackIsFullyRead = true;
+  }
 
   // Learning
   if (completedLessons >= 1) earned.add('first_lesson');
   if (completedLessons >= 10) earned.add('ten_lessons');
-  if (completedLessons >= p.totalLessons && p.totalLessons > 0) earned.add('all_lessons');
+  if (aTrackIsFullyLearned) earned.add('all_lessons');
 
   // Streak
   if (p.streakCount >= 3) earned.add('streak_3');
@@ -55,7 +82,7 @@ export function computeBadges(p: ProgressSnapshot): Set<string> {
 
   // Stories
   if (completedStoriesCount >= 1) earned.add('first_story');
-  if (completedStoriesCount >= p.totalStories && p.totalStories > 0) earned.add('all_stories');
+  if (aTrackIsFullyRead) earned.add('all_stories');
 
   return earned;
 }

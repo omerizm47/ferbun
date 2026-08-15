@@ -86,6 +86,9 @@ export interface UiStrings {
     /** Gloss half of the bilingual "PÎROZ BE · …" all-done kicker. */
     allDoneKicker: string;
     allDoneSub: string;
+    /** Gloss half of the bilingual "BÊ DERS · …" kicker for a track with nothing authored yet. */
+    emptyTrackKicker: string;
+    emptyTrackSub: string;
     coach: { title: string; description: string }[];
   };
   // Words/vocabulary tab list.

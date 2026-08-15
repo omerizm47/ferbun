@@ -7,7 +7,8 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../the
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { storyTitleGloss, storyDescription } from '../i18n/content';
-import { stories, Story } from '../data/stories';
+import { Story } from '../data/stories';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -44,6 +45,7 @@ export default function StoriesListScreen() {
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
   const s = useMemo(() => makeStyles(c), [c]);
+  const { stories } = useTrackContent();
   const isStoryComplete = useProgressStore((st) => st.isStoryComplete);
 
   return (

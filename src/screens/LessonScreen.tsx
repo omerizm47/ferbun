@@ -11,8 +11,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { lessonTitle, exerciseExplanation, resolveChoices, resolveTypedAnswer } from '../i18n/content';
 import { useProgressStore } from '../stores/progressStore';
-import { getLessonById } from '../data/courses';
-import { getOrderedExercisesForLesson, getLessonTeachCards } from '../data/exercises';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -56,12 +55,13 @@ export default function LessonScreen() {
   const route = useRoute<RoutePropType>();
   const insets = useSafeAreaInsets();
   const { lessonId } = route.params;
+  const { getLessonById, getOrderedExercisesForLesson, getLessonTeachCards } = useTrackContent();
   const lesson = getLessonById(lessonId);
-  const exercises = useMemo(() => getOrderedExercisesForLesson(lessonId), [lessonId]);
+  const exercises = useMemo(() => getOrderedExercisesForLesson(lessonId), [getOrderedExercisesForLesson, lessonId]);
   const { completeLesson } = useProgressStore();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
-  const teachCards = useMemo(() => getLessonTeachCards(lessonId, lang), [lessonId, lang]);
+  const teachCards = useMemo(() => getLessonTeachCards(lessonId, lang), [getLessonTeachCards, lessonId, lang]);
   const styles = useMemo(() => makeStyles(c), [c]);
   const barStyle = scheme === 'dark' ? 'light-content' : 'dark-content';
 

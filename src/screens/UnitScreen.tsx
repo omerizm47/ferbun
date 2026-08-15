@@ -8,7 +8,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { unitTitle, unitDescription, lessonTitle } from '../i18n/content';
 import { useProgressStore } from '../stores/progressStore';
-import { getUnitById, courses } from '../data/courses';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -24,6 +24,7 @@ type RP = RouteProp<RootStackParamList, 'Unit'>;
 export default function UnitScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RP>();
+  const { courses, getUnitById } = useTrackContent();
   const unit = getUnitById(route.params.unitId);
   const insets = useSafeAreaInsets();
   const { isLessonCompleted, getLessonScore } = useProgressStore();
@@ -47,7 +48,7 @@ export default function UnitScreen() {
     const prevUnitDone = !prevUnit || prevUnit.lessons.every((l) => isLessonCompleted(l.id));
 
     return (ui === 0 && prevCourseDone) || prevUnitDone;
-  }, [unit, isLessonCompleted]);
+  }, [unit, courses, isLessonCompleted]);
 
   if (!unit) return (
     <View style={s.container}>

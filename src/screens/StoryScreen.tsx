@@ -8,7 +8,8 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '..
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { storyTitleGloss, storyWordGloss, resolveStoryQuestion } from '../i18n/content';
-import { getStoryById, StoryWord } from '../data/stories';
+import { StoryWord } from '../data/stories';
+import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useProgressStore } from '../stores/progressStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +33,7 @@ const sameAnswer = (a: string, b: string) => a.trim().toLowerCase() === b.trim()
 export default function StoryScreen() {
   const navigation = useNavigation();
   const route = useRoute<RP>();
+  const { getStoryById } = useTrackContent();
   const story = getStoryById(route.params.storyId);
   const [selectedWord, setSelectedWord] = useState<StoryWord | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);

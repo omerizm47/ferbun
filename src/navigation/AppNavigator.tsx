@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useProgressStore } from '../stores/progressStore';
 import { scheduleDailyReminder } from '../utils/notifications';
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
@@ -52,6 +53,9 @@ export default function AppNavigator() {
   const showOnboarding = useOnboardingStore((s) => s.showOnboarding);
   const hydrate = useOnboardingStore((s) => s.hydrate);
   const complete = useOnboardingStore((s) => s.complete);
+  const settingsHydrated = useSettingsStore((s) => s.hydrated);
+  const progressHydrated = useProgressStore((s) => s.hydrated);
+  const activeTrack = useProgressStore((s) => s.activeTrack);
   const { chosen, lang } = useLang();
   const { colors: c, scheme } = useTheme();
 
@@ -75,19 +79,20 @@ export default function AppNavigator() {
 
   useEffect(() => { hydrate(); }, [hydrate]);
 
-  // Hydrate device settings on launch and (re)arm the daily reminder so it
-  // survives reinstalls / OS housekeeping. Cross-platform: scheduleDailyReminder
-  // ensures the Android channel and is a safe no-op where notifications aren't
-  // available (Expo Go / web).
+  useEffect(() => { useSettingsStore.getState().loadFromStorage(); }, []);
+
+  // (Re)arm the daily reminder so it survives reinstalls / OS housekeeping.
+  // Waits for both stores to hydrate and re-runs on a track change, because the
+  // word of the day is drawn from the active track's corpus and scheduling
+  // before hydration would take it from the default track instead.
+  // Cross-platform: scheduleDailyReminder ensures the Android channel and is a
+  // safe no-op where notifications aren't available (Expo Go / web).
   useEffect(() => {
-    (async () => {
-      await useSettingsStore.getState().loadFromStorage();
-      const { notificationsEnabled, reminderHour } = useSettingsStore.getState();
-      if (notificationsEnabled) {
-        await scheduleDailyReminder(reminderHour, lang);
-      }
-    })();
-  }, [lang]);
+    if (!settingsHydrated || !progressHydrated) return;
+    const { notificationsEnabled, reminderHour } = useSettingsStore.getState();
+    if (!notificationsEnabled) return;
+    scheduleDailyReminder(reminderHour, lang);
+  }, [lang, settingsHydrated, progressHydrated, activeTrack]);
 
   if (showOnboarding === null) return <BrandSplash colors={c} />; // loading
 
