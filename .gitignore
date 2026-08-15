@@ -39,6 +39,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# self-check build output
+.selfcheck/
+
 # generated native folders
 /ios
 /android
