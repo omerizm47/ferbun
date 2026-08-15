@@ -1,4 +1,4 @@
-// Fêrbûn — the persisted progress shape and its one-way migration to v2.
+// Fêrbûn: the persisted progress shape and its one-way migration to v2.
 // Imports types and the track registry only: no zustand, no AsyncStorage, so
 // the self-check exercises the real function instead of a copy of it.
 //

@@ -1,9 +1,9 @@
-// Fêrbûn — provenance registry for taught content.
+// Fêrbûn: provenance registry for taught content.
 // Every Sorani entry cites a source declared here. Resolution is mechanical: it
 // proves a locator is well formed and names a region this volume actually has.
-// It does not prove the cited page says what the author claims — for that, read
-// the page. Only sources actually cited are declared, so an unknown id is a hard
-// error rather than a silent pass.
+// It does not prove the cited page says what the author claims. To check that,
+// read the page. Only sources actually cited are declared, so an unknown id is
+// a hard error rather than a silent pass.
 
 export type SourceId = 'THK06';
 

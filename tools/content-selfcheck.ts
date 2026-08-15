@@ -1,4 +1,4 @@
-// Fêrbûn — content self-check. A plain runner, no test framework: it compiles
+// Fêrbûn content self-check. A plain runner, no test framework: it compiles
 // with the rest of the data layer and runs under bare Node.
 // It proves each validator rule fires on its own fixture and on nothing else,
 // that every new rule stays inert for the Kurmanji track, that the shipped
@@ -11,7 +11,7 @@
 // global.
 // All of it is shape, legality and provenance. Nothing here establishes that a
 // form is correct, idiomatic or current: that needs a speaker.
-// runContentValidation() is deliberately not called — it reads __DEV__, which
+// runContentValidation() is deliberately not called: it reads __DEV__, which
 // does not exist in Node.
 
 import { readFileSync } from 'fs';
@@ -125,7 +125,7 @@ check('shipped corpus raises no info notes', corpusNotes.length === 0, summarise
 
 // 7. Digraph no-fold guard on the grader, run over every minimal pair
 // Thackston records at p. 2. ll and rr are separate phonemes (THK06:88), so a
-// grader that folded them would accept 'gul' for 'gull' — leper for flower.
+// grader that folded them would accept 'gul' for 'gull', leper for flower.
 for (const pair of DIGRAPH_MINIMAL_PAIRS) {
   check(
     `checkTypedAnswer('${pair.plain}', '${pair.digraph}') is false (${pair.gloss})`,
@@ -485,7 +485,7 @@ check(
 
 // The status guard, shown from both sides: one unauthored table under two
 // policies that differ in nothing but `status`. The note is what the check
-// returns without the guard, and it is a pass — which is why the guard is the
+// returns without the guard, and it is a pass, which is why the guard is the
 // only thing standing between a track declared complete and a blank label.
 const pendingWhenComplete = checkChrome(PENDING_CHROME, FIXTURE_COMPLETE_POLICY);
 check(

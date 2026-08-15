@@ -128,8 +128,8 @@ export function checkCitedEntries(entries: CitedEntry[], policy: TrackPolicy): C
 
 /**
  * The taught-chrome table for one track, under that track's policy. Slots carry
- * no glosses — the bridge half of every chrome line lives in i18n/strings.ts,
- * compile-checked for en/tr parity — so there is no GLOSS rule here.
+ * no glosses (the bridge half of every chrome line lives in i18n/strings.ts,
+ * compile-checked for en/tr parity), so there is no GLOSS rule here.
  *
  * As with every rule in this file, a slot that is filled, legally spelled and
  * resolvably cited has passed a shape, legality and provenance check and

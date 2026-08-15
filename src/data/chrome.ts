@@ -1,4 +1,4 @@
-// Fêrbûn — taught-language interface chrome, one table per track.
+// Fêrbûn: taught-language interface chrome, one table per track.
 // These are the words the app says *in the language being taught*: the
 // greeting, the card kickers, the empty-state title. They are not bridge copy
 // (that is i18n/strings.ts, en/tr) and they are not corpus content (that is
@@ -6,7 +6,7 @@
 // every one of them a Kurmanji hard-coding a second track would inherit.
 //
 // Sources. The Kurmanji column is the wording already shipped in the app under
-// KMR_POLICY, which sets requireCitation: false — it is existing product copy
+// KMR_POLICY, which sets requireCitation: false. It is existing product copy
 // lifted character-for-character out of the render sites, not a new claim about
 // the language, so it carries no locator. The Sorani column is entirely
 // PENDING: every slot must arrive as an attested form with a THK06 page
@@ -36,12 +36,12 @@ export const PENDING: ChromeSlot = Object.freeze({ text: null, src: null });
  * that takes Record<string, ChromeSlot>.
  */
 export type TaughtChrome = {
-  // Home — time-of-day greeting.
+  // Home: time-of-day greeting.
   homeGreetMorning: ChromeSlot;
   homeGreetAfternoon: ChromeSlot;
   homeGreetEvening: ChromeSlot;
   homeGreetNight: ChromeSlot;
-  // Home — continue / all-done / empty-track / review cards.
+  // Home: continue / all-done / empty-track / review cards.
   homeContinueKicker: ChromeSlot;
   homeAllDoneKicker: ChromeSlot;
   homeAllDoneTitle: ChromeSlot;

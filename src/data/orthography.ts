@@ -1,8 +1,8 @@
-// Fêrbûn — the orthography adopted for the Sorani track.
+// Fêrbûn: the orthography adopted for the Sorani track.
 // Bound to Thackston p. 88, "Conversion Table for the Sorani and Kurmanji
 // Alphabets": his table maps Sorani onto the Latin alphabet Kurmanji already
 // uses, so the Sorani track needs no character outside the 31 Hawar letters.
-// Conformance here is a legality check only — it says a string is spelled with
+// Conformance here is a legality check only: it says a string is spelled with
 // characters this alphabet has. Meaning, idiom and register still need a native
 // speaker.
 

@@ -1,4 +1,4 @@
-// Fêrbûn — track registry. One entry per taught variety: the content modules it
+// Fêrbûn track registry. One entry per taught variety: the content modules it
 // draws on, the validation policy it answers to, and the script it is written
 // in. Adding a variety means adding an entry here, not teaching a screen a new
 // id.

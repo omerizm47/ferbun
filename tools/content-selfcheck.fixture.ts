@@ -1,4 +1,4 @@
-// Fêrbûn — fixtures for the content self-check: deliberately malformed data,
+// Fêrbûn fixtures for the content self-check: deliberately malformed data,
 // one entry per rule, so every rule can be seen firing on its own.
 // Nothing under src/ imports this file, so it is not reachable from the app
 // entry graph, never bundled and never shipped.
@@ -176,7 +176,7 @@ export const ILLEGAL_LETTER_CHROME: Record<string, ChromeSlot> = {
 
 // A captured v1 progress blob: the shape @ferbun_progress held through 1.3.0,
 // with no version marker and the three maps flat at the top level.
-// currentLevel is deliberately stale — 1340 XP would derive level 14 — so a
+// currentLevel is deliberately stale (1340 XP would derive level 14), so a
 // migration that recomputed any global instead of copying it would be caught.
 export const V1_PROGRESS: Record<string, unknown> = {
   displayName: 'Roj\u00EEn',
