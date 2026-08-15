@@ -9,6 +9,8 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { storyTitleGloss, storyWordGloss, resolveStoryQuestion } from '../i18n/content';
 import { StoryWord } from '../data/stories';
+import { bilingualKicker } from '../data/chrome';
+import { useChrome } from '../hooks/useChrome';
 import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useProgressStore } from '../stores/progressStore';
@@ -47,6 +49,7 @@ export default function StoryScreen() {
   const { markStoryComplete, isStoryComplete } = useProgressStore();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const s = useMemo(() => makeStyles(c), [c]);
   const barStyle = scheme === 'dark' ? 'light-content' : 'dark-content';
 
@@ -64,7 +67,7 @@ export default function StoryScreen() {
       <View style={s.container}>
         <EmptyState
           icon="book-outline"
-          titleKu="Çîrok nehat dîtin"
+          titleKu={chrome.storyNotFoundTitle}
           title={t.story.notFoundTitle}
           message={t.story.notFoundMessage}
           actionLabel={t.common.goBack}
@@ -148,7 +151,7 @@ export default function StoryScreen() {
                 <Ionicons name="book" size={48} color="#FFFFFF" />
               </View>
             </View>
-            <Text style={s.resultTitle}>Te xwend!</Text>
+            {chrome.storyDoneTitle ? <Text style={s.resultTitle}>{chrome.storyDoneTitle}</Text> : null}
             <Text style={s.resultTitleEn}>{t.story.comprehensionComplete}</Text>
             <View style={s.finishKilim} pointerEvents="none">
               <KilimBorder width={120} color={c.fire[300]} />
@@ -191,7 +194,7 @@ export default function StoryScreen() {
         <View style={[s.quizContent, { paddingBottom: insets.bottom + SPACING.lg }]}>
           <View style={s.quizKickerRow}>
             <KilimDiamond size={13} color={c.fire[400]} />
-            <Text style={s.quizKicker}>PIRSA TÊGIHIŞTINÊ · {t.story.comprehensionKicker}</Text>
+            <Text style={s.quizKicker}>{bilingualKicker(chrome.comprehensionKicker, t.story.comprehensionKicker)}</Text>
           </View>
           <Text style={s.quizQuestion}>{rq.question}</Text>
           <View style={s.quizOptions}>

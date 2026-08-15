@@ -8,6 +8,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { unitTitle, unitDescription, lessonTitle } from '../i18n/content';
 import { useProgressStore } from '../stores/progressStore';
+import { useChrome } from '../hooks/useChrome';
 import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ export default function UnitScreen() {
   const { isLessonCompleted, getLessonScore } = useProgressStore();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const s = useMemo(() => makeStyles(c), [c]);
 
   const isUnitUnlocked = useMemo(() => {
@@ -54,7 +56,7 @@ export default function UnitScreen() {
     <View style={s.container}>
       <EmptyState
         icon="map-outline"
-        titleKu="Beş nehat dîtin"
+        titleKu={chrome.unitNotFoundTitle}
         title={t.unit.notFoundTitle}
         message={t.unit.notFoundMessage}
         actionLabel={t.common.goBack}

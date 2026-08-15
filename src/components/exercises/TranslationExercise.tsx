@@ -7,6 +7,8 @@ import { haptics } from '../../utils/haptics';
 import { gradeTypedAnswer } from '../../utils/answers';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, exercisePromptKu, resolveTypedAnswer } from '../../i18n/content';
+import { useChrome } from '../../hooks/useChrome';
+import { bilingualKicker } from '../../data/chrome';
 import QuestionPrompt from './QuestionPrompt';
 import Button from '../ui/Button';
 import KurdishKeyboardRow from '../ui/KurdishKeyboardRow';
@@ -20,6 +22,7 @@ interface Props {
 export default function TranslationExercise({ exercise, onAnswer, disabled }: Props) {
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -47,7 +50,7 @@ export default function TranslationExercise({ exercise, onAnswer, disabled }: Pr
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.select({ ios: 'padding', android: 'height' })}>
       <Pressable onPress={Keyboard.dismiss} accessible={false}>
-        <QuestionPrompt kicker={`WERGERÎNE · ${t.exercises.translateKicker}`} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
+        <QuestionPrompt kicker={bilingualKicker(chrome.exTranslateKicker, t.exercises.translateKicker)} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
       </Pressable>
       <TextInput
         ref={inputRef}

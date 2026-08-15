@@ -40,9 +40,18 @@ const en: UiStrings = {
     continue: 'Continue',
     settingTitle: 'Language',
   },
+  track: {
+    settingTitle: 'Kurdish variety',
+    inProgress: 'In progress',
+    switchTitle: 'Switch variety?',
+    switchMessage: (label) =>
+      `${label} lessons are still being written, so there is little to study yet. Your progress on the current variety is kept, and comes back when you switch back.`,
+    switchConfirm: 'Switch',
+    optionA11y: (endonym, label) => `Learn ${label}, ${endonym}`,
+  },
   onboarding: {
-    slides: [
-      { label: 'Welcome to Fêrbûn', description: 'Learn Kurmanji Kurdish step by step — from your very first words to real conversations.' },
+    slides: ({ label: trackName }) => [
+      { label: 'Welcome to Fêrbûn', description: `Learn ${trackName} Kurdish step by step — from your very first words to real conversations.` },
       { label: 'The Learn tab', description: 'Open a unit, answer short exercises, and earn XP with instant feedback after every question.' },
       { label: 'The Words tab', description: 'Flip themed flashcards and mark what you know to grow your vocabulary, word by word.' },
       { label: 'The Stories tab', description: 'Read short Kurdish stories and tap any word for its meaning, then take a quick comprehension quiz.' },
@@ -82,6 +91,8 @@ const en: UiStrings = {
     filterFamiliar: 'Familiar',
     filterMastered: 'Mastered',
     filterNotStudied: 'Not Studied',
+    emptyTitle: 'No words yet',
+    emptyMessage: 'Words for this language are being prepared. Check back soon.',
   },
   unit: {
     notFoundTitle: 'Unit not found',
@@ -93,6 +104,8 @@ const en: UiStrings = {
     title: 'Stories',
     hint: 'Read Kurdish stories — tap any word for its meaning.',
     min: 'min',
+    emptyTitle: 'No stories yet',
+    emptyMessage: 'Stories for this language are being prepared. Check back soon.',
   },
   flashcard: {
     noWordsTitle: 'No words yet',
@@ -117,11 +130,13 @@ const en: UiStrings = {
     trueFalseKicker: 'TRUE OR FALSE',
     fillKicker: 'FILL IN',
     matchKicker: 'MATCH',
+    writeKicker: 'WRITE IN KURDISH',
     matchInstruction: 'Tap a word, then its meaning',
     correctAnswer: 'CORRECT ANSWER',
     correctSpelling: 'CORRECT SPELLING',
     typeAnswer: 'Type your answer...',
     fillBlank: 'Fill in the blank...',
+    writePlaceholder: 'Write in Kurdish...',
     true: 'True',
     false: 'False',
   },
@@ -169,15 +184,17 @@ const en: UiStrings = {
     editTitle: 'Edit profile',
     editSub: 'Saved only on this device.',
     namePlaceholder: 'Enter your name',
+    nameFallback: 'Learner',
     symbol: 'Symbol',
+    symbolNames: { sun: 'Sun', flame: 'Fire', mountain: 'Mountain', wheat: 'Wheat', tulip: 'Tulip', star: 'Star', heart: 'Heart', book: 'Book' },
     color: 'Color',
     colorA11y: (label) => `${label} colour`,
     preferences: 'PREFERENCES',
     prefSoundEffects: 'Sound Effects',
     prefHaptics: 'Vibration & Haptics',
     prefCardDirection: 'Flashcard Direction',
-    prefCardDirKuTrEn: 'Kurdî → English',
-    prefCardDirTrEnKu: 'English → Kurdî',
+    prefCardDirKuTrEn: (taught) => `${taught} → English`,
+    prefCardDirTrEnKu: (taught) => `English → ${taught}`,
   },
   lesson: {
     coach: [
@@ -235,7 +252,7 @@ const en: UiStrings = {
   reminders: {
     sectionTitle: 'GOALS & REMINDERS',
     dailyGoal: 'Daily goal',
-    goalMet: 'Goal reached — sax bî!',
+    goalMet: (praise) => (praise ? `Goal reached — ${praise}` : 'Goal reached'),
     goalRemaining: (xp) => `${xp} XP to reach today’s goal`,
     remindersLabel: 'Daily reminder',
     remindersSub: 'A nudge to keep your streak alive',
@@ -291,9 +308,18 @@ const tr: UiStrings = {
     continue: 'Devam et',
     settingTitle: 'Dil',
   },
+  track: {
+    settingTitle: 'Kürtçe lehçesi',
+    inProgress: 'Hazırlanıyor',
+    switchTitle: 'Lehçe değiştirilsin mi?',
+    switchMessage: (label) =>
+      `${label} dersleri hâlâ yazılıyor, bu yüzden şimdilik çalışacak fazla bir şey yok. Şu anki lehçedeki ilerlemen saklanır, geri döndüğünde geri gelir.`,
+    switchConfirm: 'Değiştir',
+    optionA11y: (endonym, label) => `${label} öğren, ${endonym}`,
+  },
   onboarding: {
-    slides: [
-      { label: 'Fêrbûn’a hoş geldin', description: 'Kurmancî Kürtçesini adım adım öğren — ilk kelimelerinden gerçek sohbetlere kadar.' },
+    slides: ({ endonym }) => [
+      { label: 'Fêrbûn’a hoş geldin', description: `${endonym} Kürtçesini adım adım öğren — ilk kelimelerinden gerçek sohbetlere kadar.` },
       { label: 'Öğren sekmesi', description: 'Bir üniteyi aç, kısa alıştırmaları yanıtla ve her sorudan sonra anında geri bildirimle XP kazan.' },
       { label: 'Kelimeler sekmesi', description: 'Temalı kelime kartlarını çevir ve bildiklerini işaretleyerek kelime dağarcığını adım adım büyüt.' },
       { label: 'Hikayeler sekmesi', description: 'Kısa Kürtçe hikayeler oku, anlamı için herhangi bir kelimeye dokun, sonra kısa bir anlama testi çöz.' },
@@ -333,6 +359,8 @@ const tr: UiStrings = {
     filterFamiliar: 'Aşina',
     filterMastered: 'Ustalaşıldı',
     filterNotStudied: 'Çalışılmadı',
+    emptyTitle: 'Henüz kelime yok',
+    emptyMessage: 'Bu dil için kelimeler hazırlanıyor. Yakında tekrar bak.',
   },
   unit: {
     notFoundTitle: 'Ünite bulunamadı',
@@ -344,6 +372,8 @@ const tr: UiStrings = {
     title: 'Hikayeler',
     hint: 'Kürtçe hikayeler oku — anlamı için herhangi bir kelimeye dokun.',
     min: 'dk',
+    emptyTitle: 'Henüz hikaye yok',
+    emptyMessage: 'Bu dil için hikayeler hazırlanıyor. Yakında tekrar bak.',
   },
   flashcard: {
     noWordsTitle: 'Henüz kelime yok',
@@ -368,11 +398,13 @@ const tr: UiStrings = {
     trueFalseKicker: 'DOĞRU YA DA YANLIŞ',
     fillKicker: 'DOLDUR',
     matchKicker: 'EŞLEŞTİR',
+    writeKicker: 'KÜRTÇE YAZ',
     matchInstruction: 'Bir kelimeye, sonra anlamına dokun',
     correctAnswer: 'DOĞRU CEVAP',
     correctSpelling: 'DOĞRU YAZIM',
     typeAnswer: 'Cevabını yaz...',
     fillBlank: 'Boşluğu doldur...',
+    writePlaceholder: 'Kürtçe yaz...',
     true: 'Doğru',
     false: 'Yanlış',
   },
@@ -420,15 +452,17 @@ const tr: UiStrings = {
     editTitle: 'Profili düzenle',
     editSub: 'Yalnızca bu cihazda kaydedilir.',
     namePlaceholder: 'İsmini gir',
+    nameFallback: 'Öğrenci',
     symbol: 'Simge',
+    symbolNames: { sun: 'Güneş', flame: 'Ateş', mountain: 'Dağ', wheat: 'Buğday', tulip: 'Lale', star: 'Yıldız', heart: 'Kalp', book: 'Kitap' },
     color: 'Renk',
     colorA11y: (label) => `${label} rengi`,
     preferences: 'TERCİHLER',
     prefSoundEffects: 'Ses Efektleri',
     prefHaptics: 'Titreşim & Haptik',
     prefCardDirection: 'Kart Çalışma Yönü',
-    prefCardDirKuTrEn: 'Kurdî → Türkçe',
-    prefCardDirTrEnKu: 'Türkçe → Kurdî',
+    prefCardDirKuTrEn: (taught) => `${taught} → Türkçe`,
+    prefCardDirTrEnKu: (taught) => `Türkçe → ${taught}`,
   },
   lesson: {
     coach: [
@@ -486,7 +520,7 @@ const tr: UiStrings = {
   reminders: {
     sectionTitle: 'HEDEFLER VE HATIRLATICILAR',
     dailyGoal: 'Günlük hedef',
-    goalMet: 'Hedefe ulaştın — sax bî!',
+    goalMet: (praise) => (praise ? `Hedefe ulaştın — ${praise}` : 'Hedefe ulaştın'),
     goalRemaining: (xp) => `Bugünkü hedefe ${xp} XP kaldı`,
     remindersLabel: 'Günlük hatırlatıcı',
     remindersSub: 'Serini canlı tutmak için küçük bir dürtme',

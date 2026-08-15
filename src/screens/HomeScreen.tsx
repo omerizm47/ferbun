@@ -12,7 +12,9 @@ import { courseTitle, unitTitle } from '../i18n/content';
 import { useProgressStore, selectDueVocabIds, selectDailyXp } from '../stores/progressStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import type { Course } from '../data/types';
+import { TaughtChrome, bilingualKicker } from '../data/chrome';
 import { useTrackContent } from '../hooks/useTrackContent';
+import { useChrome } from '../hooks/useChrome';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { KurdishSun, MountainSilhouette, NewrozFlame, KilimBorder, KilimDiamond } from '../components/ui/KurdishDecorations';
 import MotifTile from '../components/ui/MotifTile';
@@ -41,13 +43,14 @@ const COURSE_PALETTE = [
 ];
 
 type GreetKey = 'morning' | 'afternoon' | 'evening' | 'night';
-// Time-of-day Kurmanji greeting + a key for the localized gloss line.
-function getGreeting(): { ku: string; key: GreetKey } {
+// Time-of-day greeting: which chrome slot the taught line reads, and the key
+// for the localized gloss line under it.
+function getGreeting(): { slot: keyof TaughtChrome; key: GreetKey } {
   const h = new Date().getHours();
-  if (h < 12) return { ku: 'Beyanî baş', key: 'morning' };
-  if (h < 17) return { ku: 'Roj baş', key: 'afternoon' };
-  if (h < 21) return { ku: 'Êvar baş', key: 'evening' };
-  return { ku: 'Şev baş', key: 'night' };
+  if (h < 12) return { slot: 'homeGreetMorning', key: 'morning' };
+  if (h < 17) return { slot: 'homeGreetAfternoon', key: 'afternoon' };
+  if (h < 21) return { slot: 'homeGreetEvening', key: 'evening' };
+  return { slot: 'homeGreetNight', key: 'night' };
 }
 
 // First unlocked, not-yet-complete unit — surfaced as the "Continue" card.
@@ -80,6 +83,7 @@ export default function HomeScreen() {
   const { totalXp, currentLevel, streakCount, displayName, loadFromStorage, checkStreakValidity, isLessonCompleted, vocabMastery, dailyXp, dailyXpDate } = useProgressStore();
   const dailyGoalXp = useSettingsStore((st) => st.dailyGoalXp);
   const { courses, getTotalLessons } = useTrackContent();
+  const chrome = useChrome();
 
   useEffect(() => { loadFromStorage().then(() => checkStreakValidity()); }, [loadFromStorage, checkStreakValidity]);
 
@@ -117,7 +121,7 @@ export default function HomeScreen() {
         <View style={s.headerRow}>
           <View style={s.greetBlock}>
             <Text style={s.brandOverline}>FÊRBÛN</Text>
-            <Text style={s.greetKu}>{greeting.ku}</Text>
+            <Text style={s.greetKu}>{chrome[greeting.slot]}</Text>
             <Text style={s.greetEn}>{firstName ? `${greetGloss}, ${firstName}` : greetGloss}</Text>
           </View>
         </View>
@@ -135,7 +139,7 @@ export default function HomeScreen() {
           <View style={s.streakChip}>
             <NewrozFlame size={20} intensity={streakCount >= 7 ? 3 : streakCount >= 3 ? 2 : 1} />
             <Text style={s.streakNum}>{streakCount}</Text>
-            <Text style={s.streakWord}>roj</Text>
+            {chrome.streakDayNoun ? <Text style={s.streakWord}>{chrome.streakDayNoun}</Text> : null}
           </View>
         </View>
       </LinearGradient>
@@ -157,7 +161,7 @@ export default function HomeScreen() {
             <Text style={s.goalCount}>{todayXp} / {dailyGoalXp} XP</Text>
           </View>
           <AnimatedProgressBar progress={goalProgress} height={8} minFill={0.02} trackColor={c.gray[100]} fillColor={goalMet ? c.kurdish[500] : c.fire[500]} />
-          <Text style={s.goalHint}>{goalMet ? t.reminders.goalMet : t.reminders.goalRemaining(Math.max(0, dailyGoalXp - todayXp))}</Text>
+          <Text style={s.goalHint}>{goalMet ? t.reminders.goalMet(chrome.goalMetPraise) : t.reminders.goalRemaining(Math.max(0, dailyGoalXp - todayXp))}</Text>
         </View>
 
         {/* Continue / all-done card */}
@@ -168,7 +172,7 @@ export default function HomeScreen() {
               <View style={s.heroTopRow}>
                 <MotifTile icon={toIconName(next.unit.icon)} color={next.accent} size={52} />
                 <View style={s.heroInfo}>
-                  <Text style={[s.heroKicker, { color: next.accent }]}>BIDOMÎNE · {t.home.continueKicker}</Text>
+                  <Text style={[s.heroKicker, { color: next.accent }]}>{bilingualKicker(chrome.homeContinueKicker, t.home.continueKicker)}</Text>
                   <Text style={s.heroTitle} numberOfLines={1}>{next.unit.titleKu}</Text>
                   <Text style={s.heroSub} numberOfLines={1}>{unitTitle(next.unit, lang)}</Text>
                 </View>
@@ -188,8 +192,8 @@ export default function HomeScreen() {
           <View style={s.doneCard}>
             <MotifTile icon="trophy" color={c.fire[500]} size={52} />
             <View style={s.heroInfo}>
-              <Text style={[s.heroKicker, { color: c.fire[600] }]}>PÎROZ BE · {t.home.allDoneKicker}</Text>
-              <Text style={s.heroTitle}>Te hemû qedand</Text>
+              <Text style={[s.heroKicker, { color: c.fire[600] }]}>{bilingualKicker(chrome.homeAllDoneKicker, t.home.allDoneKicker)}</Text>
+              {chrome.homeAllDoneTitle ? <Text style={s.heroTitle}>{chrome.homeAllDoneTitle}</Text> : null}
               <Text style={s.heroSub}>{t.home.allDoneSub}</Text>
             </View>
           </View>
@@ -197,8 +201,8 @@ export default function HomeScreen() {
           <View style={s.doneCard}>
             <MotifTile icon="construct" color={c.gray[500]} size={52} />
             <View style={s.heroInfo}>
-              <Text style={[s.heroKicker, { color: c.gray[600] }]}>BÊ DERS · {t.home.emptyTrackKicker}</Text>
-              <Text style={s.heroTitle}>Hê ders tune</Text>
+              <Text style={[s.heroKicker, { color: c.gray[600] }]}>{bilingualKicker(chrome.homeEmptyKicker, t.home.emptyTrackKicker)}</Text>
+              {chrome.homeEmptyTitle ? <Text style={s.heroTitle}>{chrome.homeEmptyTitle}</Text> : null}
               <Text style={s.heroSub}>{t.home.emptyTrackSub}</Text>
             </View>
           </View>
@@ -214,7 +218,7 @@ export default function HomeScreen() {
           >
             <MotifTile icon="albums" color={c.kurdish[600]} size={48} />
             <View style={s.heroInfo}>
-              <Text style={[s.heroKicker, { color: c.kurdish[600] }]}>DUBARE · {t.review.kicker}</Text>
+              <Text style={[s.heroKicker, { color: c.kurdish[600] }]}>{bilingualKicker(chrome.homeReviewKicker, t.review.kicker)}</Text>
               <Text style={s.heroTitle} numberOfLines={1}>{t.review.title}</Text>
               <Text style={s.heroSub} numberOfLines={1}>{t.review.due(dueCount)}</Text>
             </View>

@@ -14,6 +14,7 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors, COLORS } from '../the
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { useTrackContent } from '../hooks/useTrackContent';
+import { useChrome } from '../hooks/useChrome';
 import { haptics } from '../utils/haptics';
 import { playSound } from '../utils/sounds';
 import EmptyState from '../components/ui/EmptyState';
@@ -31,6 +32,7 @@ export default function RapidFireScreen() {
   const insets = useSafeAreaInsets();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { vocabulary } = useTrackContent();
 
@@ -210,7 +212,7 @@ export default function RapidFireScreen() {
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <EmptyState
           icon="albums-outline"
-          titleKu="Peyv tune"
+          titleKu={chrome.noWordsTitle}
           title={t.flashcard.noWordsTitle}
           message={t.flashcard.noWordsMessage}
           actionLabel={t.common.goBack}
@@ -245,7 +247,7 @@ export default function RapidFireScreen() {
           <View style={styles.sunWrap}>
             <Ionicons name="flame" size={84} color={COLORS.fire[600]} />
           </View>
-          <Text style={styles.titleKu}>Agirê Xwe Vêxe!</Text>
+          {chrome.rapidFireTitle ? <Text style={styles.titleKu}>{chrome.rapidFireTitle}</Text> : null}
           <Text style={styles.titleEn}>
             {lang === 'tr' ? 'Kelime maratonuna hoş geldin.' : 'Welcome to the Rapid Fire Quiz.'}
           </Text>
@@ -351,7 +353,7 @@ export default function RapidFireScreen() {
           <View style={styles.sunWrap}>
             <Ionicons name="trophy" size={84} color="#F59E0B" />
           </View>
-          <Text style={styles.titleKu}>Dem Qediya!</Text>
+          {chrome.timeUpTitle ? <Text style={styles.titleKu}>{chrome.timeUpTitle}</Text> : null}
           <Text style={styles.titleEn}>
             {lang === 'tr' ? 'Süreniz sona erdi.' : 'Time is up.'}
           </Text>

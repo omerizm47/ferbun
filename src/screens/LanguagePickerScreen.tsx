@@ -6,6 +6,7 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '..
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { Lang } from '../i18n/types';
+import { useChrome } from '../hooks/useChrome';
 import { KurdishSun, KilimBorder } from '../components/ui/KurdishDecorations';
 import { haptics } from '../utils/haptics';
 
@@ -20,6 +21,7 @@ export default function LanguagePickerScreen() {
   const insets = useSafeAreaInsets();
   const { colors: c, scheme } = useTheme();
   const { lang, t, setLang, confirmLanguage } = useLang();
+  const chrome = useChrome();
   const s = useMemo(() => makeStyles(c), [c]);
 
   const options: { lang: Lang; code: string; name: string; sub: string }[] = [
@@ -47,13 +49,13 @@ export default function LanguagePickerScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Brand emblem + Kurmanji welcome (the same warm greeting for everyone). */}
+        {/* Brand emblem + the taught language's welcome (the same warm greeting for everyone). */}
         <View style={s.header}>
           <View style={s.sun} pointerEvents="none">
             <KurdishSun size={84} color={c.fire[500]} />
           </View>
           <Text style={[s.wordmark, { color: c.fire[600] }]}>Fêrbûn</Text>
-          <Text style={s.welcomeKu}>Bi xêr hatî</Text>
+          {chrome.welcome ? <Text style={s.welcomeKu}>{chrome.welcome}</Text> : null}
           <View style={s.kilim} pointerEvents="none">
             <KilimBorder width={76} color={c.fire[300]} />
           </View>

@@ -12,6 +12,7 @@
 // Script is a stored field and is never inferred from the id, so an
 // Arabic-script Sorani is a second script on the same track id.
 
+import { CKB_CHROME, KMR_CHROME, TaughtChrome } from './chrome';
 import { courses, getCourseById, getLessonById, getTotalLessons, getUnitById } from './courses';
 import {
   TeachCard,
@@ -56,6 +57,8 @@ export interface TrackDef {
   policy: TrackPolicy;
   script: ScriptId;
   content: TrackContent;
+  /** Required, so a new track cannot be registered without answering for every taught string. */
+  chrome: TaughtChrome;
 }
 
 export const KMR_CONTENT: TrackContent = {
@@ -101,6 +104,7 @@ const KMR_TRACK: TrackDef = {
   policy: KMR_POLICY,
   script: 'latn',
   content: KMR_CONTENT,
+  chrome: KMR_CHROME,
 };
 
 const CKB_TRACK: TrackDef = {
@@ -110,6 +114,7 @@ const CKB_TRACK: TrackDef = {
   policy: CKB_POLICY,
   script: 'latn',
   content: CKB_CONTENT,
+  chrome: CKB_CHROME,
 };
 
 // A Map, not an object literal: a literal would resolve 'toString' and every

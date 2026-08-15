@@ -57,7 +57,8 @@ export default function ScreenHeader({
         )}
         <View style={styles.titleArea}>
           {titleEn && <UpperText style={[styles.overline, { color: tone }]} numberOfLines={1}>{titleEn}</UpperText>}
-          <Text style={styles.title} numberOfLines={1} accessibilityRole="header">{titleKu}</Text>
+          {/* Empty when the track has no authored title: drop the row, don't leave it blank. */}
+          {titleKu ? <Text style={styles.title} numberOfLines={1} accessibilityRole="header">{titleKu}</Text> : null}
         </View>
         {right ? <View style={styles.right}>{right}</View> : null}
       </View>

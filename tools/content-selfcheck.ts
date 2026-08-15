@@ -5,17 +5,30 @@
 // Kurmanji corpus is still clean, that the grader does not fold the ll/rr
 // digraphs (Thackston p. 88) into plain l and r, that the track registry
 // answers an unknown id with Kurmanji instead of an inherited prototype member,
-// and that the v1→v2 progress migration carries a real user's stored blob
-// across without touching a single global.
+// that the two taught-chrome tables hold the same slots and no track calling
+// itself complete holds an unauthored one, and that the v1→v2 progress
+// migration carries a real user's stored blob across without touching a single
+// global.
 // All of it is shape, legality and provenance. Nothing here establishes that a
 // form is correct, idiomatic or current: that needs a speaker.
 // runContentValidation() is deliberately not called — it reads __DEV__, which
 // does not exist in Node.
 
-import { SORANI_LATIN, checkOrthography } from '../src/data/orthography';
+import { readFileSync } from 'fs';
+import { CKB_CHROME, KMR_CHROME } from '../src/data/chrome';
+import { DIGRAPH_MINIMAL_PAIRS, SORANI_LATIN, checkOrthography } from '../src/data/orthography';
 import { ALL_BADGES } from '../src/data/badges';
 import { TrackId, getTrack, isTrackId } from '../src/data/tracks';
-import { ContentIssue, KMR_POLICY, checkCitedEntries, checkLessonCoverage, validateContent, validateContentDetailed } from '../src/data/validate';
+import {
+  CKB_POLICY,
+  ContentIssue,
+  KMR_POLICY,
+  checkChrome,
+  checkCitedEntries,
+  checkLessonCoverage,
+  validateContent,
+  validateContentDetailed,
+} from '../src/data/validate';
 import {
   PROGRESS_BACKUP_KEY,
   PROGRESS_SCHEMA_VERSION,
@@ -34,12 +47,15 @@ import {
   CLEAN_ENTRY,
   EMPTY_CKB_TRACK,
   FIXTURE_CKB_POLICY,
+  FIXTURE_COMPLETE_POLICY,
   FIXTURE_LESSONS,
   FULL_KMR_SNAPSHOT,
   FULL_KMR_TRACK,
+  ILLEGAL_LETTER_CHROME,
   INHERITED_TRACK_PROGRESS,
   MIXED_PROGRESS,
   PARTIAL_CKB_TRACK,
+  PENDING_CHROME,
   ROLLBACK_V1_PROGRESS,
   V1_GLOBAL_KEYS,
   V1_PROGRESS,
@@ -107,10 +123,15 @@ check('shipped corpus has no content errors', corpusErrors.length === 0, corpusE
 const corpusNotes = validateContentDetailed().filter((i) => i.severity === 'info');
 check('shipped corpus raises no info notes', corpusNotes.length === 0, summarise(corpusNotes));
 
-// 7. Digraph no-fold guard on the grader. ll and rr are separate phonemes
-// (THK06:88), so folding them would mark a wrong answer correct.
-check("checkTypedAnswer('gul', 'gull') is false", checkTypedAnswer('gul', 'gull') === false);
-check("checkTypedAnswer('xor', 'xorr') is false", checkTypedAnswer('xor', 'xorr') === false);
+// 7. Digraph no-fold guard on the grader, run over every minimal pair
+// Thackston records at p. 2. ll and rr are separate phonemes (THK06:88), so a
+// grader that folded them would accept 'gul' for 'gull' — leper for flower.
+for (const pair of DIGRAPH_MINIMAL_PAIRS) {
+  check(
+    `checkTypedAnswer('${pair.plain}', '${pair.digraph}') is false (${pair.gloss})`,
+    checkTypedAnswer(pair.plain, pair.digraph) === false,
+  );
+}
 
 // 8. ORTH-03 closes a case that was silent, not one another rule already had:
 // whitespace is NFC clean and every space is in the legal inventory, so the
@@ -425,6 +446,118 @@ check(
   'an empty track alone earns neither completion badge',
   computeBadges({ tracks: [EMPTY_CKB_TRACK], streakCount: 0 }).size === 0,
   idsOf(computeBadges({ tracks: [EMPTY_CKB_TRACK], streakCount: 0 })),
+);
+
+// 13. Taught chrome. These are the app's own words in the language it teaches,
+// and a pending slot resolves to '', so an unauthored slot does not surface as
+// a missing translation: it surfaces as a label that silently is not there.
+// checkChrome is what turns that into a failure here instead of on a screen.
+const kmrChromeKeys = Object.keys(KMR_CHROME).sort();
+const ckbChromeKeys = Object.keys(CKB_CHROME).sort();
+check('the chrome tables declare at least one slot', kmrChromeKeys.length > 0, String(kmrChromeKeys.length));
+check(
+  'both tracks declare the identical slot set',
+  kmrChromeKeys.length === ckbChromeKeys.length && kmrChromeKeys.join(',') === ckbChromeKeys.join(','),
+  `kmr ${kmrChromeKeys.length}, ckb ${ckbChromeKeys.length}`,
+);
+
+const unfilledKmr = Object.entries(KMR_CHROME)
+  .filter(([, slot]) => slot.text === null)
+  .map(([key]) => key);
+check('every Kurmanji slot carries a string', unfilledKmr.length === 0, unfilledKmr.join(','));
+
+const kmrChromeIssues = checkChrome(KMR_CHROME, KMR_POLICY);
+check('the Kurmanji table raises nothing under KMR_POLICY', kmrChromeIssues.length === 0, summarise(kmrChromeIssues));
+
+const ckbChromeIssues = checkChrome(CKB_CHROME, CKB_POLICY);
+check(
+  'the Sorani table raises exactly one CHROME-02 note',
+  ckbChromeIssues.length === 1 && ckbChromeIssues[0].severity === 'info' && ckbChromeIssues[0].rule === 'CHROME-02',
+  summarise(ckbChromeIssues),
+);
+
+const noChrome = checkChrome({}, KMR_POLICY);
+check(
+  'a table with no slots is one CHROME-00 error, not a clean table',
+  noChrome.length === 1 && noChrome[0].severity === 'error' && noChrome[0].rule === 'CHROME-00',
+  summarise(noChrome),
+);
+
+// The status guard, shown from both sides: one unauthored table under two
+// policies that differ in nothing but `status`. The note is what the check
+// returns without the guard, and it is a pass — which is why the guard is the
+// only thing standing between a track declared complete and a blank label.
+const pendingWhenComplete = checkChrome(PENDING_CHROME, FIXTURE_COMPLETE_POLICY);
+check(
+  'a complete track reports every pending slot as its own CHROME-01 error',
+  pendingWhenComplete.length === Object.keys(PENDING_CHROME).length &&
+    pendingWhenComplete.every((i) => i.severity === 'error' && i.rule === 'CHROME-01'),
+  summarise(pendingWhenComplete),
+);
+const pendingWhenInProgress = checkChrome(PENDING_CHROME, FIXTURE_CKB_POLICY);
+check(
+  'the same table under the in-progress policy passes as a single note',
+  pendingWhenInProgress.length === 1 &&
+    pendingWhenInProgress[0].severity === 'info' &&
+    pendingWhenInProgress[0].rule === 'CHROME-02',
+  summarise(pendingWhenInProgress),
+);
+
+// A filled slot is held to the track's alphabet, and to nothing the track's
+// policy does not ask for: Kurmanji has no orthography contract and owes no
+// citation, so the same slot is silent under KMR_POLICY.
+const illegalUnderCkb = checkChrome(ILLEGAL_LETTER_CHROME, CKB_POLICY);
+check(
+  'a filled slot spelled outside the p. 88 inventory raises ORTH-01',
+  illegalUnderCkb.length === 1 && illegalUnderCkb[0].severity === 'error' && illegalUnderCkb[0].rule === 'ORTH-01',
+  summarise(illegalUnderCkb),
+);
+const illegalUnderKmr = checkChrome(ILLEGAL_LETTER_CHROME, KMR_POLICY);
+check('the same slot raises nothing under KMR_POLICY', illegalUnderKmr.length === 0, summarise(illegalUnderKmr));
+
+// Badge names resolve through a slot keyed after the badge id, and badgeName()
+// answers a missing key with '' rather than crashing. That safety is also what
+// would let a badge ship with no taught name at all, unnoticed.
+const badgesWithoutSlot = ALL_BADGES.filter(
+  (b) => !Object.prototype.hasOwnProperty.call(KMR_CHROME, `badge_${b.id}`),
+).map((b) => b.id);
+check('every badge id has a chrome slot', badgesWithoutSlot.length === 0, badgesWithoutSlot.join(','));
+
+// 14. The Kurdish character strip inserts straight into a typed answer, so a
+// character it offers that the alphabet does not have produces a string the
+// orthography rule would reject. Read as source text, not imported: the
+// component pulls in react-native, which bare Node cannot load.
+const KEYBOARD_ROW_PATH = 'src/components/ui/KurdishKeyboardRow.tsx';
+let keyboardSource = '';
+let keyboardReadError = '';
+try {
+  keyboardSource = readFileSync(KEYBOARD_ROW_PATH, 'utf8');
+} catch (err) {
+  keyboardReadError = err instanceof Error ? err.message : String(err);
+}
+check(`${KEYBOARD_ROW_PATH} is readable`, keyboardReadError === '' && keyboardSource !== '', keyboardReadError);
+
+function declaredChars(source: string, name: string): string[] {
+  const found = new RegExp(`const ${name} = \\[([^\\]]*)\\]`).exec(source);
+  if (!found) return [];
+  return found[1]
+    .split(',')
+    .map((piece) => piece.trim().replace(/^'/, '').replace(/'$/, ''))
+    .filter((piece) => piece !== '');
+}
+
+const stripChars = [...declaredChars(keyboardSource, 'CHARS_LOWER'), ...declaredChars(keyboardSource, 'CHARS_UPPER')];
+check(
+  'both character arrays were found in the keyboard row',
+  declaredChars(keyboardSource, 'CHARS_LOWER').length > 0 && declaredChars(keyboardSource, 'CHARS_UPPER').length > 0,
+  `${stripChars.length} characters read`,
+);
+const alphabet = new Set([...SORANI_LATIN.letters, ...SORANI_LATIN.lettersUpper]);
+const strangers = stripChars.filter((ch) => !alphabet.has(ch));
+check(
+  'every character on the strip is a letter of the p. 88 alphabet',
+  strangers.length === 0,
+  strangers.join(',') || 'none',
 );
 
 if (failures.length > 0) {

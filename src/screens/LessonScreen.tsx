@@ -11,7 +11,9 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { lessonTitle, exerciseExplanation, resolveChoices, resolveTypedAnswer } from '../i18n/content';
 import { useProgressStore } from '../stores/progressStore';
+import { TaughtChrome, bilingualKicker } from '../data/chrome';
 import { useTrackContent } from '../hooks/useTrackContent';
+import { useChrome } from '../hooks/useChrome';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
@@ -33,14 +35,17 @@ import FillBlankExercise from '../components/exercises/FillBlankExercise';
 import WritingExercise from '../components/exercises/WritingExercise';
 import { playSound } from '../utils/sounds';
 
-const ENCOURAGEMENTS = [
-  { ku: 'Aferîn!', en: 'Well done!', tr: 'Aferin!' },
-  { ku: 'Bijî!', en: 'Bravo!', tr: 'Yaşa!' },
-  { ku: 'Her bijî!', en: 'Long live!', tr: 'Çok yaşa!' },
-  { ku: 'Destxweş!', en: 'Congratulations!', tr: 'Tebrikler!' },
-  { ku: 'Zîrek î!', en: 'You are smart!', tr: 'Zekisin!' },
-  { ku: 'Nayab e!', en: 'Excellent!', tr: 'Mükemmel!' },
-  { ku: 'Pir baş e!', en: 'Very good!', tr: 'Çok iyi!' },
+// Combo praise. The taught half lives in the chrome table, one slot per entry,
+// so a track without those slots drops to the bridge line alone.
+type Encouragement = { slot: keyof TaughtChrome; en: string; tr: string };
+const ENCOURAGEMENTS: Encouragement[] = [
+  { slot: 'encourage1', en: 'Well done!', tr: 'Aferin!' },
+  { slot: 'encourage2', en: 'Bravo!', tr: 'Yaşa!' },
+  { slot: 'encourage3', en: 'Long live!', tr: 'Çok yaşa!' },
+  { slot: 'encourage4', en: 'Congratulations!', tr: 'Tebrikler!' },
+  { slot: 'encourage5', en: 'You are smart!', tr: 'Zekisin!' },
+  { slot: 'encourage6', en: 'Excellent!', tr: 'Mükemmel!' },
+  { slot: 'encourage7', en: 'Very good!', tr: 'Çok iyi!' },
 ];
 
 type RoutePropType = RouteProp<RootStackParamList, 'Lesson'>;
@@ -61,6 +66,7 @@ export default function LessonScreen() {
   const { completeLesson } = useProgressStore();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const teachCards = useMemo(() => getLessonTeachCards(lessonId, lang), [getLessonTeachCards, lessonId, lang]);
   const styles = useMemo(() => makeStyles(c), [c]);
   const barStyle = scheme === 'dark' ? 'light-content' : 'dark-content';
@@ -80,7 +86,7 @@ export default function LessonScreen() {
   const [comboCount, setComboCount] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [endedCombo, setEndedCombo] = useState(0);
-  const [currentEncouragement, setCurrentEncouragement] = useState<{ ku: string; tr: string; en: string } | null>(null);
+  const [currentEncouragement, setCurrentEncouragement] = useState<Encouragement | null>(null);
 
   const progress = exercises.length > 0 ? Math.min(1, correctCount / exercises.length) : 0;
 
@@ -176,7 +182,7 @@ export default function LessonScreen() {
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <EmptyState
           icon="school-outline"
-          titleKu="Ders nehat dîtin"
+          titleKu={chrome.lessonNotFoundTitle}
           title={t.lesson.notFoundTitle}
           message={t.lesson.notFoundMessage}
           actionLabel={t.common.goBack}
@@ -199,7 +205,7 @@ export default function LessonScreen() {
         </View>
         <EmptyState
           icon="construct-outline"
-          titleKu="Di amadekirinê de"
+          titleKu={chrome.lessonComingSoonTitle}
           title={t.lesson.comingSoonTitle}
           message={t.lesson.comingSoonMessage(lessonTitle(lesson, lang))}
           actionLabel={t.common.goBack}
@@ -240,7 +246,7 @@ export default function LessonScreen() {
               <Ionicons name={msg.icon} size={56} color="#FFFFFF" />
             </LinearGradient>
           </Animated.View>
-          <Text style={styles.finishTitleKu}>Pîroz be!</Text>
+          {chrome.congratsTitle ? <Text style={styles.finishTitleKu}>{chrome.congratsTitle}</Text> : null}
           <Text style={styles.finishTitleEn}>{t.lesson.complete}</Text>
           <View style={styles.finishKilim} pointerEvents="none">
             <KilimBorder width={120} color={c.fire[300]} />
@@ -371,11 +377,14 @@ export default function LessonScreen() {
               <NewrozFlame size={44} intensity={3} />
               <View style={styles.comboInfo}>
                 <Text style={styles.comboKicker}>
-                  {lang === 'tr'
-                    ? `${comboCount} PIRSAN DI RÊZÊ DE · ÜST ÜSTE ${comboCount} DOĞRU!`
-                    : `${comboCount} PIRSAN DI RÊZÊ DE · ${comboCount} IN A ROW!`}
+                  {bilingualKicker(
+                    chrome.comboKicker ? `${comboCount} ${chrome.comboKicker}` : '',
+                    lang === 'tr' ? `ÜST ÜSTE ${comboCount} DOĞRU!` : `${comboCount} IN A ROW!`,
+                  )}
                 </Text>
-                <Text style={styles.comboWordKu}>{currentEncouragement.ku}</Text>
+                {chrome[currentEncouragement.slot] ? (
+                  <Text style={styles.comboWordKu}>{chrome[currentEncouragement.slot]}</Text>
+                ) : null}
                 <Text style={styles.comboWordTranslation}>
                   {lang === 'tr' ? currentEncouragement.tr : currentEncouragement.en}
                 </Text>
@@ -384,7 +393,7 @@ export default function LessonScreen() {
           )}
           {lastCorrect && !lastExact && (
             <View style={styles.spellingTipBox}>
-              <Text style={styles.spellingTipLabel}>RASTNIVÎS · {t.exercises.correctSpelling}</Text>
+              <Text style={styles.spellingTipLabel}>{bilingualKicker(chrome.spellingLabel, t.exercises.correctSpelling)}</Text>
               <Text style={styles.spellingTipText}>
                 {(() => {
                   const ans = resolveTypedAnswer(currentExercise, lang);
@@ -403,7 +412,7 @@ export default function LessonScreen() {
                   </UpperText>
                 </Animated.View>
               )}
-              <Text style={styles.correctAnswerLabel}>BERSIVA RAST · {t.exercises.correctAnswer}</Text>
+              <Text style={styles.correctAnswerLabel}>{bilingualKicker(chrome.correctAnswerLabel, t.exercises.correctAnswer)}</Text>
               <Text style={styles.correctAnswerText}>
                 {(() => {
                   // Show the correct answer in the active language and exercise shape:

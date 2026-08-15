@@ -7,6 +7,8 @@ import { Exercise } from '../../data/types';
 import { haptics } from '../../utils/haptics';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, exercisePromptKu } from '../../i18n/content';
+import { useChrome } from '../../hooks/useChrome';
+import { bilingualKicker } from '../../data/chrome';
 import QuestionPrompt from './QuestionPrompt';
 
 interface Props { exercise: Exercise; onAnswer: (correct: boolean) => void; disabled: boolean; }
@@ -14,11 +16,12 @@ interface Props { exercise: Exercise; onAnswer: (correct: boolean) => void; disa
 export default function TrueFalseExercise({ exercise, onAnswer, disabled }: Props) {
   const c = useColors();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [selected, setSelected] = useState<string | null>(null);
   const CHOICES = [
-    { key: 'True', ku: 'Rast', en: t.exercises.true, icon: 'checkmark-circle' as const },
-    { key: 'False', ku: 'Şaş', en: t.exercises.false, icon: 'close-circle' as const },
+    { key: 'True', ku: chrome.trueLabel, en: t.exercises.true, icon: 'checkmark-circle' as const },
+    { key: 'False', ku: chrome.falseLabel, en: t.exercises.false, icon: 'close-circle' as const },
   ];
   const handleSelect = (answer: string) => {
     if (disabled) return;
@@ -29,7 +32,7 @@ export default function TrueFalseExercise({ exercise, onAnswer, disabled }: Prop
   };
   return (
     <View style={styles.container}>
-      <QuestionPrompt kicker={`RAST AN ŞAŞ · ${t.exercises.trueFalseKicker}`} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
+      <QuestionPrompt kicker={bilingualKicker(chrome.exTrueFalseKicker, t.exercises.trueFalseKicker)} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
       <View style={styles.row}>
         {CHOICES.map((choice) => {
           const isSelected = selected === choice.key;
@@ -50,11 +53,11 @@ export default function TrueFalseExercise({ exercise, onAnswer, disabled }: Prop
               onPress={() => handleSelect(choice.key)}
               activeOpacity={disabled ? 1 : 0.8}
               accessibilityRole="button"
-              accessibilityLabel={`${choice.ku}, ${choice.en}`}
+              accessibilityLabel={choice.ku ? `${choice.ku}, ${choice.en}` : choice.en}
               accessibilityState={{ selected: isSelected, disabled }}
             >
               <Ionicons name={choice.icon} size={34} color={iconColor} />
-              <Text style={[styles.ku, { color: iconColor }]}>{choice.ku}</Text>
+              {choice.ku ? <Text style={[styles.ku, { color: iconColor }]}>{choice.ku}</Text> : null}
               <Text style={styles.en}>{choice.en}</Text>
             </TouchableOpacity>
           );

@@ -8,6 +8,8 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { storyTitleGloss, storyDescription } from '../i18n/content';
 import { Story } from '../data/stories';
+import { TaughtChrome } from '../data/chrome';
+import { useChrome } from '../hooks/useChrome';
 import { useTrackContent } from '../hooks/useTrackContent';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +17,7 @@ import { haptics } from '../utils/haptics';
 import { useProgressStore } from '../stores/progressStore';
 import ScreenHeader from '../components/ui/ScreenHeader';
 import MotifTile from '../components/ui/MotifTile';
+import EmptyState from '../components/ui/EmptyState';
 import { toIconName } from '../utils/icons';
 import PressableScale from '../components/ui/PressableScale';
 import { KilimDiamond } from '../components/ui/KurdishDecorations';
@@ -27,10 +30,10 @@ const levelColors = {
   advanced: { bg: '#FDECEE', text: '#A81E2E', border: '#F5CBD1' },
 };
 
-const levelKu: Record<Story['level'], string> = {
-  beginner: 'Destpêk',
-  intermediate: 'Navîn',
-  advanced: 'Pêşketî',
+const levelSlot: Record<Story['level'], keyof TaughtChrome> = {
+  beginner: 'levelBeginner',
+  intermediate: 'levelIntermediate',
+  advanced: 'levelAdvanced',
 };
 
 // Rough read time from total word count (~120 wpm for a learner reading aloud).
@@ -44,14 +47,31 @@ export default function StoriesListScreen() {
   const insets = useSafeAreaInsets();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const s = useMemo(() => makeStyles(c), [c]);
   const { stories } = useTrackContent();
   const isStoryComplete = useProgressStore((st) => st.isStoryComplete);
 
+  // A track with no stories has nothing to list, and the reading hint below the
+  // header would be pointing at an empty page.
+  if (stories.length === 0) {
+    return (
+      <View style={s.container}>
+        <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={c.cream[50]} />
+        <ScreenHeader titleEn={t.stories.title} titleKu={chrome.storiesHeader} topInset={insets.top} emblem />
+        <EmptyState
+          icon="book-outline"
+          title={t.stories.emptyTitle}
+          message={t.stories.emptyMessage}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={s.container}>
       <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={c.cream[50]} />
-      <ScreenHeader titleEn={t.stories.title} titleKu="Çîrokên Kurdî" topInset={insets.top} emblem />
+      <ScreenHeader titleEn={t.stories.title} titleKu={chrome.storiesHeader} topInset={insets.top} emblem />
       <View style={s.hintRow}>
         <Ionicons name="hand-left-outline" size={13} color={c.fire[500]} />
         <Text style={s.hint}>{t.stories.hint}</Text>
@@ -60,6 +80,7 @@ export default function StoriesListScreen() {
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         {stories.map((story) => {
           const colors = levelColors[story.level];
+          const level = chrome[levelSlot[story.level]];
           const mins = readMinutes(story);
           const read = isStoryComplete(story.id);
           return (
@@ -83,9 +104,11 @@ export default function StoriesListScreen() {
                     <Text style={s.cardTitle} numberOfLines={1}>{story.title}</Text>
                     <Text style={s.cardTitleEn} numberOfLines={1}>{storyTitleGloss(story, lang)}</Text>
                   </View>
-                  <View style={[s.levelBadge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-                    <Text style={[s.levelText, { color: colors.text }]}>{levelKu[story.level]}</Text>
-                  </View>
+                  {level ? (
+                    <View style={[s.levelBadge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                      <Text style={[s.levelText, { color: colors.text }]}>{level}</Text>
+                    </View>
+                  ) : null}
                 </View>
 
                 <Text style={s.cardDesc} numberOfLines={2}>{storyDescription(story, lang)}</Text>
@@ -98,17 +121,17 @@ export default function StoriesListScreen() {
                     </View>
                     <View style={s.metaChip}>
                       <Ionicons name="help-circle-outline" size={13} color={c.gray[500]} />
-                      <Text style={s.metaText}>{story.comprehensionQuestions.length} pirs</Text>
+                      <Text style={s.metaText}>{`${story.comprehensionQuestions.length} ${chrome.questionsNoun}`.trim()}</Text>
                     </View>
                   </View>
                   {read ? (
                     <View style={[s.readPill, s.donePill]}>
                       <Ionicons name="checkmark-done" size={14} color={c.successText} />
-                      <Text style={[s.readText, { color: c.successText }]}>Xwendin</Text>
+                      {chrome.storyRead ? <Text style={[s.readText, { color: c.successText }]}>{chrome.storyRead}</Text> : null}
                     </View>
                   ) : (
                     <View style={[s.readPill, { backgroundColor: story.accent }]}>
-                      <Text style={s.readText}>Bixwîne</Text>
+                      {chrome.storyReadCta ? <Text style={s.readText}>{chrome.storyReadCta}</Text> : null}
                       <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
                     </View>
                   )}

@@ -6,9 +6,11 @@
 // A track policy adds three more rules on top: spelling inside the track's
 // alphabet (ORTH), a resolvable source citation (SRC) and both glosses present
 // (GLOSS), plus a coverage note for tracks still being authored (TRACK).
+// The taught-chrome table is checked by the same policy under CHROME.
 // All of it checks shape, legality and provenance only. Nothing here confirms
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
+import { ChromeSlot } from './chrome';
 import { courses } from './courses';
 import { getExercisesForLesson } from './exercises';
 import { SORANI_LATIN, checkOrthography, OrthographySpec } from './orthography';
@@ -121,6 +123,97 @@ export function checkCitedEntries(entries: CitedEntry[], policy: TrackPolicy): C
     }
   }
 
+  return issues;
+}
+
+/**
+ * The taught-chrome table for one track, under that track's policy. Slots carry
+ * no glosses — the bridge half of every chrome line lives in i18n/strings.ts,
+ * compile-checked for en/tr parity — so there is no GLOSS rule here.
+ *
+ * As with every rule in this file, a slot that is filled, legally spelled and
+ * resolvably cited has passed a shape, legality and provenance check and
+ * nothing more. Whether the wording is right is a question only a speaker of
+ * the language can answer.
+ *
+ * Wiring point, like checkCitedEntries: exported and covered by the self-check,
+ * not called from validateContent().
+ */
+export function checkChrome(slots: Record<string, ChromeSlot>, policy: TrackPolicy): ContentIssue[] {
+  // Object.entries, never `slots[key]`: a bare index on an object literal
+  // resolves toString and every other Object.prototype member as a slot.
+  const entries = Object.entries(slots);
+
+  if (entries.length === 0) {
+    return [
+      {
+        severity: 'error',
+        rule: 'CHROME-00',
+        message: `[CHROME-00] Track "${policy.id}" has no chrome slots at all. A zero-slot table is an unbuilt table, not a clean one.`,
+      },
+    ];
+  }
+
+  const issues: ContentIssue[] = [];
+  const pending: string[] = [];
+
+  for (const [key, slot] of entries) {
+    if (slot.text === null) {
+      pending.push(key);
+      continue;
+    }
+
+    if (policy.orthography) {
+      for (const { code, detail } of checkOrthography(slot.text, policy.orthography)) {
+        issues.push({
+          severity: 'error',
+          rule: code,
+          message: `[${code}] ${policy.id} chrome slot "${key}": ${detail}.`,
+        });
+      }
+    }
+
+    if (policy.requireCitation) {
+      if (!slot.src || slot.src.trim() === '') {
+        issues.push({
+          severity: 'error',
+          rule: 'SRC-01',
+          message: `[SRC-01] ${policy.id} chrome slot "${key}": missing src citation (expected "THK06:<page or §section>").`,
+        });
+      } else {
+        const cited = resolveCitation(slot.src);
+        if (!cited.ok) {
+          issues.push({
+            severity: 'error',
+            rule: 'SRC-02',
+            message: `[SRC-02] ${policy.id} chrome slot "${key}": ${cited.reason}.`,
+          });
+        }
+      }
+    }
+  }
+
+  if (pending.length === 0) return issues;
+
+  // A pending slot resolves to '', which reads on screen as a label that was
+  // never there rather than as one that is missing. That is acceptable while a
+  // track is being authored and a defect once it claims to be complete.
+  if (policy.status === 'complete') {
+    for (const key of pending) {
+      issues.push({
+        severity: 'error',
+        rule: 'CHROME-01',
+        message: `[CHROME-01] Track "${policy.id}" is complete but chrome slot "${key}" is unauthored: it would render blank beside its bridge word.`,
+      });
+    }
+    return issues;
+  }
+
+  issues.push({
+    severity: 'info',
+    rule: 'CHROME-02',
+    message: `[CHROME-02] Track "${policy.id}" is in progress: ${entries.length - pending.length} of ${entries.length} chrome slots authored (${pending.length} pending). Pending slots are not errors until the track is complete, and a filled slot is still only checked for spelling and provenance, never for meaning.`,
+  });
   return issues;
 }
 

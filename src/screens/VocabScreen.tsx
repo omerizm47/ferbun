@@ -7,6 +7,7 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../theme';
 import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { themeLabel } from '../i18n/content';
+import { useChrome } from '../hooks/useChrome';
 import { useTrackContent } from '../hooks/useTrackContent';
 import { useProgressStore, selectDueVocabIds, selectWeakVocabIds } from '../stores/progressStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -15,6 +16,7 @@ import { haptics } from '../utils/haptics';
 import { toIconName } from '../utils/icons';
 import ScreenHeader from '../components/ui/ScreenHeader';
 import MotifTile from '../components/ui/MotifTile';
+import EmptyState from '../components/ui/EmptyState';
 import PressableScale from '../components/ui/PressableScale';
 import UpperText from '../components/ui/UpperText';
 
@@ -25,6 +27,7 @@ export default function VocabScreen() {
   const insets = useSafeAreaInsets();
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const s = useMemo(() => makeStyles(c), [c]);
   const { vocabulary, vocabThemes, getVocabByTheme } = useTrackContent();
 
@@ -116,10 +119,27 @@ export default function VocabScreen() {
     });
   }, [searchQuery, selectedFilter, vocabMastery, vocabulary]);
 
+  // A track with no words has nothing to search, list or review, and the word
+  // marathon it links to cannot deal a card either, so the whole toolbar goes.
+  if (vocabulary.length === 0) {
+    return (
+      <View style={s.container}>
+        <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={c.cream[50]} />
+        <ScreenHeader titleEn={t.vocab.title} titleKu={chrome.vocabHeader} topInset={insets.top} emblem />
+        <EmptyState
+          icon="albums-outline"
+          titleKu={chrome.noWordsTitle}
+          title={t.vocab.emptyTitle}
+          message={t.vocab.emptyMessage}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={s.container}>
       <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={c.cream[50]} />
-      <ScreenHeader titleEn={t.vocab.title} titleKu="Peyvên Kurdî" topInset={insets.top} emblem />
+      <ScreenHeader titleEn={t.vocab.title} titleKu={chrome.vocabHeader} topInset={insets.top} emblem />
       
       {/* Search Input Bar */}
       <View style={s.searchContainer}>

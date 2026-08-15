@@ -9,6 +9,8 @@ import { haptics } from '../../utils/haptics';
 import { gradeTypedAnswer } from '../../utils/answers';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, resolveTypedAnswer } from '../../i18n/content';
+import { useChrome } from '../../hooks/useChrome';
+import { bilingualKicker } from '../../data/chrome';
 import Button from '../ui/Button';
 import KurdishKeyboardRow from '../ui/KurdishKeyboardRow';
 
@@ -29,6 +31,7 @@ interface Props {
 export default function WritingExercise({ exercise, onAnswer, disabled }: Props) {
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -62,7 +65,7 @@ export default function WritingExercise({ exercise, onAnswer, disabled }: Props)
     >
       <Pressable onPress={Keyboard.dismiss} accessible={false} style={styles.inner}>
         {/* Kicker */}
-        <Text style={styles.kicker}>BINIVÎSE · {lang === 'tr' ? 'KÜRTÇE YAZ' : 'WRITE IN KURDISH'}</Text>
+        <Text style={styles.kicker}>{bilingualKicker(chrome.exWriteKicker, t.exercises.writeKicker)}</Text>
 
         {/* Meaning card — big and centred */}
         <Animated.View entering={FadeInDown.duration(280)} style={styles.meaningCard}>
@@ -74,7 +77,7 @@ export default function WritingExercise({ exercise, onAnswer, disabled }: Props)
         <TextInput
           ref={inputRef}
           style={[styles.input, focused && styles.inputFocused, submitted && styles.inputDisabled]}
-          placeholder={lang === 'tr' ? 'Kürtçe yaz...' : 'Write in Kurdish...'}
+          placeholder={t.exercises.writePlaceholder}
           placeholderTextColor={c.gray[400]}
           selectionColor={c.fire[500]}
           cursorColor={c.fire[500]}

@@ -7,6 +7,8 @@ import { haptics } from '../../utils/haptics';
 import { gradeTypedAnswer } from '../../utils/answers';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt, exercisePromptKu, resolveTypedAnswer } from '../../i18n/content';
+import { useChrome } from '../../hooks/useChrome';
+import { bilingualKicker } from '../../data/chrome';
 import QuestionPrompt from './QuestionPrompt';
 import Button from '../ui/Button';
 import KurdishKeyboardRow from '../ui/KurdishKeyboardRow';
@@ -16,6 +18,7 @@ interface Props { exercise: Exercise; onAnswer: (correct: boolean, opts?: { exac
 export default function FillBlankExercise({ exercise, onAnswer, disabled }: Props) {
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -43,7 +46,7 @@ export default function FillBlankExercise({ exercise, onAnswer, disabled }: Prop
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.select({ ios: 'padding', android: 'height' })}>
       <Pressable onPress={Keyboard.dismiss} accessible={false}>
-        <QuestionPrompt kicker={`TIJE BIKE · ${t.exercises.fillKicker}`} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
+        <QuestionPrompt kicker={bilingualKicker(chrome.exFillKicker, t.exercises.fillKicker)} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
       </Pressable>
       <TextInput
         ref={inputRef}

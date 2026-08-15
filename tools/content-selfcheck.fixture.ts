@@ -12,6 +12,7 @@
 // The glosses below exist only to satisfy the GLOSS rule. They are fixture
 // data, not learner content, and no speaker has reviewed them.
 
+import { ChromeSlot, PENDING } from '../src/data/chrome';
 import { SORANI_LATIN } from '../src/data/orthography';
 import { CitedEntry, TrackPolicy } from '../src/data/validate';
 import { ProgressSnapshot, TrackSnapshot } from '../src/utils/badges';
@@ -152,6 +153,26 @@ export const FIXTURE_LESSONS = [
   { id: 'fx-l1', title: 'A', exerciseCount: 3 },
   { id: 'fx-l2', title: 'B', exerciseCount: 0 },
 ];
+
+// FIXTURE_CKB_POLICY with one field changed, so the pair below isolates a
+// single variable: whether the track claims to be finished.
+export const FIXTURE_COMPLETE_POLICY: TrackPolicy = { ...FIXTURE_CKB_POLICY, status: 'complete' };
+
+// An unauthored chrome table. Which slots these are does not matter; that none
+// of them carries a string does.
+export const PENDING_CHROME: Record<string, ChromeSlot> = {
+  homeGreetMorning: PENDING,
+  trueLabel: PENDING,
+  badge_first_lesson: PENDING,
+};
+
+// One filled slot spelled with dark l (U+0142), the character the p. 88
+// inventory rejects, and cited so the citation rule has nothing to add. This is
+// a spelling the validator must refuse, not a proposed value for the slot: no
+// Sorani wording is authored anywhere in this repository.
+export const ILLEGAL_LETTER_CHROME: Record<string, ChromeSlot> = {
+  trueLabel: { text: 'gu\u0142', src: 'THK06:2' },
+};
 
 // A captured v1 progress blob: the shape @ferbun_progress held through 1.3.0,
 // with no version marker and the three maps flat at the top level.

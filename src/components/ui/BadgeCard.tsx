@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SPACING, RADIUS, FONT_SIZE, SHADOWS, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
 import { BadgeDef } from '../../data/badges';
+import { badgeName } from '../../data/chrome';
+import { useChrome } from '../../hooks/useChrome';
 import { useLang } from '../../i18n/LanguageProvider';
 import {
   KurdishSun,
@@ -30,8 +32,10 @@ interface Props {
 export default function BadgeCard({ def, earned, index = 0 }: Props) {
   const c = useColors();
   const { lang } = useLang();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
 
+  const nameTaught = badgeName(chrome, def.id);
   const name = lang === 'tr' ? def.nameTr : def.nameEn;
   const desc = lang === 'tr' ? def.descTr : def.descEn;
 
@@ -82,7 +86,7 @@ export default function BadgeCard({ def, earned, index = 0 }: Props) {
 
       {/* Text */}
       <View style={styles.textWrap}>
-        <Text style={[styles.nameKu, !earned && styles.locked]}>{def.nameKu}</Text>
+        {nameTaught ? <Text style={[styles.nameKu, !earned && styles.locked]}>{nameTaught}</Text> : null}
         <Text style={[styles.name, !earned && styles.locked]}>{name}</Text>
         <Text style={styles.desc} numberOfLines={2}>{desc}</Text>
       </View>

@@ -1,6 +1,7 @@
-// Base ("bridge") language for the learning experience. The language being
-// taught is always Kurmanji; this only controls the interface chrome and the
-// meaning-glosses (English by default, Turkish for Turkish speakers).
+// Base ("bridge") language for the learning experience. Which variety is being
+// taught is a separate choice, held in the track registry; this only controls
+// the interface chrome and the meaning-glosses (English by default, Turkish for
+// Turkish speakers).
 export type Lang = 'en' | 'tr';
 
 export const LANGS: Lang[] = ['en', 'tr'];
@@ -57,10 +58,23 @@ export interface UiStrings {
     /** Label for the Appearance-style control in Profile. */
     settingTitle: string;
   };
+  // Taught-variety picker in Profile. The variety names themselves come from the
+  // track registry (label + endonym), not from here: they are the same in every
+  // bridge language.
+  track: {
+    settingTitle: string;
+    /** Pill on a variety whose lessons are still being written. */
+    inProgress: string;
+    switchTitle: string;
+    switchMessage: (label: string) => string;
+    switchConfirm: string;
+    optionA11y: (endonym: string, label: string) => string;
+  };
   // First-run intro carousel (5 slides). titleKu + visuals stay in the screen;
   // only the label/description and CTA gloss are localized here.
   onboarding: {
-    slides: { label: string; description: string }[];
+    /** Takes the active track's registry names so slide 1 can say which variety is taught. */
+    slides: (track: { label: string; endonym: string }) => { label: string; description: string }[];
     /** Gloss half of the final bilingual CTA ("Dest pê bike — …"). */
     start: string;
     /** Accessibility label for the back chevron. */
@@ -101,6 +115,9 @@ export interface UiStrings {
     filterFamiliar: string;
     filterMastered: string;
     filterNotStudied: string;
+    /** Shown when the active track has no vocabulary authored yet. */
+    emptyTitle: string;
+    emptyMessage: string;
   };
   // Unit (lesson list) screen. tag* render under an uppercase style, so they are
   // stored already-uppercased (Turkish with correct İ/I).
@@ -116,6 +133,9 @@ export interface UiStrings {
     hint: string;
     /** Abbreviation in "{n} min" read time. */
     min: string;
+    /** Shown when the active track has no stories authored yet. */
+    emptyTitle: string;
+    emptyMessage: string;
   };
   // Flashcard review. known/learning render under an uppercase style, so they are
   // stored already-uppercased (Turkish with correct İ).
@@ -144,11 +164,13 @@ export interface UiStrings {
     trueFalseKicker: string;
     fillKicker: string;
     matchKicker: string;
+    writeKicker: string;
     matchInstruction: string;
     correctAnswer: string;
     correctSpelling: string;
     typeAnswer: string;
     fillBlank: string;
+    writePlaceholder: string;
     true: string;
     false: string;
   };
@@ -201,15 +223,20 @@ export interface UiStrings {
     editTitle: string;
     editSub: string;
     namePlaceholder: string;
+    /** Stands in for the learner's name when the taught word for it is unauthored. */
+    nameFallback: string;
     symbol: string;
+    /** Spoken names for the avatar symbols, used when the taught word is unauthored. */
+    symbolNames: { sun: string; flame: string; mountain: string; wheat: string; tulip: string; star: string; heart: string; book: string };
     color: string;
     colorA11y: (label: string) => string;
     preferences: string;
     prefSoundEffects: string;
     prefHaptics: string;
     prefCardDirection: string;
-    prefCardDirKuTrEn: string;
-    prefCardDirTrEnKu: string;
+    /** Takes the name of the taught track, so no bridge string spells one out. */
+    prefCardDirKuTrEn: (taught: string) => string;
+    prefCardDirTrEnKu: (taught: string) => string;
   };
   // Lesson screen. *Gloss/stat/kicker labels render under uppercase styles, so
   // they are stored already-uppercased (Turkish with correct İ).
@@ -268,7 +295,8 @@ export interface UiStrings {
   reminders: {
     sectionTitle: string;
     dailyGoal: string;
-    goalMet: string;
+    /** Takes the taught praise; an unauthored one leaves the bridge line alone. */
+    goalMet: (praise: string) => string;
     goalRemaining: (xp: number) => string;
     remindersLabel: string;
     remindersSub: string;
@@ -282,9 +310,9 @@ export interface UiStrings {
     permMessage: string;
     openSettings: string;
   };
-  // Full-screen reward popup (level-up / new streak tier). The Kurmanji "Pîroz
-  // be!" headline and the "Berdewam be" button stay in the screen; only the
-  // eyebrow and the level detail are localized here.
+  // Full-screen reward popup (level-up / new streak tier). The taught-language
+  // headline and dismiss label come from data/chrome.ts; only the eyebrow and
+  // the level detail are localized here.
   celebration: {
     levelUp: string;
     newStreakTier: string;

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SPACING, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '../../theme';
 import { useColors } from '../../theme/ThemeProvider';
 import { useT } from '../../i18n/LanguageProvider';
+import { useChrome } from '../../hooks/useChrome';
 
 interface Props {
   correct: boolean;
@@ -15,14 +16,16 @@ interface Props {
 
 /**
  * Shared premium answer-feedback sheet. Slides up after an answer with a drag
- * handle, a spring-bouncing result emblem, and a bilingual "Aferîn! / Nêzîk bû"
- * headline. Used by both the lesson feedback bar and the story comprehension
+ * handle, a spring-bouncing result emblem, and a bilingual headline: the taught
+ * verdict over its localized gloss. Used by both the lesson feedback bar and
+ * the story comprehension
  * quiz so the "after you answer" moment is identical and on-brand. `children`
  * holds whatever follows (correct-answer chip, explanation, the action button).
  */
 export default function AnswerSheet({ correct, bottomInset, style, children }: Props) {
   const c = useColors();
   const t = useT();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   const scale = useSharedValue(0);
   useEffect(() => {
@@ -31,6 +34,7 @@ export default function AnswerSheet({ correct, bottomInset, style, children }: P
   }, [scale]);
   const emblemAnim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const accent = correct ? c.success : c.error;
+  const verdict = correct ? chrome.feedbackCorrect : chrome.feedbackWrong;
 
   return (
     <Animated.View
@@ -43,9 +47,9 @@ export default function AnswerSheet({ correct, bottomInset, style, children }: P
           <Ionicons name={correct ? 'checkmark' : 'close'} size={26} color={c.white} />
         </Animated.View>
         <View style={styles.headText}>
-          <Text style={[styles.ku, { color: correct ? c.kurdish[700] : c.error }]}>
-            {correct ? 'Aferîn!' : 'Nêzîk bû'}
-          </Text>
+          {verdict ? (
+            <Text style={[styles.ku, { color: correct ? c.kurdish[700] : c.error }]}>{verdict}</Text>
+          ) : null}
           <Text style={styles.en}>{correct ? t.feedback.correct : t.feedback.wrong}</Text>
         </View>
       </View>

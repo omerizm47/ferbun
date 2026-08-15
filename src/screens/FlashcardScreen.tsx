@@ -11,6 +11,8 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
 import { vocabGloss, vocabExample } from '../i18n/content';
 import { VocabWord } from '../data/types';
+import { bilingualKicker } from '../data/chrome';
+import { useChrome } from '../hooks/useChrome';
 import { useTrackContent } from '../hooks/useTrackContent';
 import { useProgressStore, selectWeakVocabIds } from '../stores/progressStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -50,6 +52,7 @@ export default function FlashcardScreen() {
   const themeInfo = theme ? vocabThemes.find((t) => t.id === theme) : undefined;
   const { colors: c, scheme } = useTheme();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   const barStyle = scheme === 'dark' ? 'light-content' : 'dark-content';
 
@@ -83,6 +86,15 @@ export default function FlashcardScreen() {
 
   const progress = queue.length > 0 ? currentIndex / queue.length : 0;
   const accent = themeInfo?.color || c.fire[600];
+
+  // The taught half is '' on a track with no authored label, so the label row
+  // is dropped rather than rendered blank.
+  const frontLabel = cardDirection === 'tr_en_to_ku' ? t.flashcard.back : chrome.cardTaughtLabel;
+  const backLabel = cardDirection === 'tr_en_to_ku' ? chrome.cardTaughtLabel : t.flashcard.back;
+  const genderBadge = (gender: 'm' | 'f') =>
+    gender === 'm'
+      ? bilingualKicker(chrome.genderM, t.flashcard.masculine)
+      : bilingualKicker(chrome.genderF, t.flashcard.feminine);
 
   const handleKnow = () => {
     playSound('click');
@@ -212,7 +224,7 @@ export default function FlashcardScreen() {
         </View>
         <EmptyState
           icon={isReview ? 'checkmark-done-circle-outline' : 'albums-outline'}
-          titleKu={isReview ? 'Baş e!' : 'Peyv tune'}
+          titleKu={isReview ? chrome.reviewDoneTitle : chrome.noWordsTitle}
           title={isReview ? t.review.emptyTitle : t.flashcard.noWordsTitle}
           message={isReview ? t.review.emptyMessage : t.flashcard.noWordsMessage}
           actionLabel={t.common.goBack}
@@ -236,7 +248,7 @@ export default function FlashcardScreen() {
               <Ionicons name="ribbon" size={52} color="#FFFFFF" />
             </View>
           </View>
-          <Text style={styles.finishTitle}>Baş e!</Text>
+          {chrome.reviewDoneTitle ? <Text style={styles.finishTitle}>{chrome.reviewDoneTitle}</Text> : null}
           <Text style={styles.finishTitleEn}>{t.flashcard.reviewComplete}</Text>
           <View style={styles.finishKilim} pointerEvents="none">
             <KilimBorder width={120} color={c.fire[300]} />
@@ -295,9 +307,11 @@ export default function FlashcardScreen() {
             <View style={styles.cardCorner} pointerEvents="none">
               <KilimDiamond size={26} color={c.gray[100]} />
             </View>
-            <Text style={[styles.cardLabel, { color: c.gray[300] }]}>
-              {cardDirection === 'tr_en_to_ku' ? t.flashcard.back : 'Kurdî'}
-            </Text>
+            {frontLabel ? (
+              <Text style={[styles.cardLabel, { color: c.gray[300] }]}>
+                {frontLabel}
+              </Text>
+            ) : null}
             <Text style={[styles.cardWord, { color: c.gray[300] }]} numberOfLines={2} adjustsFontSizeToFit>
               {cardDirection === 'tr_en_to_ku'
                 ? vocabGloss(queue[currentIndex + 1], lang)
@@ -305,7 +319,7 @@ export default function FlashcardScreen() {
             </Text>
             {cardDirection !== 'tr_en_to_ku' && queue[currentIndex + 1].gender && (
               <Text style={[styles.genderBadge, { backgroundColor: c.gray[50], color: c.gray[300] }]}>
-                {queue[currentIndex + 1].gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
+                {genderBadge(queue[currentIndex + 1].gender!)}
               </Text>
             )}
             <View style={styles.tapHintRow}>
@@ -351,9 +365,11 @@ export default function FlashcardScreen() {
                   <KilimDiamond size={26} color={cardDirection === 'tr_en_to_ku' ? c.kurdish[500] : accent} />
                 </View>
 
-                <Text style={[styles.cardLabel, { color: cardDirection === 'tr_en_to_ku' ? c.kurdish[600] : accent }]}>
-                  {cardDirection === 'tr_en_to_ku' ? t.flashcard.back : 'Kurdî'}
-                </Text>
+                {frontLabel ? (
+                  <Text style={[styles.cardLabel, { color: cardDirection === 'tr_en_to_ku' ? c.kurdish[600] : accent }]}>
+                    {frontLabel}
+                  </Text>
+                ) : null}
                 <Text style={styles.cardWord} numberOfLines={2} adjustsFontSizeToFit>
                   {cardDirection === 'tr_en_to_ku' ? vocabGloss(word, lang) : word.wordKu}
                 </Text>
@@ -370,7 +386,7 @@ export default function FlashcardScreen() {
                 ) : (
                   word.gender && (
                     <Text style={styles.genderBadge}>
-                      {word.gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
+                      {genderBadge(word.gender)}
                     </Text>
                   )
                 )}
@@ -391,9 +407,11 @@ export default function FlashcardScreen() {
                   <KilimDiamond size={26} color={cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[500]} />
                 </View>
 
-                <Text style={[styles.cardLabel, { color: cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[600] }]}>
-                  {cardDirection === 'tr_en_to_ku' ? 'Kurdî' : t.flashcard.back}
-                </Text>
+                {backLabel ? (
+                  <Text style={[styles.cardLabel, { color: cardDirection === 'tr_en_to_ku' ? accent : c.kurdish[600] }]}>
+                    {backLabel}
+                  </Text>
+                ) : null}
                 <Text style={styles.cardTranslation}>
                   {cardDirection === 'tr_en_to_ku' ? word.wordKu : vocabGloss(word, lang)}
                 </Text>
@@ -401,7 +419,7 @@ export default function FlashcardScreen() {
                 {cardDirection === 'tr_en_to_ku' ? (
                   word.gender && (
                     <Text style={styles.genderBadge}>
-                      {word.gender === 'm' ? `nêr · ${t.flashcard.masculine}` : `mê · ${t.flashcard.feminine}`}
+                      {genderBadge(word.gender)}
                     </Text>
                   )
                 ) : (
@@ -426,7 +444,7 @@ export default function FlashcardScreen() {
           <View style={styles.sheetHandle} />
           <View style={styles.sheetPromptRow}>
             <KilimDiamond size={12} color={c.fire[400]} />
-            <Text style={styles.sheetPrompt}>TU DIZANÎ? · {t.flashcard.knowPrompt}</Text>
+            <Text style={styles.sheetPrompt}>{bilingualKicker(chrome.knowPrompt, t.flashcard.knowPrompt)}</Text>
           </View>
           <View style={styles.actions}>
             <TouchableOpacity style={styles.dontKnowBtn} onPress={handleDontKnow} activeOpacity={0.85}>

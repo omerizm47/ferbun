@@ -9,6 +9,8 @@ import { SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } from '..
 import { useColors } from '../../theme/ThemeProvider';
 import { useT } from '../../i18n/LanguageProvider';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useChrome } from '../../hooks/useChrome';
+import { bilingualKicker } from '../../data/chrome';
 import { KilimDiamond } from './KurdishDecorations';
 
 export interface CoachStep {
@@ -62,6 +64,7 @@ function PulsingIcon({ icon }: { icon: keyof typeof Ionicons.glyphMap }) {
 export default function CoachMark({ visible, steps, step, onNext, onSkip }: Props) {
   const c = useColors();
   const t = useT();
+  const chrome = useChrome();
   const styles = useMemo(() => makeStyles(c), [c]);
   if (!visible || steps.length === 0) return null;
   const current = steps[Math.min(step, steps.length - 1)];
@@ -78,7 +81,7 @@ export default function CoachMark({ visible, steps, step, onNext, onSkip }: Prop
           </View>
           <View style={styles.kickerRow}>
             <KilimDiamond size={12} color={c.fire[400]} />
-            <Text style={styles.kicker}>RÊBER · {t.coach.kicker}</Text>
+            <Text style={styles.kicker}>{bilingualKicker(chrome.coachKicker, t.coach.kicker)}</Text>
           </View>
           <Text style={styles.title}>{current.title}</Text>
           <Text style={styles.description}>{current.description}</Text>

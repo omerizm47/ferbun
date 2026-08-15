@@ -7,10 +7,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SPACING, RADIUS, FONT_SIZE, XP_PER_LEVEL, SHADOWS, TYPOGRAPHY, ThemeColors, DAILY_GOAL_OPTIONS, REMINDER_TIME_OPTIONS } from '../theme';
 import { useTheme, ThemeMode } from '../theme/ThemeProvider';
 import { useLang } from '../i18n/LanguageProvider';
-import { Lang } from '../i18n/types';
+import { Lang, UiStrings } from '../i18n/types';
 import { useProgressStore, buildSnapshot } from '../stores/progressStore';
-import { PROGRESS_BACKUP_KEY, PROGRESS_STORAGE_KEY } from '../stores/progressMigration';
-import { getTrack } from '../data/tracks';
+import { PROGRESS_BACKUP_KEY, PROGRESS_STORAGE_KEY, TRACK_IDS } from '../stores/progressMigration';
+import { TrackId, getTrack } from '../data/tracks';
+import { TaughtChrome } from '../data/chrome';
+import { useChrome } from '../hooks/useChrome';
 import { computeBadges } from '../utils/badges';
 import { ALL_BADGES } from '../data/badges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,16 +49,18 @@ const NISIBIS_LINK_READY = NISIBIS_URL.trim().length > 0;
 // Avatar emblems rooted in Kurdish culture & symbolism, drawn as original SVG
 // (see KurdishAvatar): the sun (Roj) of the Kurdistan flag, the Newroz fire, the
 // mountains, wheat of the plains, the tulip (gul/lale), the eight-point star,
-// the heart (dil), and the open book of learning. Ids kept stable for storage.
-const AVATAR_ICONS: { icon: string; label: string }[] = [
-  { icon: 'sunny', label: 'Roj (Sun)' },
-  { icon: 'flame', label: 'Agirê Newrozê' },
-  { icon: 'triangle', label: 'Çiya (Mountains)' },
-  { icon: 'leaf', label: 'Genim (Wheat)' },
-  { icon: 'flower', label: 'Gul (Tulip)' },
-  { icon: 'star', label: 'Stêrk (Star)' },
-  { icon: 'heart', label: 'Dil (Heart)' },
-  { icon: 'book', label: 'Pirtûk (Learning)' },
+// the heart (dil), and the open book of learning. Ids kept stable for storage;
+// the spoken label comes from the taught-chrome table, falling back to the
+// bridge name where that track has no word for it yet.
+const AVATAR_ICONS: { icon: string; labelSlot: keyof TaughtChrome; nameKey: keyof UiStrings['profile']['symbolNames'] }[] = [
+  { icon: 'sunny', labelSlot: 'avatarSun', nameKey: 'sun' },
+  { icon: 'flame', labelSlot: 'avatarFlame', nameKey: 'flame' },
+  { icon: 'triangle', labelSlot: 'avatarMountain', nameKey: 'mountain' },
+  { icon: 'leaf', labelSlot: 'avatarWheat', nameKey: 'wheat' },
+  { icon: 'flower', labelSlot: 'avatarTulip', nameKey: 'tulip' },
+  { icon: 'star', labelSlot: 'avatarStar', nameKey: 'star' },
+  { icon: 'heart', labelSlot: 'avatarHeart', nameKey: 'heart' },
+  { icon: 'book', labelSlot: 'avatarBook', nameKey: 'book' },
 ];
 
 // Palette drawn from the Kurdistan flag (red, green, yellow/gold), the
@@ -72,11 +76,11 @@ const AVATAR_COLORS: { color: string; label: string }[] = [
   { color: '#0F766E', label: 'Cedar' },
 ];
 
-// Theme mode options for the Appearance control. Kurmanji leads each label.
-const APPEARANCE_OPTIONS: { mode: ThemeMode; icon: keyof typeof Ionicons.glyphMap; ku: string }[] = [
-  { mode: 'system', icon: 'phone-portrait-outline', ku: 'Bixweber' },
-  { mode: 'light', icon: 'sunny-outline', ku: 'Ron' },
-  { mode: 'dark', icon: 'moon-outline', ku: 'Tarî' },
+// Theme mode options for the Appearance control. The taught label leads each one.
+const APPEARANCE_OPTIONS: { mode: ThemeMode; icon: keyof typeof Ionicons.glyphMap; kuSlot: keyof TaughtChrome }[] = [
+  { mode: 'system', icon: 'phone-portrait-outline', kuSlot: 'appSystem' },
+  { mode: 'light', icon: 'sunny-outline', kuSlot: 'appLight' },
+  { mode: 'dark', icon: 'moon-outline', kuSlot: 'appDark' },
 ];
 
 // Base/bridge-language options. The native name is shown to each audience.
@@ -90,8 +94,9 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { colors: c, mode, setMode, scheme } = useTheme();
   const { t, lang, setLang } = useLang();
+  const chrome = useChrome();
   const s = useMemo(() => makeStyles(c), [c]);
-  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories, maxComboEver, activeTrack, inactiveTracks } = useProgressStore();
+  const { displayName, setDisplayName, avatarIcon, avatarColor, setAvatar, totalXp, currentLevel, streakCount, getStreakLevel, lessonProgress, vocabMastery, completedStories, maxComboEver, activeTrack, inactiveTracks, setActiveTrack } = useProgressStore();
   const streakLevel = getStreakLevel();
   const completed = Object.values(lessonProgress).filter((p) => p.completed).length;
   const total = getTrack(activeTrack).content.getTotalLessons();
@@ -103,6 +108,7 @@ export default function ProfileScreen() {
   const [nameInput, setNameInput] = useState(displayName);
   const [iconChoice, setIconChoice] = useState(avatarIcon);
   const [colorChoice, setColorChoice] = useState(avatarColor);
+  const [pendingTrack, setPendingTrack] = useState<TrackId | null>(null);
 
   const replayIntro = useOnboardingStore((s) => s.replayIntro);
 
@@ -119,6 +125,9 @@ export default function ProfileScreen() {
   const setHapticsEnabled = useSettingsStore((st) => st.setHapticsEnabled);
   const setCardDirection = useSettingsStore((st) => st.setCardDirection);
   const targetLangName = lang === 'tr' ? 'Türkçe' : 'English';
+  const shownName = displayName.trim() || chrome.learnerNoun || t.profile.nameFallback;
+  // Taught endonym where the track has one, its registry name where it does not.
+  const trackName = chrome.taughtName || getTrack(activeTrack).label;
 
   const badgeProgress = useMemo(() => {
     const earned = computeBadges(
@@ -163,6 +172,26 @@ export default function ProfileScreen() {
   const onPickGoal = (xp: number) => {
     haptics.selection();
     setDailyGoalXp(xp);
+  };
+
+  // Switching away parks the current track's maps rather than dropping them, so
+  // the confirm can promise the progress comes back. The confirm is an in-app
+  // Modal, not Alert.alert, which react-native-web implements as a no-op.
+  const onPickTrack = (id: TrackId) => {
+    haptics.selection();
+    if (id === activeTrack) return;
+    const track = getTrack(id);
+    if (track.policy.status === 'in_progress') {
+      setPendingTrack(id);
+      return;
+    }
+    setActiveTrack(id);
+  };
+
+  const confirmTrackSwitch = () => {
+    if (pendingTrack) setActiveTrack(pendingTrack);
+    setPendingTrack(null);
+    haptics.success();
   };
 
   const openEditor = () => {
@@ -297,8 +326,8 @@ export default function ProfileScreen() {
               <Ionicons name="pencil" size={10} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={s.nameRow} onPress={openEditor} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t.profile.editNameA11y(displayName.trim() || 'Xwendekar')}>
-            <Text style={s.name}>{displayName.trim() || 'Xwendekar'}</Text>
+          <TouchableOpacity style={s.nameRow} onPress={openEditor} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t.profile.editNameA11y(shownName)}>
+            <Text style={s.name}>{shownName}</Text>
             <Ionicons name="pencil" size={14} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
           <UpperText style={s.subtitle}>{t.profile.subtitle}</UpperText>
@@ -444,8 +473,36 @@ export default function ProfileScreen() {
                   accessibilityLabel={t.profile.appearanceA11y(label)}
                 >
                   <Ionicons name={opt.icon} size={18} color={active ? '#FFFFFF' : c.gray[500]} />
-                  <Text style={[s.segmentKu, active && s.segmentLabelActive]}>{opt.ku}</Text>
+                  {chrome[opt.kuSlot] ? <Text style={[s.segmentKu, active && s.segmentLabelActive]}>{chrome[opt.kuSlot]}</Text> : null}
                   <UpperText style={[s.segmentEn, active && s.segmentSubActive]}>{label}</UpperText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Kurdish variety (the language being taught) */}
+        <View style={s.section}>
+          <UpperText style={s.sectionTitle}>{t.track.settingTitle}</UpperText>
+          <View style={s.segment}>
+            {TRACK_IDS.map((id) => {
+              const track = getTrack(id);
+              const active = activeTrack === id;
+              return (
+                <TouchableOpacity
+                  key={id}
+                  style={[s.segmentItem, active && s.segmentItemActive]}
+                  onPress={() => onPickTrack(id)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={t.track.optionA11y(track.endonym, track.label)}
+                >
+                  <Text style={[s.segmentKu, active && s.segmentLabelActive]}>{track.endonym}</Text>
+                  <Text style={[s.segmentEn, active && s.segmentSubActive]}>{track.label}</Text>
+                  {track.policy.status === 'in_progress' && (
+                    <UpperText style={[s.trackPill, active && s.trackPillActive]}>{t.track.inProgress}</UpperText>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -578,8 +635,8 @@ export default function ProfileScreen() {
           <Text style={[s.subLabel, { marginTop: SPACING.md }]}>{t.profile.prefCardDirection}</Text>
           <View style={s.segment}>
             {([
-              { mode: 'ku_to_tr_en', ku: `Kurdî → ${targetLangName}`, label: t.profile.prefCardDirKuTrEn },
-              { mode: 'tr_en_to_ku', ku: `${targetLangName} → Kurdî`, label: t.profile.prefCardDirTrEnKu },
+              { mode: 'ku_to_tr_en', ku: chrome.taughtName ? `${chrome.taughtName} → ${targetLangName}` : '', label: t.profile.prefCardDirKuTrEn(trackName) },
+              { mode: 'tr_en_to_ku', ku: chrome.taughtName ? `${targetLangName} → ${chrome.taughtName}` : '', label: t.profile.prefCardDirTrEnKu(trackName) },
             ] as const).map((opt) => {
               const active = cardDirection === opt.mode;
               return (
@@ -593,7 +650,7 @@ export default function ProfileScreen() {
                   accessibilityLabel={opt.label}
                 >
                   <Ionicons name="swap-horizontal-outline" size={18} color={active ? '#FFFFFF' : c.gray[500]} />
-                  <Text style={[s.segmentKu, active && s.segmentLabelActive]}>{opt.ku}</Text>
+                  {opt.ku ? <Text style={[s.segmentKu, active && s.segmentLabelActive]}>{opt.ku}</Text> : null}
                   <Text style={[s.segmentEn, active && s.segmentSubActive]}>{opt.label}</Text>
                 </TouchableOpacity>
               );
@@ -702,7 +759,7 @@ export default function ProfileScreen() {
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
-                    accessibilityLabel={opt.label}
+                    accessibilityLabel={chrome[opt.labelSlot] || t.profile.symbolNames[opt.nameKey]}
                   >
                     <KurdishAvatar id={opt.icon} color={selected ? colorChoice : c.gray[500]} size={24} />
                   </TouchableOpacity>
@@ -736,6 +793,26 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={[s.modalSave, { backgroundColor: colorChoice }]} onPress={saveProfile}>
                 <Text style={s.modalSaveText}>{t.common.save}</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Confirm before moving to a variety whose lessons are still being written */}
+      <Modal visible={pendingTrack !== null} transparent animationType="fade" onRequestClose={() => setPendingTrack(null)}>
+        <Pressable style={s.modalOverlay} onPress={() => setPendingTrack(null)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <Text style={s.modalTitle}>{t.track.switchTitle}</Text>
+            <Text style={s.confirmMessage}>
+              {pendingTrack ? t.track.switchMessage(getTrack(pendingTrack).label) : ''}
+            </Text>
+            <View style={s.modalActions}>
+              <TouchableOpacity style={s.modalCancel} onPress={() => setPendingTrack(null)} accessibilityRole="button">
+                <Text style={s.modalCancelText}>{t.common.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.modalSave} onPress={confirmTrackSwitch} accessibilityRole="button">
+                <Text style={s.modalSaveText}>{t.track.switchConfirm}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -782,6 +859,8 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   segmentEn: { fontSize: 9, fontWeight: '700', color: c.gray[400], textTransform: 'uppercase', letterSpacing: 0.8 },
   segmentLabelActive: { color: '#FFFFFF' },
   segmentSubActive: { color: 'rgba(255,255,255,0.85)' },
+  trackPill: { fontSize: 8, fontWeight: '800', color: c.gray[500], backgroundColor: c.gray[100], borderRadius: RADIUS.full, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2, letterSpacing: 0.6, overflow: 'hidden' },
+  trackPillActive: { color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.22)' },
 
   // Streak rows
   streakRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: SPACING.md, borderRadius: RADIUS.md, marginBottom: 4, backgroundColor: c.white, borderWidth: 1, borderColor: c.gray[100] },
@@ -824,6 +903,7 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   modalCard: { backgroundColor: c.white, borderRadius: RADIUS.lg, padding: SPACING.lg, ...SHADOWS.lg },
   modalTitle: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: c.midnight[800] },
   modalSub: { fontSize: FONT_SIZE.xs, color: c.gray[400], marginTop: 2, marginBottom: SPACING.md },
+  confirmMessage: { fontSize: FONT_SIZE.sm, lineHeight: 20, color: c.gray[500], marginTop: SPACING.sm },
   modalInput: { borderWidth: 2, borderColor: c.gray[200], borderRadius: RADIUS.md, padding: SPACING.md, fontSize: FONT_SIZE.lg, color: c.midnight[800], backgroundColor: c.cream[50] },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: SPACING.sm, marginTop: SPACING.md },
   modalCancel: { paddingVertical: 10, paddingHorizontal: SPACING.lg, borderRadius: RADIUS.md },

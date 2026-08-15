@@ -8,6 +8,8 @@ import { shuffle } from '../../utils/shuffle';
 import { haptics } from '../../utils/haptics';
 import { useLang } from '../../i18n/LanguageProvider';
 import { exercisePrompt } from '../../i18n/content';
+import { useChrome } from '../../hooks/useChrome';
+import { bilingualKicker } from '../../data/chrome';
 import QuestionPrompt from './QuestionPrompt';
 
 interface Props { exercise: Exercise; onAnswer: (correct: boolean) => void; disabled: boolean; }
@@ -25,6 +27,7 @@ export default function MatchPairsExercise({ exercise, onAnswer, disabled }: Pro
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { t, lang } = useLang();
+  const chrome = useChrome();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- pairs are fixed per exercise
   const pairs = useMemo(() => exercise.pairs ?? [], [exercise.id]);
@@ -131,7 +134,7 @@ export default function MatchPairsExercise({ exercise, onAnswer, disabled }: Pro
   return (
     <View style={styles.container}>
       <QuestionPrompt
-        kicker={`LI HEV BÎNE · ${t.exercises.matchKicker}`}
+        kicker={bilingualKicker(chrome.exMatchKicker, t.exercises.matchKicker)}
         questionEn={exercisePrompt(exercise, lang) ?? t.exercises.matchInstruction}
       />
       <View style={styles.board}>

@@ -21,6 +21,7 @@ import { haptics } from '../../utils/haptics';
 import Button from './Button';
 import UpperText from './UpperText';
 import { ALL_BADGES } from '../../data/badges';
+import { useChrome } from '../../hooks/useChrome';
 
 export type Celebration =
   | { kind: 'level'; level: number }
@@ -36,11 +37,12 @@ interface Props {
  * Full-screen reward moment shown when a lesson pushes the learner over a
  * threshold — a new level or a new streak tier. Reuses the Newroz-sun medal
  * language (ray-burst behind a gradient emblem + kilim accent) so the milestone
- * feels crafted and on-brand. Leads with the attested Kurmanji "Pîroz be!".
+ * feels crafted and on-brand. Leads with the taught-language congratulation.
  */
 export default function CelebrationOverlay({ celebration, onDismiss }: Props) {
   const c = useColors();
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const { width } = useWindowDimensions();
 
   // Stable identity per milestone so a queued second celebration (e.g. a streak
@@ -130,7 +132,9 @@ export default function CelebrationOverlay({ celebration, onDismiss }: Props) {
           </View>
 
           <UpperText style={[styles.overline, { color: 'rgba(255,255,255,0.7)' }]}>{overline}</UpperText>
-          <Text style={[styles.title, { color: '#FFFFFF' }]} accessibilityRole="header">Pîroz be!</Text>
+          {chrome.congratsTitle ? (
+            <Text style={[styles.title, { color: '#FFFFFF' }]} accessibilityRole="header">{chrome.congratsTitle}</Text>
+          ) : null}
 
           <View style={styles.kilim} pointerEvents="none">
             <KilimBorder width={120} color={c.fire[300]} />
@@ -139,7 +143,7 @@ export default function CelebrationOverlay({ celebration, onDismiss }: Props) {
           <Text style={[styles.detail, { color: 'rgba(255,255,255,0.92)' }]}>{detail}</Text>
 
           <Animated.View entering={FadeIn.delay(220).duration(360)} style={styles.btnWrap}>
-            <Button label="Berdewam be" icon="arrow-forward" iconPosition="right" onPress={onDismiss} />
+            <Button label={chrome.continueCta || t.common.continue} icon="arrow-forward" iconPosition="right" onPress={onDismiss} />
           </Animated.View>
         </Animated.View>
       </Pressable>

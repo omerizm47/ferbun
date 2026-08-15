@@ -6,6 +6,8 @@ import { shuffle } from '../../utils/shuffle';
 import { haptics } from '../../utils/haptics';
 import { useLang } from '../../i18n/LanguageProvider';
 import { resolveChoices, exercisePrompt, exercisePromptKu } from '../../i18n/content';
+import { useChrome } from '../../hooks/useChrome';
+import { bilingualKicker } from '../../data/chrome';
 import QuestionPrompt from './QuestionPrompt';
 import OptionRow, { OptionState } from './OptionRow';
 
@@ -17,6 +19,7 @@ interface Props {
 
 export default function MultipleChoiceExercise({ exercise, onAnswer, disabled }: Props) {
   const { t, lang } = useLang();
+  const chrome = useChrome();
   const [selected, setSelected] = useState<string | null>(null);
 
   // Options + correct answer resolve together from the active language so a
@@ -39,7 +42,7 @@ export default function MultipleChoiceExercise({ exercise, onAnswer, disabled }:
 
   return (
     <View style={styles.container}>
-      <QuestionPrompt kicker={`HILBIJÊRE · ${t.exercises.chooseKicker}`} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
+      <QuestionPrompt kicker={bilingualKicker(chrome.exChooseKicker, t.exercises.chooseKicker)} questionKu={exercisePromptKu(exercise, lang)} questionEn={exercisePrompt(exercise, lang)} />
       <View style={styles.options}>
         {options.map((option, index) => {
           const isSelected = selected === option;

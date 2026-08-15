@@ -10,11 +10,15 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOWS, TYPOGRAPHY, ThemeColors } 
 import { useColors } from '../theme/ThemeProvider';
 import { useT } from '../i18n/LanguageProvider';
 import { UiStrings } from '../i18n/types';
+import { ChromeText, TaughtChrome } from '../data/chrome';
+import { getTrack } from '../data/tracks';
+import { useChrome } from '../hooks/useChrome';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { KurdishSun, NewrozFlame, MountainSilhouette, DotPattern } from '../components/ui/KurdishDecorations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptics } from '../utils/haptics';
 import { useUpper } from '../components/ui/UpperText';
+import { useProgressStore } from '../stores/progressStore';
 
 const { width } = Dimensions.get('window');
 
@@ -24,20 +28,21 @@ interface Props {
 
 type HeroKind = 'welcome' | 'learn' | 'words' | 'stories' | 'streak';
 
-// Visual configuration per slide. The Kurmanji title, gradient, accent and hero
-// illustration are the same for every learner; the localized label/description
-// come from the string catalogue (t.onboarding.slides), index-aligned with this.
+// Visual configuration per slide. The gradient, accent and hero illustration are
+// the same for every learner; the taught title comes from the chrome table and
+// the localized label/description from the string catalogue (t.onboarding.slides),
+// both index-aligned with this.
 const slideConfig: {
   hero: HeroKind;
-  titleKu: string;
+  titleSlot: keyof TaughtChrome;
   gradient: [string, string];
   accent: string;
 }[] = [
-  { hero: 'welcome', titleKu: 'Bi xêr hatî', gradient: [COLORS.fire[500], COLORS.fire[700]], accent: COLORS.fire[600] },
-  { hero: 'learn', titleKu: 'Rê li pêş te', gradient: [COLORS.kurdish[500], COLORS.kurdish[700]], accent: COLORS.kurdish[600] },
-  { hero: 'words', titleKu: 'Peyv bi peyv', gradient: ['#E0A030', '#A8650C'], accent: '#A8650C' },
-  { hero: 'stories', titleKu: 'Çîrokên rastîn', gradient: ['#D6485A', '#9B1C2E'], accent: '#A81E2E' },
-  { hero: 'streak', titleKu: 'Agirê xwe vêxe', gradient: [COLORS.fire[600], '#7A2F00'], accent: COLORS.fire[700] },
+  { hero: 'welcome', titleSlot: 'onbTitle1', gradient: [COLORS.fire[500], COLORS.fire[700]], accent: COLORS.fire[600] },
+  { hero: 'learn', titleSlot: 'onbTitle2', gradient: [COLORS.kurdish[500], COLORS.kurdish[700]], accent: COLORS.kurdish[600] },
+  { hero: 'words', titleSlot: 'onbTitle3', gradient: ['#E0A030', '#A8650C'], accent: '#A8650C' },
+  { hero: 'stories', titleSlot: 'onbTitle4', gradient: ['#D6485A', '#9B1C2E'], accent: '#A81E2E' },
+  { hero: 'streak', titleSlot: 'onbTitle5', gradient: [COLORS.fire[600], '#7A2F00'], accent: COLORS.fire[700] },
 ];
 
 // Gentle vertical float applied to the hero illustration.
@@ -135,11 +140,11 @@ function LearnPreview({ hs, c, pv }: { hs: HeroStyles; c: ThemeColors; pv: Previ
 }
 
 // A small mock of a flashcard.
-function WordsPreview({ hs, pv }: { hs: HeroStyles; pv: PreviewStrings }) {
+function WordsPreview({ hs, pv, cx }: { hs: HeroStyles; pv: PreviewStrings; cx: ChromeText }) {
   return (
     <View style={hs.flashcard}>
-      <Text style={hs.flashLabel}>KURDÎ</Text>
-      <Text style={hs.flashWord}>roj baş</Text>
+      {cx.onbFlashLabel ? <Text style={hs.flashLabel}>{cx.onbFlashLabel}</Text> : null}
+      {cx.onbSampleWord ? <Text style={hs.flashWord}>{cx.onbSampleWord}</Text> : null}
       <View style={hs.flashDivider} />
       <Text style={hs.flashHint}>{pv.wordsHint}</Text>
     </View>
@@ -147,14 +152,16 @@ function WordsPreview({ hs, pv }: { hs: HeroStyles; pv: PreviewStrings }) {
 }
 
 // A small mock of a story line with a tapped word.
-function StoriesPreview({ hs, pv }: { hs: HeroStyles; pv: PreviewStrings }) {
+function StoriesPreview({ hs, pv, cx }: { hs: HeroStyles; pv: PreviewStrings; cx: ChromeText }) {
   return (
     <View style={hs.card}>
-      <Text style={hs.storyLine}>
-        Ez li <Text style={hs.storyWord}>mal</Text> im.
-      </Text>
+      {cx.onbStoryWord ? (
+        <Text style={hs.storyLine}>
+          {cx.onbStoryBefore}<Text style={hs.storyWord}>{cx.onbStoryWord}</Text>{cx.onbStoryAfter}
+        </Text>
+      ) : null}
       <View style={hs.tooltip}>
-        <Text style={hs.tooltipKu}>mal</Text>
+        {cx.onbStoryWord ? <Text style={hs.tooltipKu}>{cx.onbStoryWord}</Text> : null}
         <Text style={hs.tooltipEn}>{pv.storyGloss}</Text>
       </View>
     </View>
@@ -162,25 +169,25 @@ function StoriesPreview({ hs, pv }: { hs: HeroStyles; pv: PreviewStrings }) {
 }
 
 // Flame hero plus a streak counter pill.
-function StreakPreview({ hs }: { hs: HeroStyles }) {
+function StreakPreview({ hs, cx }: { hs: HeroStyles; cx: ChromeText }) {
   return (
     <View style={{ alignItems: 'center' }}>
       <FlickerFlame size={118} />
       <View style={hs.streakPill}>
         <Text style={hs.streakNum}>7</Text>
-        <Text style={hs.streakLabel}>rojan li pey hev</Text>
+        {cx.onbStreakLabel ? <Text style={hs.streakLabel}>{cx.onbStreakLabel}</Text> : null}
       </View>
     </View>
   );
 }
 
-function renderHero(kind: HeroKind, hs: HeroStyles, c: ThemeColors, pv: PreviewStrings) {
+function renderHero(kind: HeroKind, hs: HeroStyles, c: ThemeColors, pv: PreviewStrings, cx: ChromeText) {
   switch (kind) {
     case 'welcome': return <RotatingSun size={176} />;
     case 'learn': return <LearnPreview hs={hs} c={c} pv={pv} />;
-    case 'words': return <WordsPreview hs={hs} pv={pv} />;
-    case 'stories': return <StoriesPreview hs={hs} pv={pv} />;
-    case 'streak': return <StreakPreview hs={hs} />;
+    case 'words': return <WordsPreview hs={hs} pv={pv} cx={cx} />;
+    case 'stories': return <StoriesPreview hs={hs} pv={pv} cx={cx} />;
+    case 'streak': return <StreakPreview hs={hs} cx={cx} />;
     default: return null;
   }
 }
@@ -212,13 +219,18 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const insets = useSafeAreaInsets();
   const c = useColors();
   const t = useT();
+  const cx = useChrome();
   const up = useUpper();
   const s = useMemo(() => makeStyles(c), [c]);
   const hs = useMemo(() => makeHeroStyles(c), [c]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const activeTrack = useProgressStore((st) => st.activeTrack);
   const slide = slideConfig[currentSlide];
-  const copy = t.onboarding.slides[currentSlide];
+  const copy = useMemo(() => t.onboarding.slides(getTrack(activeTrack)), [t, activeTrack])[currentSlide];
   const isLast = currentSlide === slideConfig.length - 1;
+  // Taught call to action first, gloss second. With the slot pending the gloss
+  // stands alone instead of trailing a dangling dash.
+  const startLabel = cx.onbStartCta ? `${cx.onbStartCta} — ${t.onboarding.start}` : t.onboarding.start;
 
   const handleNext = () => {
     haptics.selection();
@@ -267,7 +279,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
         <View style={[s.heroContent, { paddingTop: insets.top }]}>
           <FloatingHero key={currentSlide}>
             <Animated.View entering={ZoomIn.duration(360)}>
-              {renderHero(slide.hero, hs, c, t.onboarding.preview)}
+              {renderHero(slide.hero, hs, c, t.onboarding.preview, cx)}
             </Animated.View>
           </FloatingHero>
         </View>
@@ -289,7 +301,9 @@ export default function OnboardingScreen({ onComplete }: Props) {
         </View>
 
         <View key={currentSlide}>
-          <Animated.Text entering={FadeInDown.duration(380)} style={s.titleKu}>{slide.titleKu}</Animated.Text>
+          {cx[slide.titleSlot] ? (
+            <Animated.Text entering={FadeInDown.duration(380)} style={s.titleKu}>{cx[slide.titleSlot]}</Animated.Text>
+          ) : null}
           <Animated.Text entering={FadeInDown.delay(70).duration(380)} style={[s.label, { color: slide.accent, textTransform: 'none' }]}>
             {up(copy.label)}
           </Animated.Text>
@@ -299,7 +313,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
         </View>
 
         <TouchableOpacity style={[s.button, { backgroundColor: slide.accent }]} onPress={handleNext} activeOpacity={0.85}>
-          <Text style={s.buttonText}>{isLast ? `Dest pê bike — ${t.onboarding.start}` : t.common.continue}</Text>
+          <Text style={s.buttonText}>{isLast ? startLabel : t.common.continue}</Text>
           <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
