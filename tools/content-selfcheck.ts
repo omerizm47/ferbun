@@ -27,11 +27,12 @@ import { readFileSync } from 'fs';
 import { KMR_CHROME } from '../src/data/chrome';
 import { CKB_AUTHORED_CHROME_KEYS, CKB_CHROME, CKB_CHROME_SLOTS, isCitedChrome } from '../src/data/ckb/chrome';
 import { CKB_COURSES, CKB_TITLES, isCitedTitle } from '../src/data/ckb/courses';
+import { CKB_STORIES, CKB_STORY_DERIVATIONS, CKB_STORY_SECTIONS } from '../src/data/ckb/stories';
 import { REVIEW_TITLE_KU } from '../src/data/ckb/units/review';
 import { CKB_GLOSS_PROVENANCE, CKB_VOCABULARY, CKB_VOCAB_THEMES, isCitedTheme } from '../src/data/ckb/vocabulary';
 import { DIGRAPH_MINIMAL_PAIRS, SORANI_LATIN, checkOrthography, foldDiacritics } from '../src/data/orthography';
 import { ALL_BADGES } from '../src/data/badges';
-import { SOURCES } from '../src/data/sources';
+import { SOURCES, resolveCitation } from '../src/data/sources';
 import { TrackId, getTrack, isTrackId } from '../src/data/tracks';
 import {
   CKB_AUTHORED_LABEL_POLICY,
@@ -44,6 +45,7 @@ import {
   checkExerciseLexicon,
   checkExerciseShapes,
   checkLessonCoverage,
+  checkStoryLexicon,
   validateContent,
   validateContentDetailed,
 } from '../src/data/validate';
@@ -86,6 +88,14 @@ import {
   PENDING_CHROME,
   ROLLBACK_V1_PROGRESS,
   ROWS_WITHOUT_A_SAMPLE,
+  STORY_BASE_UNCITED,
+  STORY_DECLARED,
+  STORY_FOLDED_DIGRAPH,
+  STORY_SECTIONS,
+  STORY_SECTION_UNDECLARED,
+  STORY_TEXT,
+  STORY_UNDECLARED,
+  STORY_UNUSED,
   UNMAPPED_INPUT,
   V1_GLOBAL_KEYS,
   V1_PROGRESS,
@@ -280,8 +290,6 @@ check(
 );
 try {
   ckbEmpty =
-    ckbContent.stories.length === 0 &&
-    ckbContent.getStoryById('s1') === undefined &&
     ckbContent.getVocabByTheme(ckbMissingTheme).length === 0 &&
     ckbContent.getVocabById('v1') === undefined &&
     ckbContent.getExercisesForLesson(ckbMissingLesson).length === 0 &&
@@ -291,7 +299,7 @@ try {
   ckbThrew = err instanceof Error ? err.message : String(err);
 }
 check(
-  'every ckb accessor still unauthored returns empty or undefined without throwing',
+  'every ckb accessor still unauthored, and every miss path, returns empty or undefined without throwing',
   ckbEmpty && ckbThrew === '',
   ckbThrew || 'an accessor returned a value',
 );
@@ -1540,6 +1548,205 @@ check(
     productionAt > 0 &&
     firstOrdered.slice(productionAt).every((ex) => ex.type === 'writing' || ex.type === 'translation'),
   firstOrdered.map((ex) => ex.type).join(',') || 'none',
+);
+
+// 21. LEX-02 and the three DRV rules, which are to a story what LEX-01 is to an
+// exercise with exactly one branch added. The addition is forced, not chosen:
+// § 1 (THK06:8) calls the absolute state the form a word is "given in a
+// vocabulary list or dictionary" with, and every construction that joins two
+// words attaches something to it, so 255 headwords cannot produce one sentence.
+// Every run below reads the same fixture text. The only thing that changes is
+// what the story declares about it.
+const storyClean = checkStoryLexicon([STORY_TEXT], LEX_HEADWORDS, STORY_DECLARED, STORY_SECTIONS, SORANI_LATIN);
+check(
+  'a story of cited headwords and declared derivations raises nothing',
+  storyClean.length === 0,
+  summarise(storyClean),
+);
+
+// The unguarded path, run before the guard: every looser reading of the rule
+// admits gulle, and each of those readings is stated here rather than assumed.
+check(
+  'the undeclared form is legally spelled under the p. 88 alphabet, so no ORTH rule would have reported it',
+  checkOrthography('gulle', SORANI_LATIN).length === 0,
+);
+check(
+  'and its stem is a cited headword, so a check that folded a suffix off a token would have let it through',
+  LEX_HEADWORDS.some((headword) => 'gulle'.startsWith(headword) && 'gulle' !== headword),
+);
+check(
+  'and it would pass a check that took the story\'s own derivation list on trust, because a list can be empty',
+  STORY_UNDECLARED.length === 0,
+);
+const storyUndeclared = checkStoryLexicon(
+  [STORY_TEXT],
+  LEX_HEADWORDS,
+  STORY_UNDECLARED,
+  STORY_SECTIONS,
+  SORANI_LATIN,
+);
+check(
+  'LEX-02 fires on it anyway, once, naming the token and the paragraph it sits in',
+  storyUndeclared.length === 1 &&
+    storyUndeclared[0].severity === 'error' &&
+    storyUndeclared[0].rule === 'LEX-02' &&
+    storyUndeclared[0].message.includes('"gulle"') &&
+    storyUndeclared[0].message.includes('paragraphs[0]'),
+  summarise(storyUndeclared),
+);
+
+// The second guard: a declaration is only a declaration if what it names is
+// real. A base outside the glossary buys the form nothing, so the story is left
+// asserting an uncited word twice over, once as a base and once as a token.
+const storyBadBase = checkStoryLexicon(
+  [STORY_TEXT],
+  LEX_HEADWORDS,
+  STORY_BASE_UNCITED,
+  STORY_SECTIONS,
+  SORANI_LATIN,
+);
+check(
+  'DRV-01 fires on a derivation whose base is not a cited headword, and LEX-02 still refuses the form it declares',
+  storyBadBase.length === 2 &&
+    storyBadBase.some((i) => i.rule === 'DRV-01' && i.message.includes('"heval"')) &&
+    storyBadBase.some((i) => i.rule === 'LEX-02' && i.message.includes('"gulle"')) &&
+    storyBadBase.every((i) => i.severity === 'error' && i.rule !== 'DRV-03'),
+  summarise(storyBadBase),
+);
+const storyBadSection = checkStoryLexicon(
+  [STORY_TEXT],
+  LEX_HEADWORDS,
+  STORY_SECTION_UNDECLARED,
+  STORY_SECTIONS,
+  SORANI_LATIN,
+);
+check(
+  'DRV-02 does the same for a section the story never declared, so a rule nobody read cannot license a form',
+  storyBadSection.length === 2 &&
+    storyBadSection.some((i) => i.rule === 'DRV-02' && i.message.includes('\u00A7 99')) &&
+    storyBadSection.some((i) => i.rule === 'LEX-02' && i.message.includes('"gulle"')),
+  summarise(storyBadSection),
+);
+const storyUnused = checkStoryLexicon([STORY_TEXT], LEX_HEADWORDS, STORY_UNUSED, STORY_SECTIONS, SORANI_LATIN);
+check(
+  'DRV-03 fires on a sound declaration no sentence uses, so the list cannot pre-authorise text that does not exist',
+  storyUnused.length === 1 && storyUnused[0].rule === 'DRV-03' && storyUnused[0].message.includes('"xorre"'),
+  summarise(storyUnused),
+);
+const storyFolded = checkStoryLexicon(
+  [STORY_FOLDED_DIGRAPH],
+  LEX_HEADWORDS,
+  STORY_DECLARED,
+  STORY_SECTIONS,
+  SORANI_LATIN,
+);
+check(
+  'declaring gulle does not admit gule: ll is a letter of its own (THK06:88) and the branch is not a fuzzy match',
+  storyFolded.length === 1 && storyFolded[0].rule === 'LEX-02' && storyFolded[0].message.includes('"gule"'),
+  summarise(storyFolded),
+);
+
+// The relaxation reaches stories and stops there. An exercise teaches words, so
+// it still gets the dictionary form and nothing else.
+const derivedInExercise = checkExerciseLexicon(
+  [{ id: 'fx-lex-derived', answerIn: 'ckb', questionKu: 'gulle', correctAnswer: 'gull' }],
+  LEX_HEADWORDS,
+  SORANI_LATIN,
+);
+check(
+  'a form a story may declare is still refused inside an exercise, where LEX-01 knows only headwords',
+  derivedInExercise.length === 1 && derivedInExercise[0].rule === 'LEX-01' && derivedInExercise[0].message.includes('"gulle"'),
+  summarise(derivedInExercise),
+);
+
+// 22. The shipped Sorani story, under the same four rules, plus the two things
+// the rules take on the author's word and this file does not: that a declared
+// spelling is the conversion table's output rather than typed, and that every
+// section quoted names a page this volume has. Whether the page says what the
+// quote claims is `npm run verify-citations`, which opens the book.
+const ckbStoryHeadwords = CKB_VOCABULARY.map((word) => word.wordKu);
+const ckbStoryLex = checkStoryLexicon(
+  CKB_STORIES,
+  ckbStoryHeadwords,
+  CKB_STORY_DERIVATIONS,
+  CKB_STORY_SECTIONS.map((s) => s.id),
+  SORANI_LATIN,
+);
+check(
+  'every token of the shipped Sorani story is a cited headword or a declared derivation',
+  ckbStoryLex.length === 0,
+  summarise(ckbStoryLex),
+);
+const storyWithoutHeadword = checkStoryLexicon(
+  CKB_STORIES,
+  ckbStoryHeadwords.filter((word) => word !== 'gund'),
+  CKB_STORY_DERIVATIONS,
+  CKB_STORY_SECTIONS.map((s) => s.id),
+  SORANI_LATIN,
+);
+check(
+  'dropping one headword from the lexicon makes the same run fire, so the clean result above is not vacuous',
+  storyWithoutHeadword.length > 0 && storyWithoutHeadword.some((i) => i.message.includes('"gund"')),
+  summarise(storyWithoutHeadword),
+);
+const storyWithoutDerivation = checkStoryLexicon(
+  CKB_STORIES,
+  ckbStoryHeadwords,
+  CKB_STORY_DERIVATIONS.filter((d) => d.form !== 'de\u00E7\u00EA'),
+  CKB_STORY_SECTIONS.map((s) => s.id),
+  SORANI_LATIN,
+);
+check(
+  'and dropping one derivation does too, so the second branch is doing work rather than waving text through',
+  storyWithoutDerivation.length > 0 &&
+    storyWithoutDerivation.some((i) => i.rule === 'LEX-02' && i.message.includes('"de\u00E7\u00EA"')),
+  summarise(storyWithoutDerivation),
+);
+const derivationConversions = CKB_STORY_DERIVATIONS.filter((d) => toHawar(stripStress(d.from)) !== d.form);
+check(
+  'every derived spelling is the p. 88 table\u2019s output on the transcription its row stores, not a typed form',
+  derivationConversions.length === 0,
+  derivationConversions.map((d) => `${d.from}->${toHawar(stripStress(d.from))} declared ${d.form}`).join(' | '),
+);
+const derivationBases = CKB_STORY_DERIVATIONS.filter((d) => !ckbStoryHeadwords.includes(d.base));
+check(
+  'every derivation is built on one of the 255 headwords',
+  derivationBases.length === 0,
+  derivationBases.map((d) => `${d.form}<-${d.base}`).join(' | '),
+);
+const sectionIds = new Set(CKB_STORY_SECTIONS.map((s) => s.id));
+const derivationSections = CKB_STORY_DERIVATIONS.filter((d) => !sectionIds.has(d.section));
+check(
+  'and names a section the story declares',
+  derivationSections.length === 0,
+  derivationSections.map((d) => `${d.form}<-${d.section}`).join(' | '),
+);
+const sectionSrcs = CKB_STORY_SECTIONS.flatMap((s) => s.quotes.map((q) => ({ id: s.id, src: q.src })));
+const unresolvedSections = sectionSrcs.filter(({ src }) => !resolveCitation(src).ok);
+check(
+  `all ${sectionSrcs.length} section quotes name a locator this volume has`,
+  unresolvedSections.length === 0,
+  unresolvedSections.map((s) => `${s.id} ${s.src}`).join(' | '),
+);
+const emptyQuotes = CKB_STORY_SECTIONS.filter((s) => s.quotes.length === 0);
+check(
+  'and no section is declared without quoting the sentence it is declared for',
+  emptyQuotes.length === 0,
+  emptyQuotes.map((s) => s.id).join(' | '),
+);
+const storyReachesScreens = ckbContent.stories;
+check(
+  'the story reaches the screens through the registry, and the Story screen\u2019s accessor resolves it',
+  storyReachesScreens.length === CKB_STORIES.length &&
+    storyReachesScreens.every((s) => ckbContent.getStoryById(s.id)?.id === s.id) &&
+    ckbContent.getStoryById('s1') === undefined,
+  `${storyReachesScreens.length} stories`,
+);
+check(
+  'and the Kurmanji corpus is untouched by any of it',
+  getTrack('kmr').content.stories.length === 14 &&
+    getTrack('kmr').content.stories.every((s) => !CKB_STORIES.some((c) => c.id === s.id)),
+  `${getTrack('kmr').content.stories.length} Kurmanji stories`,
 );
 
 if (failures.length > 0) {

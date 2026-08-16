@@ -3,11 +3,11 @@
 // in. Adding a variety means adding an entry here, not teaching a screen a new
 // id.
 // This file holds no taught content of its own. Kurmanji binds the shipped data
-// modules straight through, unchanged. Sorani binds the three corpora authored
+// modules straight through, unchanged. Sorani binds the four corpora authored
 // so far, the vocabulary, the course tree and the exercises of its first
-// course, and registers empty stories, empty teach cards and empty exercises
-// for the lessons still unauthored, so an unauthored half reads as a real,
-// empty track instead of a crash; its orthography contract is Thackston's
+// course, and the first story, and registers empty teach cards and empty
+// exercises for the lessons still unauthored, so an unauthored half reads as a
+// real, empty track instead of a crash; its orthography contract is Thackston's
 // conversion table (THK06:88), carried in SORANI_LATIN. Endonyms are written in the Hawar
 // alphabet with accented letters escaped, so a lookalike cannot be pasted in
 // unnoticed; they are display labels, not speaker-reviewed learner content.
@@ -24,6 +24,7 @@ import {
   getCkbUnitById,
 } from './ckb/courses';
 import { getCkbExercisesForLesson, getCkbOrderedExercisesForLesson } from './ckb/exercises';
+import { CKB_STORIES, getCkbStoryById } from './ckb/stories';
 import {
   CKB_VOCABULARY,
   CKB_VOCAB_THEMES,
@@ -95,24 +96,23 @@ export const KMR_CONTENT: TrackContent = {
   getLessonTeachCards,
 };
 
-// Vocabulary, the course tree and every exercise in it are authored and bound
-// through. Stories are not, and neither are the teach cards, so those accessors
-// answer empty rather than throwing and a screen reading them shows its empty
-// state: the Stories tab's empty state for a track with no stories. The teach
-// cards are empty for a different reason than the stories: the Kurmanji ones are
-// not authored either, they are pulled out of a lesson's own exercises by
-// matching a quoted gloss in an English prompt, and that is a guess this track
-// has not been shown to be safe for.
+// Vocabulary, the course tree, every exercise in it and the first story are
+// authored and bound through. The teach cards are not, so that accessor answers
+// empty rather than throwing and a screen reading it shows its empty state. They
+// are empty for a reason the stories never had: the Kurmanji ones are not
+// authored either, they are pulled out of a lesson's own exercises by matching a
+// quoted gloss in an English prompt, and that is a guess this track has not been
+// shown to be safe for.
 export const CKB_CONTENT: TrackContent = {
   courses: CKB_COURSES,
-  stories: [],
+  stories: CKB_STORIES,
   vocabulary: CKB_VOCABULARY,
   vocabThemes: CKB_VOCAB_THEMES,
   getCourseById: getCkbCourseById,
   getUnitById: getCkbUnitById,
   getLessonById: getCkbLessonById,
   getTotalLessons: getCkbTotalLessons,
-  getStoryById: () => undefined,
+  getStoryById: getCkbStoryById,
   getVocabByTheme: getCkbVocabByTheme,
   getVocabById: getCkbVocabById,
   getExercisesForLesson: getCkbExercisesForLesson,

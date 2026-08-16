@@ -10,12 +10,17 @@
 // catches one corpus reusing an id inside itself. LEX holds an exercise to the
 // glossary: an exercise cites no page of its own, so every taught token in one
 // has to be a headword the vocabulary already cites.
+// LEX-02 and DRV hold a story to the same bargain with one branch added, because
+// a sentence cannot be built out of dictionary forms alone: a story token is a
+// cited headword or an inflected form the story declares with its base and the
+// grammar section forming it, and DRV checks that both of those are real.
 // All of it checks shape, legality and provenance only. Nothing here confirms
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
 import { ChromeSlot, KMR_CHROME } from './chrome';
 import { CKB_AUTHORED_CHROME_KEYS, CKB_CHROME } from './ckb/chrome';
 import { CKB_COURSES, CKB_TITLES, isCitedTitle } from './ckb/courses';
+import { CKB_STORIES } from './ckb/stories';
 import { CKB_VOCABULARY, CKB_VOCAB_THEMES, getCkbVocabByTheme, isCitedTheme } from './ckb/vocabulary';
 import { courses } from './courses';
 import { getExercisesForLesson } from './exercises';
@@ -397,20 +402,33 @@ function taughtPhrases(text: string, letters: Set<string>): string[][] {
 }
 
 /**
- * Words of `text` that no headword accounts for. Longest match first, so a
- * headword printed as two words (bo çi, THK06:173) is matched as the phrase it
- * is cited as; its halves are not admitted on their own, because a bare `bo` is
- * a word this corpus never cites.
+ * Walks `text` against the lexicon, longest match first, and reports both
+ * halves of the result: the words no lexicon entry accounts for, and the
+ * entries that were actually consumed. Longest first, so a headword printed as
+ * two words (bo çi, THK06:173) is matched as the phrase it is cited as; its
+ * halves are not admitted on their own, because a bare `bo` is a word this
+ * corpus never cites.
+ * `used` is what lets a declaration be held to the text it claims to be about:
+ * a derivation nothing in a story uses is a permission slip, not a description,
+ * and DRV-03 refuses it.
  */
-function unknownWords(text: string, letters: Set<string>, lexicon: Set<string>, longest: number): string[] {
+function scanLexicon(
+  text: string,
+  letters: Set<string>,
+  lexicon: Set<string>,
+  longest: number,
+): { unknown: string[]; used: string[] } {
   const unknown: string[] = [];
+  const used: string[] = [];
 
   for (const phrase of taughtPhrases(text, letters)) {
     let i = 0;
     while (i < phrase.length) {
       let taken = 0;
       for (let n = Math.min(longest, phrase.length - i); n >= 1; n -= 1) {
-        if (lexicon.has(phrase.slice(i, i + n).join(' '))) {
+        const candidate = phrase.slice(i, i + n).join(' ');
+        if (lexicon.has(candidate)) {
+          used.push(candidate);
           taken = n;
           break;
         }
@@ -424,7 +442,7 @@ function unknownWords(text: string, letters: Set<string>, lexicon: Set<string>, 
     }
   }
 
-  return unknown;
+  return { unknown, used };
 }
 
 /**
@@ -468,13 +486,136 @@ export function checkExerciseLexicon(
     }
 
     for (const { field, text } of fields) {
-      for (const token of new Set(unknownWords(text, letters, lexicon, longest))) {
+      for (const token of new Set(scanLexicon(text, letters, lexicon, longest).unknown)) {
         issues.push({
           severity: 'error',
           rule: 'LEX-01',
           message: `[LEX-01] Exercise "${ex.id}" ${field}: "${token}" is not a cited vocabulary headword. An exercise carries no citation of its own, so every taught token in one has to be a word the glossary already cites.`,
         });
       }
+    }
+  }
+
+  return issues;
+}
+
+/** The declaration an inflected form in a story has to answer for itself with. */
+export interface LexDerivation {
+  /** The taught form as the prose spells it. One word, or a phrase if the affix is written off. */
+  form: string;
+  /** The headword it is built on. */
+  base: string;
+  /** The grammar section that forms it. */
+  section: string;
+}
+
+/** The taught half of a story: everything a reader of it is shown in the taught language. */
+export interface LexStory {
+  id: string;
+  title: string;
+  paragraphs: { ku: string }[][];
+}
+
+/**
+ * LEX-02 and the three DRV rules, which are to a story what LEX-01 is to an
+ * exercise, relaxed by exactly one branch and no more.
+ *
+ * LEX-01 could stay absolute because an exercise teaches words, and a word has
+ * a headword. A story teaches sentences, and no sentence in this language is
+ * made of headwords alone: § 1 (THK06:8) calls the absolute state the form "in
+ * which a noun is given in a vocabulary list or dictionary", and every
+ * construction that joins two words attaches something to it, the copula being
+ * a set of enclitics (§ 15, THK06:25) that no glossary could list. So a story
+ * token is one of two things: a cited headword, or a form the story declares in
+ * its derivation list with the base it is built on and the section that builds
+ * it.
+ *
+ * The second branch is a declaration, not an exemption, and the three DRV rules
+ * are what keeps it one. A base outside the glossary fails (DRV-01), so a
+ * derivation cannot smuggle in an uncited stem. A section the story does not
+ * declare fails (DRV-02), so it cannot cite a rule nobody read. A form no
+ * sentence uses fails (DRV-03), so the list describes the prose rather than
+ * licensing prose that might be written later.
+ *
+ * Illegal letters need no rule of their own here. A character outside the
+ * track's alphabet is not a letter to the tokeniser, so it cuts the word around
+ * it into fragments, and a fragment is neither a headword nor a declared form.
+ */
+export function checkStoryLexicon(
+  storiesToCheck: LexStory[],
+  headwords: string[],
+  derivations: LexDerivation[],
+  sections: string[],
+  spec: OrthographySpec,
+): ContentIssue[] {
+  const letters = new Set([...spec.letters, ...spec.lettersUpper]);
+  const fold = (w: string) => w.normalize('NFC').toLowerCase();
+  const cited = new Set(headwords.map(fold));
+  const declared = new Set(sections);
+  const issues: ContentIssue[] = [];
+
+  // Only a well-formed declaration joins the lexicon LEX-02 reads. A derivation
+  // whose base is not cited must not let its own form through on the strength of
+  // the very claim DRV-01 is rejecting.
+  // Usage is counted against a second lexicon holding every declared form, sound
+  // or not, so a broken declaration is reported once as broken and not a second
+  // time as unused.
+  const sound = derivations.filter((d) => cited.has(fold(d.base)) && declared.has(d.section));
+  const lexicon = new Set([...cited, ...sound.map((d) => fold(d.form))]);
+  const everyForm = new Set([...cited, ...derivations.map((d) => fold(d.form))]);
+  const span = (words: Set<string>) => [...words].reduce((n, w) => Math.max(n, w.split(' ').length), 1);
+  const longest = span(lexicon);
+  const used = new Set<string>();
+
+  for (const story of storiesToCheck) {
+    const fields: { field: string; text: string }[] = [{ field: 'title', text: story.title }];
+    story.paragraphs.forEach((paragraph, p) =>
+      fields.push({ field: `paragraphs[${p}]`, text: paragraph.map((w) => w.ku).join(' ') }),
+    );
+
+    for (const { field, text } of fields) {
+      for (const entry of scanLexicon(text, letters, everyForm, span(everyForm)).used) used.add(entry);
+      for (const token of new Set(scanLexicon(text, letters, lexicon, longest).unknown)) {
+        issues.push({
+          severity: 'error',
+          rule: 'LEX-02',
+          message:
+            `[LEX-02] Story "${story.id}" ${field}: "${token}" is neither a cited vocabulary headword nor a ` +
+            'declared derivation. A story carries no citation of its own, so every taught token in one is ' +
+            'either a word the glossary cites or an inflected form the story declares with its base headword ' +
+            'and the section that forms it.',
+        });
+      }
+    }
+  }
+
+  for (const d of derivations) {
+    if (!cited.has(fold(d.base))) {
+      issues.push({
+        severity: 'error',
+        rule: 'DRV-01',
+        message:
+          `[DRV-01] Derivation "${d.form}": base "${d.base}" is not a cited vocabulary headword, so the ` +
+          'declaration rests on a word no page of the glossary carries.',
+      });
+    }
+    if (!declared.has(d.section)) {
+      issues.push({
+        severity: 'error',
+        rule: 'DRV-02',
+        message:
+          `[DRV-02] Derivation "${d.form}": section "${d.section}" is not one of the grammar sections the ` +
+          'story declares, so the rule forming it is not one anybody has read.',
+      });
+    }
+    if (!used.has(fold(d.form))) {
+      issues.push({
+        severity: 'error',
+        rule: 'DRV-03',
+        message:
+          `[DRV-03] Derivation "${d.form}": no story text uses it. A derivation list describes the prose it ` +
+          'is shipped with; a form nothing says is a permission slip for text that does not exist.',
+      });
     }
   }
 
@@ -652,6 +793,45 @@ export function validateContentDetailed(): ContentIssue[] {
 
   problems.push(...checkCitedEntries(ckbEntries, CKB_POLICY));
   problems.push(...checkCitedEntries(ckbAuthoredLabels, CKB_AUTHORED_LABEL_POLICY));
+
+  // The Sorani stories, under the shape rules every story answers to and under
+  // LEX-02 and the DRV rules on top of them. Same bargain as LEX-01 for an
+  // exercise, relaxed by one branch: a story cites no page either, but it cannot
+  // be built from headwords alone, so a token is a cited headword or a form the
+  // story declares. The declarations are read from the same file as the prose,
+  // so a story cannot borrow another story's derivation list.
+  for (const story of CKB_STORIES) {
+    if (!story.icon || !story.accent) {
+      problems.push({ severity: 'error', message: `Sorani story "${story.id}" is missing an icon or accent.` });
+    }
+    if (story.paragraphs.length === 0) {
+      problems.push({ severity: 'error', message: `Sorani story "${story.id}" has no paragraphs.` });
+    }
+    if (story.comprehensionQuestions.length === 0) {
+      problems.push({ severity: 'error', message: `Sorani story "${story.id}" has no comprehension questions.` });
+    }
+    story.comprehensionQuestions.forEach((q, i) => {
+      if (!q.options.includes(q.correctAnswer)) {
+        problems.push({ severity: 'error', message: `Sorani story "${story.id}" question ${i + 1} correctAnswer "${q.correctAnswer}" is not among its options.` });
+      }
+      if (!q.questionTr || !q.optionsTr || q.correctAnswerTr === undefined) {
+        problems.push({ severity: 'error', message: `Sorani story "${story.id}" question ${i + 1} is missing its Turkish set (${CKB_POLICY.label} requires both bridge languages).` });
+      } else if (!q.optionsTr.includes(q.correctAnswerTr)) {
+        problems.push({ severity: 'error', message: `Sorani story "${story.id}" question ${i + 1} correctAnswerTr "${q.correctAnswerTr}" is not among its optionsTr.` });
+      }
+    });
+    problems.push(
+      ...checkStoryLexicon(
+        [story],
+        CKB_VOCABULARY.map((word) => word.wordKu),
+        story.derivations,
+        story.sections.map((s) => s.id),
+        SORANI_LATIN,
+      ),
+    );
+  }
+
+  problems.push(...checkDuplicateIds(CKB_STORIES.map((s) => s.id), 'Sorani stories'));
 
   return problems;
 }

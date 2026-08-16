@@ -14,7 +14,7 @@
 
 import { ChromeSlot, PENDING } from '../src/data/chrome';
 import { SORANI_LATIN } from '../src/data/orthography';
-import { CitedEntry, LexExercise, TrackPolicy } from '../src/data/validate';
+import { CitedEntry, LexDerivation, LexExercise, LexStory, TrackPolicy } from '../src/data/validate';
 import { ProgressSnapshot, TrackSnapshot } from '../src/utils/badges';
 
 // A policy no production code owns, so tightening it here cannot change what
@@ -223,6 +223,44 @@ export const FIXTURE_LESSONS = [
   { id: 'fx-l1', title: 'A', exerciseCount: 3 },
   { id: 'fx-l2', title: 'B', exerciseCount: 0 },
 ];
+
+// One fixture story and five derivation lists over it. The text is not prose and
+// is not meant to read as any: it is the same token list every time, so the only
+// variable between the runs below is what the story declares about it. gulle is
+// gull with something on the end, which is what every real Sorani sentence has
+// to be able to say and what no glossary can list.
+export const STORY_SECTIONS = ['\u00A7 15'];
+
+export const STORY_TEXT: LexStory = {
+  id: 'fx-story',
+  title: 'Gull',
+  paragraphs: [[{ ku: 'Gull' }, { ku: 'gulle.' }, { ku: 'Spas' }, { ku: 'bo' }, { ku: '\u00E7i' }]],
+};
+
+/** The declaration that makes gulle legal: a real base, a declared section. */
+export const STORY_DECLARED: LexDerivation[] = [{ form: 'gulle', base: 'gull', section: '\u00A7 15' }];
+
+/** The same form with nothing said about it. */
+export const STORY_UNDECLARED: LexDerivation[] = [];
+
+/** A base no glossary entry carries, which is the escape hatch DRV-01 closes. */
+export const STORY_BASE_UNCITED: LexDerivation[] = [{ form: 'gulle', base: 'heval', section: '\u00A7 15' }];
+
+/** A section nobody declared and nobody read. */
+export const STORY_SECTION_UNDECLARED: LexDerivation[] = [{ form: 'gulle', base: 'gull', section: '\u00A7 99' }];
+
+/** A sound declaration about text that does not exist. */
+export const STORY_UNUSED: LexDerivation[] = [
+  ...STORY_DECLARED,
+  { form: 'xorre', base: 'xorr', section: '\u00A7 15' },
+];
+
+/** A story spelling the declared form with plain l, which is a different word (THK06:88). */
+export const STORY_FOLDED_DIGRAPH: LexStory = {
+  ...STORY_TEXT,
+  id: 'fx-story-fold',
+  paragraphs: [[{ ku: 'Gull' }, { ku: 'gulle' }, { ku: 'gule.' }]],
+};
 
 // FIXTURE_CKB_POLICY with one field changed, so the pair below isolates a
 // single variable: whether the track claims to be finished.
