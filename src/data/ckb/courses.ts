@@ -2,11 +2,12 @@
 // courses, ten units, forty lessons, the same shape and the same
 // beginner-to-advanced arc as the Kurmanji tree in ../courses.ts, resting on the
 // 255 words the seventeen ./vocab themes teach.
-// The twelve lessons of course 1 carry their exercises, authored in
-// ./units/c1-exercises.ts and attached in ./units/c1.ts. The other twenty-eight
-// still ship an empty `exercises` array, which the Lesson screen answers with
-// its "coming soon" state and validate.ts reports as one TRACK-01 note while the
-// track is in progress.
+// The forty lessons all carry their exercises, authored in
+// ./units/c1-exercises.ts, ./units/c2-exercises.ts and ./units/c3-exercises.ts
+// and attached in the unit file beside each of them. The TRACK-01 note
+// validate.ts raised while twenty-eight of them were empty is silent now:
+// checkLessonCoverage reports what a track is still missing, and an in-progress
+// track missing no lesson has nothing for it to report.
 //
 // WHY A TITLE CARRIES A PROVENANCE FIELD. A course, unit or lesson title is
 // authored navigation copy, not taught vocabulary, and most of them name a class

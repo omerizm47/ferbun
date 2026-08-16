@@ -3,7 +3,10 @@
 // above each unit records which theme each of its lessons draws on and which
 // words, because the exercises milestone has to pick from exactly that pool and
 // the Lesson type has no field for it.
+// The exercises themselves are authored in ./c2-exercises.ts and attached
+// below, one array per lesson.
 
+import { CKB_L4_1, CKB_L4_2, CKB_L4_3, CKB_L4_4, CKB_L5_1, CKB_L5_2, CKB_L5_3, CKB_L5_4, CKB_L6_1, CKB_L6_2, CKB_L6_3, CKB_L6_4 } from './c2-exercises';
 import { REVIEW_TITLE, REVIEW_TITLE_KU } from './review';
 import type { SoraniUnit } from '../courses';
 
@@ -27,13 +30,13 @@ export const CKB_C2_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l4_1', unitId: 'ckb-u4', title: 'Colors', titleKu: 'reng',
-        titleTr: 'Renkler', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Renkler', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L4_1,
         titleOrigin: 'cited', src: 'THK06:219', from: 'rang',
         fromNote: 'p. 219 prints this as rang1. rang2, eight lines below it, is "possible".',
       },
       {
         id: 'ckb-l4_2', unitId: 'ckb-u4', title: 'Size & Shape', titleKu: 'berz u drêj',
-        titleTr: 'Boyut & Biçim', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Boyut & Biçim', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L4_2,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from berz "high, tall" (THK06:169, barz) and drêj "long" (THK06:182, drezh), ' +
@@ -41,7 +44,7 @@ export const CKB_C2_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l4_3', unitId: 'ckb-u4', title: 'Quality & Condition', titleKu: 'nwê u kewn',
-        titleTr: 'Nitelik & Durum', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Nitelik & Durum', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L4_3,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from nwê "new" (THK06:212, nwe) and kewn "old" (THK06:194, kawn), joined by ' +
@@ -49,7 +52,7 @@ export const CKB_C2_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l4_4', unitId: 'ckb-u4', title: 'Review: Descriptions', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Betimlemeler', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Betimlemeler', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L4_4,
         ...REVIEW_TITLE,
       },
     ],
@@ -72,17 +75,17 @@ export const CKB_C2_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l5_1', unitId: 'ckb-u5', title: 'Land & Sky', titleKu: 'siruşt',
-        titleTr: 'Kara & Gökyüzü', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Kara & Gökyüzü', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L5_1,
         titleOrigin: 'cited', src: 'THK06:228', from: 'sirusht',
       },
       {
         id: 'ckb-l5_2', unitId: 'ckb-u5', title: 'Animals', titleKu: 'canewer',
-        titleTr: 'Hayvanlar', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Hayvanlar', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L5_2,
         titleOrigin: 'cited', src: 'THK06:193', from: 'jânawar',
       },
       {
         id: 'ckb-l5_3', unitId: 'ckb-u5', title: 'Weather & Seasons', titleKu: 'befr u baran',
-        titleTr: 'Hava & Mevsimler', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Hava & Mevsimler', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L5_3,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from befr "snow" (THK06:167, bafr) and baran "rain" (THK06:170, bârân), ' +
@@ -91,7 +94,7 @@ export const CKB_C2_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l5_4', unitId: 'ckb-u5', title: 'Review: Nature & Animals', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Doğa & Hayvanlar', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Doğa & Hayvanlar', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L5_4,
         ...REVIEW_TITLE,
       },
     ],
@@ -114,13 +117,13 @@ export const CKB_C2_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l6_1', unitId: 'ckb-u6', title: 'Numbers 1-10', titleKu: 'jimare',
-        titleTr: 'Sayılar 1-10', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Sayılar 1-10', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L6_1,
         titleOrigin: 'cited', src: 'THK06:239', from: 'zhimâra',
         fromNote: 'p. 239 glosses this "number, issue". Only the counting sense is meant by the title; the other is the issue of a periodical.',
       },
       {
         id: 'ckb-l6_2', unitId: 'ckb-u6', title: 'Tens & Hundreds', titleKu: 'sed u hezar',
-        titleTr: 'Onlar & Yüzler', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Onlar & Yüzler', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L6_2,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from sed "hundred" (THK06:17, sad) and hezar "thousand" (THK06:17, hazâr), ' +
@@ -129,13 +132,13 @@ export const CKB_C2_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l6_3', unitId: 'ckb-u6', title: 'Days & Times of Day', titleKu: 'kat',
-        titleTr: 'Günler & Günün Saatleri', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Günler & Günün Saatleri', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L6_3,
         titleOrigin: 'cited', src: 'THK06:195', from: 'kât',
         fromNote: 'p. 195 prints this as kât1. kât2, five lines below it, is "back of the neck".',
       },
       {
         id: 'ckb-l6_4', unitId: 'ckb-u6', title: 'Review: Numbers & Time', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Sayılar & Zaman', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Sayılar & Zaman', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L6_4,
         ...REVIEW_TITLE,
       },
     ],

@@ -3,7 +3,10 @@
 // above each unit records which theme each of its lessons draws on and which
 // words, because the exercises milestone has to pick from exactly that pool and
 // the Lesson type has no field for it.
+// The exercises themselves are authored in ./c3-exercises.ts and attached
+// below, one array per lesson.
 
+import { CKB_L10_1, CKB_L10_2, CKB_L10_3, CKB_L10_4, CKB_L7_1, CKB_L7_2, CKB_L7_3, CKB_L7_4, CKB_L8_1, CKB_L8_2, CKB_L8_3, CKB_L8_4, CKB_L9_1, CKB_L9_2, CKB_L9_3, CKB_L9_4 } from './c3-exercises';
 import { REVIEW_TITLE, REVIEW_TITLE_KU } from './review';
 import type { SoraniUnit } from '../courses';
 
@@ -27,7 +30,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l7_1', unitId: 'ckb-u7', title: 'Go, Come & Be', titleKu: 'çûn u hatin',
-        titleTr: 'Gitmek, Gelmek & Olmak', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Gitmek, Gelmek & Olmak', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L7_1,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from çûn "to go" (THK06:177, chûn) and hatin "to come" (THK06:190, hâtin), ' +
@@ -35,7 +38,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l7_2', unitId: 'ckb-u7', title: 'Eat, Drink & See', titleKu: 'xwardin u dîtin',
-        titleTr: 'Yemek, İçmek & Görmek', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Yemek, İçmek & Görmek', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L7_2,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from xwardin "to eat" (THK06:200, khwârdin) and dîtin "to see" (THK06:182, ' +
@@ -44,7 +47,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l7_3', unitId: 'ckb-u7', title: 'Say, Know & Want', titleKu: 'gotin u zanîn',
-        titleTr: 'Söylemek, Bilmek & İstemek', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Söylemek, Bilmek & İstemek', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L7_3,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from gotin "to say" (THK06:187) and zanîn "to know" (THK06:238, zânîn), ' +
@@ -53,7 +56,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l7_4', unitId: 'ckb-u7', title: 'Review: Verbs', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Fiiller', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Fiiller', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L7_4,
         ...REVIEW_TITLE,
       },
     ],
@@ -77,12 +80,12 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l8_1', unitId: 'ckb-u8', title: 'Body Parts', titleKu: 'leş',
-        titleTr: 'Vücut Bölümleri', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Vücut Bölümleri', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L8_1,
         titleOrigin: 'cited', src: 'THK06:203', from: 'lash',
       },
       {
         id: 'ckb-l8_2', unitId: 'ckb-u8', title: 'Sick & Well', titleKu: 'nexoş u sax',
-        titleTr: 'Hasta & Sağlıklı', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Hasta & Sağlıklı', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L8_2,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from nexoş "ill" (THK06:209, nakhosh) and sax "healthy" (THK06:225, sâgh), ' +
@@ -91,12 +94,12 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l8_3', unitId: 'ckb-u8', title: 'Feelings', titleKu: 'hest',
-        titleTr: 'Duygular', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Duygular', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L8_3,
         titleOrigin: 'cited', src: 'THK06:189', from: 'hast',
       },
       {
         id: 'ckb-l8_4', unitId: 'ckb-u8', title: 'Review: Body & Feelings', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Vücut & Duygular', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Vücut & Duygular', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L8_4,
         ...REVIEW_TITLE,
       },
     ],
@@ -119,12 +122,12 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l9_1', unitId: 'ckb-u9', title: 'Clothes', titleKu: 'cil',
-        titleTr: 'Giysiler', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Giysiler', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L9_1,
         titleOrigin: 'cited', src: 'THK06:193', from: 'jil',
       },
       {
         id: 'ckb-l9_2', unitId: 'ckb-u9', title: 'City & Village', titleKu: 'şar u gund',
-        titleTr: 'Şehir & Köy', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Şehir & Köy', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L9_2,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from şar "city" (THK06:226, shâr) and gund "village" (THK06:187, gund), ' +
@@ -132,7 +135,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l9_3', unitId: 'ckb-u9', title: 'Streets & Shops', titleKu: 'şeqam u dukan',
-        titleTr: 'Sokaklar & Dükkânlar', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Sokaklar & Dükkânlar', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L9_3,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from şeqam "street" (THK06:225, shaqâm) and dukan "shop" (THK06:182, dukân), ' +
@@ -141,7 +144,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l9_4', unitId: 'ckb-u9', title: 'Review: Clothes & Town', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Giysiler & Şehir', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Giysiler & Şehir', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L9_4,
         ...REVIEW_TITLE,
       },
     ],
@@ -165,7 +168,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l10_1', unitId: 'ckb-u10', title: 'School & Work', titleKu: 'zanyarî',
-        titleTr: 'Okul & İş', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Okul & İş', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L10_1,
         titleOrigin: 'cited', src: 'THK06:238', from: 'zânyârî',
         fromNote:
           'p. 238 prints this as the tilde sub-entry ~yârî under the headword zân|â "learned", whose bar marks ' +
@@ -174,7 +177,7 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l10_2', unitId: 'ckb-u10', title: 'Books & Language', titleKu: 'pertuk u govar',
-        titleTr: 'Kitaplar & Dil', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Kitaplar & Dil', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L10_2,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from pertuk "book" (THK06:213, partuk) and govar "magazine, journal" ' +
@@ -183,12 +186,12 @@ export const CKB_C3_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l10_3', unitId: 'ckb-u10', title: 'Kurdish Culture', titleKu: 'keltur',
-        titleTr: 'Kürt Kültürü', type: 'culture', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Kürt Kültürü', type: 'culture', order: 3, xpReward: 10, exercises: CKB_L10_3,
         titleOrigin: 'cited', src: 'THK06:194', from: 'kaltur',
       },
       {
         id: 'ckb-l10_4', unitId: 'ckb-u10', title: 'Review: Language & Culture', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Dil & Kültür', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Dil & Kültür', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L10_4,
         ...REVIEW_TITLE,
       },
     ],

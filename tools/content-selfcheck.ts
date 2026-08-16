@@ -152,11 +152,14 @@ const corpusErrors = validateContent();
 check('shipped corpus has no content errors', corpusErrors.length === 0, corpusErrors.join(' | '));
 
 // Wiring the Sorani track into validateContentDetailed() put two notes into the
-// shipped run: every ckb chrome slot is still pending, which is a note while the
-// track is in progress and 95 errors the day it calls itself complete, and the
-// twenty-eight lessons of courses 2 and 3 are still without exercises, which is
-// the same bargain. Both are spelled out in full rather than counted, so a third
-// note cannot slip in behind them unread.
+// shipped run and one of them has since gone quiet. Every ckb chrome slot is
+// still pending, which is a note while the track is in progress and 95 errors
+// the day it calls itself complete. The lessons without exercises were the same
+// bargain until all forty were authored, and then TRACK-01 stopped speaking
+// altogether rather than reporting 40 of 40: checkLessonCoverage says what a
+// track is still missing, and an in-progress track missing no lesson gives it
+// nothing to say. The note that remains is spelled out in full rather than
+// counted, so a second one cannot slip in behind it unread.
 const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
   {
     rule: 'CHROME-02',
@@ -164,13 +167,6 @@ const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
       '[CHROME-02] Track "ckb" is in progress: 0 of 95 chrome slots authored (95 pending). ' +
       'Pending slots are not errors until the track is complete, and a filled slot is still ' +
       'only checked for spelling and provenance, never for meaning.',
-  },
-  {
-    rule: 'TRACK-01',
-    message:
-      '[TRACK-01] Track "ckb" is in progress: 12 of 40 lessons authored (28 empty). ' +
-      'Empty lessons are not errors until the track is complete, and mechanical checks never ' +
-      'confirm meaning or idiom.',
   },
 ];
 const corpusNotes = validateContentDetailed().filter((i) => i.severity === 'info');
@@ -233,11 +229,11 @@ check(
   ckb.policy.orthography?.id ?? 'null',
 );
 
-// 10. The half of the ckb track that is still unauthored, the stories, the
-// teach cards and the exercises of the twenty-eight lessons outside course 1,
-// answers every accessor rather than throwing, so a screen rendering it gets an
-// empty state instead of a crash. The vocabulary, the course tree and the
-// exercises that are authored are checked below.
+// 10. The half of the ckb track that is still unauthored, the stories and the
+// teach cards, answers every accessor rather than throwing, so a screen
+// rendering it gets an empty state instead of a crash. The exercises have left
+// that half: all forty lessons carry six. The vocabulary, the course tree and
+// the exercises are checked below.
 const ckbContent = ckb.content;
 
 // The vocab-theme accessor used to be probed with the id of a theme the Sorani
@@ -261,14 +257,17 @@ let ckbEmpty = false;
 let ckbThrew = '';
 const ckbUnits = CKB_COURSES.flatMap((course) => course.units);
 const ckbLessons = ckbUnits.flatMap((unit) => unit.lessons);
-// A lesson no exercise has been authored for yet, found rather than named, so
-// this probe goes vacuous the day course 3 lands instead of quietly asking
-// about a lesson that now has content.
-const ckbUnauthored = ckbLessons.find((lesson) => lesson.exercises.length === 0);
+// There is no lesson left without exercises to probe the two exercise
+// accessors with, so the probe names a lesson the tree does not hold. The id is
+// built off a real one rather than typed out, so it cannot drift away from the
+// shape these ids take, and the assertion under it fails if the tree ever
+// answers to it.
+const ckbMissingLesson = `${ckbLessons[0].id}-no-such-lesson`;
 check(
-  'a Sorani lesson without exercises is still there to probe the empty accessors with',
-  ckbUnauthored !== undefined,
-  ckbUnauthored?.id ?? 'every lesson is authored',
+  'every Sorani lesson is authored, so the empty-accessor probe names one that does not exist',
+  ckbLessons.every((lesson) => lesson.exercises.length > 0) &&
+    !ckbLessons.some((lesson) => lesson.id === ckbMissingLesson),
+  ckbMissingLesson,
 );
 try {
   ckbEmpty =
@@ -276,8 +275,8 @@ try {
     ckbContent.getStoryById('s1') === undefined &&
     ckbContent.getVocabByTheme(ckbMissingTheme).length === 0 &&
     ckbContent.getVocabById('v1') === undefined &&
-    ckbContent.getExercisesForLesson(ckbUnauthored?.id ?? '').length === 0 &&
-    ckbContent.getOrderedExercisesForLesson(ckbUnauthored?.id ?? '').length === 0 &&
+    ckbContent.getExercisesForLesson(ckbMissingLesson).length === 0 &&
+    ckbContent.getOrderedExercisesForLesson(ckbMissingLesson).length === 0 &&
     ckbContent.getLessonTeachCards(ckbLessons[0].id).length === 0;
 } catch (err) {
   ckbThrew = err instanceof Error ? err.message : String(err);
@@ -1331,11 +1330,10 @@ for (const sample of LEX_SAMPLES) {
 const ckbShippedExercises = ckbLessons.flatMap((lesson) => lesson.exercises);
 const ckbAuthoredLessons = ckbLessons.filter((lesson) => lesson.exercises.length > 0);
 check(
-  'the twelve authored Sorani lessons are the twelve of course 1, and each carries six exercises',
-  ckbAuthoredLessons.length === 12 &&
-    ckbShippedExercises.length === 72 &&
-    ckbAuthoredLessons.every((lesson) => lesson.exercises.length === 6 && lesson.id.startsWith('ckb-l')) &&
-    CKB_COURSES[0].units.flatMap((unit) => unit.lessons).every((lesson) => lesson.exercises.length === 6),
+  'all forty Sorani lessons are authored, and each carries six exercises',
+  ckbAuthoredLessons.length === 40 &&
+    ckbShippedExercises.length === 240 &&
+    ckbLessons.every((lesson) => lesson.exercises.length === 6 && lesson.id.startsWith('ckb-l')),
   `${ckbShippedExercises.length} exercises across ${ckbAuthoredLessons.length} lessons`,
 );
 const ckbShippedShapes = checkExerciseShapes(ckbShippedExercises);

@@ -94,16 +94,14 @@ export const KMR_CONTENT: TrackContent = {
   getLessonTeachCards,
 };
 
-// Vocabulary, the course tree and the exercises of its first course are
-// authored and bound through. Stories are not, and neither are the teach cards
-// or the exercises of the other twenty-eight lessons, so those accessors answer
-// empty rather than throwing and a screen reading them shows its empty state:
-// the Lesson screen's "coming soon" card for a lesson with no exercises, the
-// Stories tab's empty state for a track with no stories. The teach cards are
-// empty for a different reason than the stories: the Kurmanji ones are not
-// authored either, they are pulled out of a lesson's own exercises by matching
-// a quoted gloss in an English prompt, and that is a guess this track has not
-// been shown to be safe for.
+// Vocabulary, the course tree and every exercise in it are authored and bound
+// through. Stories are not, and neither are the teach cards, so those accessors
+// answer empty rather than throwing and a screen reading them shows its empty
+// state: the Stories tab's empty state for a track with no stories. The teach
+// cards are empty for a different reason than the stories: the Kurmanji ones are
+// not authored either, they are pulled out of a lesson's own exercises by
+// matching a quoted gloss in an English prompt, and that is a guess this track
+// has not been shown to be safe for.
 export const CKB_CONTENT: TrackContent = {
   courses: CKB_COURSES,
   stories: [],
