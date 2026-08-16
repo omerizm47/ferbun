@@ -1,6 +1,6 @@
-// Fêrbûn: the Sorani vocabulary barrel. Eleven themes so far: greetings,
-// family, body, home, clothing, food, nature, animals, description, numbers and
-// verbs, one file each under ./vocab.
+// Fêrbûn: the Sorani vocabulary barrel. Fourteen themes so far: greetings,
+// family, body, home, clothing, food, nature, animals, description, numbers,
+// time, verbs, emotions and places, one file each under ./vocab.
 // Source: Thackston, W. M., "Sorani Kurdish: A Reference Grammar with Selected
 // Readings", declared as THK06 in src/data/sources.ts.
 //
@@ -24,12 +24,15 @@ import { CKB_ANIMALS } from './vocab/animals';
 import { CKB_BODY } from './vocab/body';
 import { CKB_CLOTHING } from './vocab/clothing';
 import { CKB_DESCRIPTION } from './vocab/description';
+import { CKB_EMOTIONS } from './vocab/emotions';
 import { CKB_FAMILY } from './vocab/family';
 import { CKB_FOOD } from './vocab/food';
 import { CKB_GREETINGS } from './vocab/greetings';
 import { CKB_HOME } from './vocab/home';
 import { CKB_NATURE } from './vocab/nature';
 import { CKB_NUMBERS } from './vocab/numbers';
+import { CKB_PLACES } from './vocab/places';
+import { CKB_TIME } from './vocab/time';
 import { CKB_VERBS } from './vocab/verbs';
 
 /** A Kurmanji VocabWord plus the locator CKB_POLICY.requireCitation demands. */
@@ -108,7 +111,10 @@ export const CKB_VOCABULARY: SoraniVocabWord[] = [
   ...CKB_ANIMALS,
   ...CKB_DESCRIPTION,
   ...CKB_NUMBERS,
+  ...CKB_TIME,
   ...CKB_VERBS,
+  ...CKB_EMOTIONS,
+  ...CKB_PLACES,
 ];
 
 // id, icon and color match the Kurmanji themes, so the two Words screens read
@@ -255,6 +261,21 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     src: 'THK06:239',
     from: 'zhimâra',
   },
+  // kât is a bare one-word entry, "time". The two rivals are each narrower than
+  // a theme label: jâr (p. 193) is "time, instance", the countable occasion, and
+  // dawr (p. 179) is "era, time", a stretch of history.
+  {
+    id: 'time',
+    label: 'Time',
+    labelKu: 'kat',
+    labelTr: 'Zaman',
+    icon: 'time-outline',
+    color: '#3E7C8C',
+    labelOrigin: 'cited',
+    src: 'THK06:195',
+    from: 'kât',
+    fromNote: 'p. 195 prints this as kât1. kât2, five lines below it, is "back of the neck".',
+  },
   // The one authored label in the table. Everything about it except the
   // citation is held to the same rules as the ten above, and the self-check
   // proves that by running both policies over an uncitable label.
@@ -274,6 +295,37 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
       'Sorani grammatical term, built on the kirdin this theme teaches, and it is authored for this app ' +
       'exactly as labelTr is: it is spelled as the p. 88 table would render Thackston\'s kirdâr, and no ' +
       'speaker has confirmed it.',
+  },
+  // hast is a bare one-word entry, "feeling", and it is the taught half of a
+  // label whose English is "Emotions & States". No headword names the states
+  // half: ḥâł (p. 190) and marad (p. 205) are both "state, condition", which is
+  // a state of affairs and not a state a person is in.
+  {
+    id: 'emotions',
+    label: 'Emotions & States',
+    labelKu: 'hest',
+    labelTr: 'Duygular & Durumlar',
+    icon: 'heart-outline',
+    color: '#B23A48',
+    labelOrigin: 'cited',
+    src: 'THK06:189',
+    from: 'hast',
+  },
+  // je is the same headword ./vocab/places.ts teaches for "place", and the one
+  // of the three bare "place" entries the page builds sub-entries on. The travel
+  // half of "Places & Travel" has no headword: safar (p. 222) is "trip", one
+  // journey rather than the category, and the travelling is its sub-entry
+  // ~-kirdin, "to travel".
+  {
+    id: 'places',
+    label: 'Places & Travel',
+    labelKu: 'cê',
+    labelTr: 'Yerler & Seyahat',
+    icon: 'map-outline',
+    color: '#2F6E4F',
+    labelOrigin: 'cited',
+    src: 'THK06:193',
+    from: 'je',
   },
 ];
 

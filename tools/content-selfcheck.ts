@@ -230,7 +230,9 @@ try {
     ckbContent.getLessonById('l1_1') === undefined &&
     ckbContent.getTotalLessons() === 0 &&
     ckbContent.getStoryById('s1') === undefined &&
-    ckbContent.getVocabByTheme('time').length === 0 &&
+    // A theme the Kurmanji track has and the Sorani one has not been authored
+    // for yet. It moves as themes land: time held this line until it did.
+    ckbContent.getVocabByTheme('education').length === 0 &&
     ckbContent.getVocabById('v1') === undefined &&
     ckbContent.getExercisesForLesson('l1_1').length === 0 &&
     ckbContent.getOrderedExercisesForLesson('l1_1').length === 0 &&
