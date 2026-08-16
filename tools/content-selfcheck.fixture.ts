@@ -149,6 +149,32 @@ export const CLEAN_ENTRY: CitedEntry = {
   glossTr: 'çiçek',
 };
 
+// Two entries sharing one id, which is what an id collision looks like once the
+// corpus is split across separately authored theme files: both are well formed,
+// both cite a real page, and both glosses are there. The id is the progress key,
+// so shipping this pair puts two words behind one mastery row.
+export const DUPLICATE_ID_ENTRIES: CitedEntry[] = [
+  {
+    id: 'fx-dup',
+    taught: { wordKu: 'gull' },
+    src: 'THK06:2',
+    glossEn: 'flower',
+    glossTr: 'çiçek',
+  },
+  {
+    id: 'fx-dup',
+    taught: { wordKu: 'xorr' },
+    src: 'THK06:3',
+    glossEn: 'blood',
+    glossTr: 'kan',
+  },
+];
+
+// Theme ids, where the same collision opens two tabs on one filtered list.
+// Three ids with one repeat, so a rule that reported per occurrence rather than
+// per repeated id would be visible.
+export const DUPLICATE_THEME_IDS = ['family', 'body', 'family'];
+
 export const FIXTURE_LESSONS = [
   { id: 'fx-l1', title: 'A', exerciseCount: 3 },
   { id: 'fx-l2', title: 'B', exerciseCount: 0 },

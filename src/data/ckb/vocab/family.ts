@@ -19,6 +19,14 @@
 // there do not, and because the speaker who reviews this file has to be able to
 // read it.
 //
+// Every entry also carries `from`, Thackston's own transcription with his â ł ř
+// ch sh zh kh gh intact, so the shipped spelling is derived and not asserted:
+// the self-check runs toHawar(from) and requires it to equal wordKu, and
+// `npm run verify-citations` requires `from` to appear on the cited page of the
+// PDF. Four entries print differently from their `from` on the page, two for the
+// furtive i and two because they are tilde sub-entries, and each of those says
+// so in `fromNote`.
+//
 // No `gender` on any entry. Sorani has no grammatical gender, so the field the
 // Kurmanji corpus carries would be an invented grammatical claim here. No
 // `exampleKu` either: a sentence is a far larger provenance claim than a
@@ -59,24 +67,40 @@
 import type { SoraniVocabWord } from '../vocabulary';
 
 export const CKB_FAMILY: SoraniVocabWord[] = [
-  { id: 'ckb-v001', wordKu: 'bawk', wordEn: 'father', wordTr: 'baba', partOfSpeech: 'noun', theme: 'family', src: 'THK06:171' },
-  { id: 'ckb-v002', wordKu: 'dayk', wordEn: 'mother', wordTr: 'anne', partOfSpeech: 'noun', theme: 'family', src: 'THK06:181' },
-  { id: 'ckb-v003', wordKu: 'bira', wordEn: 'brother', wordTr: 'erkek kardeş', partOfSpeech: 'noun', theme: 'family', src: 'THK06:172' },
-  { id: 'ckb-v004', wordKu: 'xwişk', wordEn: 'sister', wordTr: 'kız kardeş', partOfSpeech: 'noun', theme: 'family', src: 'THK06:200' },
-  { id: 'ckb-v005', wordKu: 'kurr', wordEn: 'boy, son', wordTr: 'oğlan, oğul', partOfSpeech: 'noun', theme: 'family', src: 'THK06:202' },
-  { id: 'ckb-v006', wordKu: 'kiç', wordEn: 'girl, daughter', wordTr: 'kız, kız evlat', partOfSpeech: 'noun', theme: 'family', src: 'THK06:200' },
-  { id: 'ckb-v007', wordKu: 'jin', wordEn: 'woman, wife', wordTr: 'kadın, eş', partOfSpeech: 'noun', theme: 'family', src: 'THK06:239' },
-  { id: 'ckb-v008', wordKu: 'minall', wordEn: 'child', wordTr: 'çocuk', partOfSpeech: 'noun', theme: 'family', src: 'THK06:207' },
+  {
+    id: 'ckb-v001', wordKu: 'bawk', wordEn: 'father', wordTr: 'baba', partOfSpeech: 'noun', theme: 'family', src: 'THK06:171',
+    from: 'bâwk',
+    fromNote: 'p. 171 prints bâwik. The i is the furtive i, italicised and dropped before a suffix (p. 163: "bâwik \'father\' but bâwkî \'his father\'"), so the underlying form is bâwk.',
+  },
+  {
+    id: 'ckb-v002', wordKu: 'dayk', wordEn: 'mother', wordTr: 'anne', partOfSpeech: 'noun', theme: 'family', src: 'THK06:181',
+    from: 'dâyk',
+    fromNote: 'p. 181 prints dâyik, with the same italicised furtive i as bâwik (p. 163).',
+  },
+  { id: 'ckb-v003', wordKu: 'bira', wordEn: 'brother', wordTr: 'erkek kardeş', partOfSpeech: 'noun', theme: 'family', src: 'THK06:172', from: 'birâ' },
+  { id: 'ckb-v004', wordKu: 'xwişk', wordEn: 'sister', wordTr: 'kız kardeş', partOfSpeech: 'noun', theme: 'family', src: 'THK06:200', from: 'khwishk' },
+  { id: 'ckb-v005', wordKu: 'kurr', wordEn: 'boy, son', wordTr: 'oğlan, oğul', partOfSpeech: 'noun', theme: 'family', src: 'THK06:202', from: 'kuř' },
+  { id: 'ckb-v006', wordKu: 'kiç', wordEn: 'girl, daughter', wordTr: 'kız, kız evlat', partOfSpeech: 'noun', theme: 'family', src: 'THK06:200', from: 'kich' },
+  { id: 'ckb-v007', wordKu: 'jin', wordEn: 'woman, wife', wordTr: 'kadın, eş', partOfSpeech: 'noun', theme: 'family', src: 'THK06:239', from: 'zhin' },
+  { id: 'ckb-v008', wordKu: 'minall', wordEn: 'child', wordTr: 'çocuk', partOfSpeech: 'noun', theme: 'family', src: 'THK06:207', from: 'minâł' },
   // wordTr trimmed from the Kurmanji 'insan, kişi': Thackston glosses kas as
   // "person" alone, so the "human" half of that pair is not his claim to make.
-  { id: 'ckb-v009', wordKu: 'kes', wordEn: 'person', wordTr: 'kişi', partOfSpeech: 'noun', theme: 'family', src: 'THK06:194' },
-  { id: 'ckb-v010', wordKu: 'binemalle', wordEn: 'family', wordTr: 'aile', partOfSpeech: 'noun', theme: 'family', src: 'THK06:171' },
-  { id: 'ckb-v011', wordKu: 'mam', wordEn: 'paternal uncle', wordTr: 'amca', partOfSpeech: 'noun', theme: 'family', src: 'THK06:206' },
-  { id: 'ckb-v012', wordKu: 'law', wordEn: 'youth, young man', wordTr: 'genç, delikanlı', partOfSpeech: 'noun', theme: 'family', src: 'THK06:204' },
+  { id: 'ckb-v009', wordKu: 'kes', wordEn: 'person', wordTr: 'kişi', partOfSpeech: 'noun', theme: 'family', src: 'THK06:194', from: 'kas' },
+  {
+    id: 'ckb-v010', wordKu: 'binemalle', wordEn: 'family', wordTr: 'aile', partOfSpeech: 'noun', theme: 'family', src: 'THK06:171',
+    from: 'binamâła',
+    fromNote: 'p. 171 prints this as the tilde sub-entry ~amâł(a) under the headword bin, with the final a optional.',
+  },
+  { id: 'ckb-v011', wordKu: 'mam', wordEn: 'paternal uncle', wordTr: 'amca', partOfSpeech: 'noun', theme: 'family', src: 'THK06:206', from: 'mâm' },
+  { id: 'ckb-v012', wordKu: 'law', wordEn: 'youth, young man', wordTr: 'genç, delikanlı', partOfSpeech: 'noun', theme: 'family', src: 'THK06:204', from: 'lâw' },
   // wordTr trimmed from the Kurmanji 'yaşlı adam, dede': "dede" is grandfather,
   // a sense Thackston's "old man" does not carry.
-  { id: 'ckb-v013', wordKu: 'pîremêrd', wordEn: 'old man', wordTr: 'yaşlı adam', partOfSpeech: 'noun', theme: 'family', src: 'THK06:216' },
-  { id: 'ckb-v014', wordKu: 'netewe', wordEn: 'nation', wordTr: 'millet, ulus', partOfSpeech: 'noun', theme: 'family', src: 'THK06:209' },
-  { id: 'ckb-v015', wordKu: 'xellk', wordEn: 'people', wordTr: 'halk', partOfSpeech: 'noun', theme: 'family', src: 'THK06:196' },
-  { id: 'ckb-v016', wordKu: 'newe', wordEn: 'grandchild', wordTr: 'torun', partOfSpeech: 'noun', theme: 'family', src: 'THK06:209' },
+  {
+    id: 'ckb-v013', wordKu: 'pîremêrd', wordEn: 'old man', wordTr: 'yaşlı adam', partOfSpeech: 'noun', theme: 'family', src: 'THK06:216',
+    from: 'pîramerd',
+    fromNote: 'p. 216 prints this as the tilde sub-entry ~amerd under the headword pîr.',
+  },
+  { id: 'ckb-v014', wordKu: 'netewe', wordEn: 'nation', wordTr: 'millet, ulus', partOfSpeech: 'noun', theme: 'family', src: 'THK06:209', from: 'natawa' },
+  { id: 'ckb-v015', wordKu: 'xellk', wordEn: 'people', wordTr: 'halk', partOfSpeech: 'noun', theme: 'family', src: 'THK06:196', from: 'khałk' },
+  { id: 'ckb-v016', wordKu: 'newe', wordEn: 'grandchild', wordTr: 'torun', partOfSpeech: 'noun', theme: 'family', src: 'THK06:209', from: 'nawa' },
 ];

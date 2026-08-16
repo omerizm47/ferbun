@@ -6,9 +6,14 @@
 // digraphs (Thackston p. 88) into plain l and r, that the track registry
 // answers an unknown id with Kurmanji instead of an inherited prototype member,
 // that the two taught-chrome tables hold the same slots and no track calling
-// itself complete holds an unauthored one, and that the v1→v2 progress
-// migration carries a real user's stored blob across without touching a single
-// global.
+// itself complete holds an unauthored one, that no id repeats inside the Sorani
+// corpus, that every Sorani spelling is the conversion table's output on the
+// transcription its entry stores, that the corpus's own provenance claim still
+// matches the corpus, and that the v1→v2 progress migration carries a real
+// user's stored blob across without touching a single global.
+// What no assertion here can do is open the book. `npm run verify-citations`
+// does that, and is a separate script because it needs a PDF this repository
+// does not carry.
 // All of it is shape, legality and provenance. Nothing here establishes that a
 // form is correct, idiomatic or current: that needs a speaker.
 // runContentValidation() is deliberately not called: it reads __DEV__, which
@@ -16,9 +21,10 @@
 
 import { readFileSync } from 'fs';
 import { CKB_CHROME, KMR_CHROME } from '../src/data/chrome';
-import { CKB_VOCABULARY } from '../src/data/ckb/vocabulary';
+import { CKB_GLOSS_PROVENANCE, CKB_VOCABULARY, CKB_VOCAB_THEMES } from '../src/data/ckb/vocabulary';
 import { DIGRAPH_MINIMAL_PAIRS, SORANI_LATIN, checkOrthography, foldDiacritics } from '../src/data/orthography';
 import { ALL_BADGES } from '../src/data/badges';
+import { SOURCES } from '../src/data/sources';
 import { TrackId, getTrack, isTrackId } from '../src/data/tracks';
 import {
   CKB_POLICY,
@@ -26,6 +32,7 @@ import {
   KMR_POLICY,
   checkChrome,
   checkCitedEntries,
+  checkDuplicateIds,
   checkLessonCoverage,
   validateContent,
   validateContentDetailed,
@@ -49,6 +56,8 @@ import {
   CLEAN_ENTRY,
   CONVERSION_GOLD,
   CONVERSION_UNWITNESSED,
+  DUPLICATE_ID_ENTRIES,
+  DUPLICATE_THEME_IDS,
   EMPTY_CKB_TRACK,
   FIXTURE_CKB_POLICY,
   FIXTURE_COMPLETE_POLICY,
@@ -255,6 +264,58 @@ check(
   'and the same test over the Kurmanji corpus finds every one of its ids, so the empty result is not vacuous',
   kmrIds.size > 0 && kmrSelfHits === vocabulary.length,
   `${kmrSelfHits} of ${vocabulary.length}`,
+);
+
+// That test compares the two corpora. It says nothing about a corpus colliding
+// with itself, which is the collision 17 separately authored theme files can
+// produce, and which fails silently: one progress row for two words, and
+// getCkbVocabById answering with whichever was authored first. The pair below
+// is put through every rule that predates DUP-01 first, because a guard is only
+// worth having if the unguarded path passes.
+const duplicateIds = DUPLICATE_ID_ENTRIES.map((e) => e.id);
+const duplicateUnderOldRules = checkCitedEntries(DUPLICATE_ID_ENTRIES, FIXTURE_CKB_POLICY);
+check(
+  'two entries sharing one id raise nothing under the rules that predate DUP-01',
+  duplicateUnderOldRules.length === 0,
+  summarise(duplicateUnderOldRules),
+);
+check(
+  'and the Kurmanji disjointness test above is silent on them too, because neither id is a Kurmanji id',
+  duplicateIds.every((id) => !kmrIds.has(id)),
+);
+check(
+  'a first-match lookup answers with the first of the two, which is how the collision stays invisible',
+  DUPLICATE_ID_ENTRIES.find((e) => e.id === 'fx-dup')?.taught.wordKu === 'gull',
+  DUPLICATE_ID_ENTRIES.find((e) => e.id === 'fx-dup')?.taught.wordKu,
+);
+
+const duplicateIssues = checkDuplicateIds(duplicateIds, 'fixture corpus');
+check(
+  'DUP-01 fires once on that pair, naming the id and how many entries hold it',
+  duplicateIssues.length === 1 &&
+    duplicateIssues[0].severity === 'error' &&
+    duplicateIssues[0].rule === 'DUP-01' &&
+    duplicateIssues[0].message.includes('"fx-dup"') &&
+    duplicateIssues[0].message.includes('2 entries'),
+  summarise(duplicateIssues),
+);
+
+const duplicateThemeIssues = checkDuplicateIds(DUPLICATE_THEME_IDS, 'fixture themes');
+check(
+  'theme ids are covered by the same rule, once per repeated id and not once per occurrence',
+  duplicateThemeIssues.length === 1 && duplicateThemeIssues[0].message.includes('"family"'),
+  summarise(duplicateThemeIssues),
+);
+check('a list with nothing repeated raises nothing', checkDuplicateIds(['a', 'b', 'c'], 'fixture').length === 0);
+
+const shippedIdIssues = [
+  ...checkDuplicateIds(CKB_VOCABULARY.map((w) => w.id), 'Sorani vocabulary'),
+  ...checkDuplicateIds(CKB_VOCAB_THEMES.map((t) => t.id), 'Sorani vocab themes'),
+];
+check(
+  'the shipped Sorani corpus repeats no word id and no theme id',
+  shippedIdIssues.length === 0,
+  summarise(shippedIdIssues),
 );
 
 // Sorani has no grammatical gender. VocabWord carries the field because Kurmanji
@@ -853,6 +914,89 @@ check(
   'and the sample reaches the accented rows, so that agreement is not vacuous',
   foldedAway.length > 0,
   `${foldedAway.length} of ${searchFields.length} fields change under the fold`,
+);
+
+// 16. Every shipped Sorani spelling is derived rather than typed. Each entry
+// stores Thackston's transcription verbatim in `from`, and wordKu has to be
+// exactly what the converter above makes of that string, so anyone holding the
+// cited page can reproduce the form instead of trusting it.
+const ckbDerived = [
+  ...CKB_VOCABULARY.map((w) => ({ id: w.id, field: 'wordKu', from: w.from, taught: w.wordKu })),
+  ...CKB_VOCAB_THEMES.map((t) => ({ id: `vocab theme "${t.id}"`, field: 'labelKu', from: t.from, taught: t.labelKu })),
+];
+check(
+  'every Sorani word and theme carries a from',
+  ckbDerived.length === CKB_VOCABULARY.length + CKB_VOCAB_THEMES.length &&
+    ckbDerived.every((row) => row.from.trim() !== ''),
+  `${ckbDerived.filter((row) => row.from.trim() !== '').length} of ${ckbDerived.length}`,
+);
+for (const row of ckbDerived) {
+  let converted = '';
+  let conversionThrow = '';
+  try {
+    converted = toHawar(row.from);
+  } catch (err) {
+    conversionThrow = err instanceof Error ? err.message : String(err);
+  }
+  check(
+    `${row.id} ${row.field} ${row.taught} is what the p. 88 table makes of ${row.from}`,
+    conversionThrow === '' && converted === row.taught,
+    conversionThrow || converted,
+  );
+}
+
+// The mistake that assertion closes, shown rather than described. Thackston
+// prints bâwik with a furtive i, italicised, and says at p. 163 that the
+// underlying form is bâwk: "bâwik 'father' but bâwkî 'his father'". An entry
+// copied off the printed string passes everything else in this repository.
+const furtive = toHawar('b\u00E2wik');
+const shippedBawk = CKB_VOCABULARY.find((w) => w.from === 'b\u00E2wk');
+check(
+  "toHawar('b\u00E2wik') is bawik while the entry storing b\u00E2wk teaches bawk, so a from taken off the printed page fails the check above",
+  furtive === 'bawik' && shippedBawk?.wordKu === 'bawk',
+  `${furtive} / ${shippedBawk?.wordKu ?? 'no entry stores b\u00E2wk'}`,
+);
+check(
+  'and bawik is legal under the p. 88 alphabet and raises nothing when cited and glossed, so no other rule here would have caught it',
+  checkOrthography('bawik', SORANI_LATIN).length === 0 &&
+    checkCitedEntries(
+      [{ id: 'fx-furtive', taught: { wordKu: 'bawik' }, src: 'THK06:171', glossEn: 'father', glossTr: 'baba' }],
+      FIXTURE_CKB_POLICY,
+    ).length === 0,
+);
+
+// 17. CKB_GLOSS_PROVENANCE is the corpus's own account of where it came from.
+// It is exported and nothing renders it, so it is held to the data here: a
+// claim no code reads is a claim that drifts from the data unnoticed. Asserting
+// it beat putting it on a screen, because most of what it says is a per-entry
+// invariant across the whole corpus, which a paragraph on a screen cannot check
+// and a reader cannot verify by looking at it.
+const sourceSurname = SOURCES.THK06.author.split(',')[0];
+check(
+  'the claim names the title and author sources.ts records, so editing that record cannot leave the claim stale',
+  CKB_GLOSS_PROVENANCE.includes(SOURCES.THK06.title) && CKB_GLOSS_PROVENANCE.includes(sourceSurname),
+  `title ${CKB_GLOSS_PROVENANCE.includes(SOURCES.THK06.title)}, author ${CKB_GLOSS_PROVENANCE.includes(sourceSurname)}`,
+);
+const citedSourceIds = [...CKB_VOCABULARY.map((w) => w.src), ...CKB_VOCAB_THEMES.map((t) => t.src)].map((src) =>
+  src.slice(0, src.indexOf(':')),
+);
+check(
+  'every Sorani entry cites that source and no other, which is what the claim asserts of all of them and not of most',
+  citedSourceIds.length === ckbDerived.length && citedSourceIds.every((id) => id === SOURCES.THK06.id),
+  [...new Set(citedSourceIds)].join(',') || 'none',
+);
+check(
+  'the claim names the conversion table the spellings are derived through, and every row of that table is printed there or overleaf',
+  CKB_GLOSS_PROVENANCE.includes('THK06:88') &&
+    THACKSTON_TO_HAWAR.every((row) => row.src === 'THK06:88' || row.src === 'THK06:89'),
+);
+const locatorKeys = [...CKB_VOCABULARY, ...CKB_VOCAB_THEMES].flatMap((entry) =>
+  Object.keys(entry).filter((key) => /src|cite|locator/i.test(key)),
+);
+check(
+  'and "the Turkish gloss carries no locator" holds as a shape: one src per entry, and no second locator field anywhere in the corpus',
+  locatorKeys.length === ckbDerived.length && locatorKeys.every((key) => key === 'src'),
+  [...new Set(locatorKeys)].join(',') || 'none',
 );
 
 if (failures.length > 0) {

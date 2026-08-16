@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "selfcheck": "tsc -p tsconfig.selfcheck.json && node .selfcheck/tools/content-selfcheck.js"
+    "selfcheck": "tsc -p tsconfig.selfcheck.json && node .selfcheck/tools/content-selfcheck.js",
+    "verify-citations": "tsc -p tsconfig.selfcheck.json && node .selfcheck/tools/verify-citations.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

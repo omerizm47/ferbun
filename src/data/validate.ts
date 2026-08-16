@@ -6,7 +6,8 @@
 // A track policy adds three more rules on top: spelling inside the track's
 // alphabet (ORTH), a resolvable source citation (SRC) and both glosses present
 // (GLOSS), plus a coverage note for tracks still being authored (TRACK).
-// The taught-chrome table is checked by the same policy under CHROME.
+// The taught-chrome table is checked by the same policy under CHROME, and DUP
+// catches one corpus reusing an id inside itself.
 // All of it checks shape, legality and provenance only. Nothing here confirms
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
@@ -125,6 +126,28 @@ export function checkCitedEntries(entries: CitedEntry[], policy: TrackPolicy): C
   }
 
   return issues;
+}
+
+/**
+ * Ids repeated inside one corpus. The disjointness check in the self-check
+ * compares the Sorani ids against the Kurmanji ones and has nothing to say
+ * about a collision inside Sorani, which fails silently: the id is the progress
+ * key, so the two entries share one mastery row, and getCkbVocabById returns
+ * whichever of them was authored first.
+ */
+export function checkDuplicateIds(ids: string[], what: string): ContentIssue[] {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const id of ids) {
+    if (seen.has(id)) repeated.add(id);
+    else seen.add(id);
+  }
+
+  return [...repeated].map((id) => ({
+    severity: 'error' as const,
+    rule: 'DUP-01',
+    message: `[DUP-01] ${what}: id "${id}" is used by ${ids.filter((other) => other === id).length} entries. The id is the progress key, so they would share one row and the lookup would answer with the first of them.`,
+  }));
 }
 
 /**
@@ -358,6 +381,9 @@ export function validateContentDetailed(): ContentIssue[] {
   // would close an import cycle.
   // exampleKu is folded in when an entry carries one, so the milestone that
   // adds example sentences is already under the orthography rule.
+  problems.push(...checkDuplicateIds(CKB_VOCABULARY.map((w) => w.id), 'Sorani vocabulary'));
+  problems.push(...checkDuplicateIds(CKB_VOCAB_THEMES.map((t) => t.id), 'Sorani vocab themes'));
+
   const ckbEntries: CitedEntry[] = CKB_VOCABULARY.map((word) => ({
     id: word.id,
     taught: { wordKu: word.wordKu, ...(word.exampleKu ? { exampleKu: word.exampleKu } : {}) },

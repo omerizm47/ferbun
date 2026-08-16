@@ -52,6 +52,9 @@ __pycache__/
 _ssbuild/
 _audiotest/
 
+# build-loop orchestration state, not project content
+.build-loop/
+
 # reference source texts, kept locally and deliberately not redistributed:
 # their title pages restrict use to non-commercial educational and research purposes
 docs/sources/
