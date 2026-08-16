@@ -1,5 +1,5 @@
-// Fêrbûn: the Sorani vocabulary barrel. Three themes so far: family, body and
-// numbers, one file each under ./vocab.
+// Fêrbûn: the Sorani vocabulary barrel. Five themes so far: family, body,
+// nature, animals and numbers, one file each under ./vocab.
 // Source: Thackston, W. M., "Sorani Kurdish: A Reference Grammar with Selected
 // Readings", declared as THK06 in src/data/sources.ts.
 //
@@ -19,8 +19,10 @@
 
 import type { VocabWord } from '../types';
 import type { VocabTheme } from '../vocabulary';
+import { CKB_ANIMALS } from './vocab/animals';
 import { CKB_BODY } from './vocab/body';
 import { CKB_FAMILY } from './vocab/family';
+import { CKB_NATURE } from './vocab/nature';
 import { CKB_NUMBERS } from './vocab/numbers';
 
 /** A Kurmanji VocabWord plus the locator CKB_POLICY.requireCitation demands. */
@@ -58,7 +60,13 @@ export const CKB_GLOSS_PROVENANCE =
 // theme is one spread and no caller can mutate a theme file through this
 // export. Theme order follows VOCAB_THEMES, so the two Words screens list the
 // themes they share in the same order.
-export const CKB_VOCABULARY: SoraniVocabWord[] = [...CKB_FAMILY, ...CKB_BODY, ...CKB_NUMBERS];
+export const CKB_VOCABULARY: SoraniVocabWord[] = [
+  ...CKB_FAMILY,
+  ...CKB_BODY,
+  ...CKB_NATURE,
+  ...CKB_ANIMALS,
+  ...CKB_NUMBERS,
+];
 
 // id, icon and color match the Kurmanji themes, so the two Words screens read
 // as the same screen in two languages. labelKu is the only taught string here,
@@ -88,6 +96,31 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     color: '#C1432E',
     src: 'THK06:203',
     from: 'lash',
+  },
+  // sirusht is a bare one-word entry, "nature". p. 228 prints surisht beside
+  // it as a cross-reference to this spelling, not as a rival with a gloss.
+  {
+    id: 'nature',
+    label: 'Nature & Weather',
+    labelKu: 'siruşt',
+    labelTr: 'Doğa & Hava',
+    icon: 'leaf-outline',
+    color: '#6B8E4E',
+    src: 'THK06:228',
+    from: 'sirusht',
+  },
+  // jânawar is the only headword in the glossary glossed "animal" on its own.
+  // gyândâr (p. 188) carries the same sense but as the sub-entry ~dâr under
+  // gyân, glossed "animal, living creature".
+  {
+    id: 'animals',
+    label: 'Animals',
+    labelKu: 'canewer',
+    labelTr: 'Hayvanlar',
+    icon: 'paw-outline',
+    color: '#B06A3B',
+    src: 'THK06:193',
+    from: 'jânawar',
   },
   // zhimâra is glossed "number, issue". Only the counting sense is meant here;
   // the other is the issue of a periodical.
