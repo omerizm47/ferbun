@@ -7,7 +7,9 @@
 // alphabet (ORTH), a resolvable source citation (SRC) and both glosses present
 // (GLOSS), plus a coverage note for tracks still being authored (TRACK).
 // The taught-chrome table is checked by the same policy under CHROME, and DUP
-// catches one corpus reusing an id inside itself.
+// catches one corpus reusing an id inside itself. LEX holds an exercise to the
+// glossary: an exercise cites no page of its own, so every taught token in one
+// has to be a headword the vocabulary already cites.
 // All of it checks shape, legality and provenance only. Nothing here confirms
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
@@ -19,6 +21,7 @@ import { getExercisesForLesson } from './exercises';
 import { SORANI_LATIN, checkOrthography, OrthographySpec } from './orthography';
 import { resolveCitation } from './sources';
 import { stories } from './stories';
+import type { Exercise } from './types';
 import { VOCAB_THEMES, getVocabByTheme } from './vocabulary';
 
 export type IssueSeverity = 'error' | 'info';
@@ -275,6 +278,198 @@ export function checkLessonCoverage(
   ];
 }
 
+/** Shape rules that hold of any exercise in any track: an answerable question. */
+export function checkExerciseShapes(exercises: Exercise[]): ContentIssue[] {
+  const problems: ContentIssue[] = [];
+
+  for (const ex of exercises) {
+    const ca = ex.correctAnswer;
+    if (ex.type === 'multiple_choice') {
+      if (!ex.options || ex.options.length < 2) {
+        problems.push({ severity: 'error', message: `Exercise "${ex.id}" (multiple_choice) has fewer than 2 options.` });
+      } else if (typeof ca !== 'string') {
+        problems.push({ severity: 'error', message: `Exercise "${ex.id}" (multiple_choice) correctAnswer must be a string.` });
+      } else if (!ex.options.includes(ca)) {
+        problems.push({ severity: 'error', message: `Exercise "${ex.id}" correctAnswer "${ca}" is not among its options [${ex.options.join(', ')}].` });
+      }
+    } else if (ex.type === 'true_false') {
+      if (ca !== 'True' && ca !== 'False') {
+        problems.push({ severity: 'error', message: `Exercise "${ex.id}" (true_false) correctAnswer must be "True" or "False", got "${String(ca)}".` });
+      }
+    } else if (ex.type === 'translation' || ex.type === 'fill_blank') {
+      if (typeof ca !== 'string' || ca.trim() === '') {
+        problems.push({ severity: 'error', message: `Exercise "${ex.id}" (${ex.type}) correctAnswer must be a non-empty string.` });
+      }
+    } else if (ex.type === 'match_pairs') {
+      if (!ex.pairs || ex.pairs.length < 2) {
+        problems.push({ severity: 'error', message: `Exercise "${ex.id}" (match_pairs) needs at least 2 pairs.` });
+      } else {
+        ex.pairs.forEach((p, pi) => {
+          if (!p.ku || !p.en) {
+            problems.push({ severity: 'error', message: `Exercise "${ex.id}" pair ${pi + 1} is missing a Kurdish word or meaning.` });
+          }
+        });
+      }
+    }
+
+    // Turkish parity (only checked where a translation exists, so untranslated
+    // content is silent). For choice-based exercises, optionsTr + correctAnswerTr
+    // must come as a complete pair (so resolveChoices never desyncs) and the
+    // answer must be among the options. Typed exercises (translation/fill_blank)
+    // may legitimately carry only correctAnswerTr (a fill-in gloss), so they are
+    // exempt from the pairing rule.
+    const isChoice = ex.type === 'multiple_choice';
+    if (isChoice && (ex.optionsTr || ex.correctAnswerTr !== undefined)) {
+      if (!ex.optionsTr || ex.correctAnswerTr === undefined) {
+        problems.push({ severity: 'error', message: `Exercise "${ex.id}" has a partial Turkish choice set (optionsTr and correctAnswerTr must both be present).` });
+      } else {
+        const caTr = ex.correctAnswerTr;
+        if (typeof caTr === 'string' && !ex.optionsTr.includes(caTr)) {
+          problems.push({ severity: 'error', message: `Exercise "${ex.id}" correctAnswerTr "${caTr}" is not among its optionsTr [${ex.optionsTr.join(', ')}].` });
+        }
+      }
+    } else if (!isChoice && ex.optionsTr) {
+      problems.push({ severity: 'error', message: `Exercise "${ex.id}" (${ex.type}) should not define optionsTr.` });
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * The half of an exercise LEX-01 reads. `answerIn` is the one fact the rule
+ * cannot work out for itself: both directions are authored, so options holding
+ * ['spas', 'sllaw'] and options holding ['thanks', 'greetings'] are the same
+ * shape, and only the author knows which. questionKu and every pairs[].ku are
+ * taught strings whatever it says.
+ */
+export interface LexExercise {
+  id: string;
+  answerIn: 'ckb' | 'bridge';
+  questionKu?: string;
+  options?: string[];
+  correctAnswer: string | string[];
+  pairs?: { ku: string }[];
+}
+
+/**
+ * Words of a taught string, in the order they appear, grouped into phrases.
+ * A word is a maximal run of letters from the track's alphabet, lowercased. A
+ * single space separates two words of one phrase; anything else at all ends the
+ * phrase, so punctuation, digits, the fill_blank slot marker (a run of `_`) and
+ * any character outside the alphabet are separators and never tokens. Nothing
+ * is dropped silently: an illegal character does not vanish, it cuts the word
+ * around it into fragments, and a fragment is not a headword, so LEX-01 fires
+ * on it.
+ */
+function taughtPhrases(text: string, letters: Set<string>): string[][] {
+  const phrases: string[][] = [];
+  let words: string[] = [];
+  let word = '';
+  const endWord = () => {
+    if (word !== '') words.push(word);
+    word = '';
+  };
+  const endPhrase = () => {
+    endWord();
+    if (words.length > 0) phrases.push(words);
+    words = [];
+  };
+
+  for (const ch of text.normalize('NFC')) {
+    if (letters.has(ch)) word += ch.toLowerCase();
+    else if (ch === ' ') endWord();
+    else endPhrase();
+  }
+  endPhrase();
+  return phrases;
+}
+
+/**
+ * Words of `text` that no headword accounts for. Longest match first, so a
+ * headword printed as two words (bo çi, THK06:173) is matched as the phrase it
+ * is cited as; its halves are not admitted on their own, because a bare `bo` is
+ * a word this corpus never cites.
+ */
+function unknownWords(text: string, letters: Set<string>, lexicon: Set<string>, longest: number): string[] {
+  const unknown: string[] = [];
+
+  for (const phrase of taughtPhrases(text, letters)) {
+    let i = 0;
+    while (i < phrase.length) {
+      let taken = 0;
+      for (let n = Math.min(longest, phrase.length - i); n >= 1; n -= 1) {
+        if (lexicon.has(phrase.slice(i, i + n).join(' '))) {
+          taken = n;
+          break;
+        }
+      }
+      if (taken === 0) {
+        unknown.push(phrase[i]);
+        i += 1;
+      } else {
+        i += taken;
+      }
+    }
+  }
+
+  return unknown;
+}
+
+/**
+ * LEX-01. An exercise is authored pedagogy, not a fact copied off a page, so
+ * unlike a vocabulary entry it has no citation of its own and SRC has nothing
+ * to say about it. What keeps it verifiable is that it asserts no new word:
+ * every taught token in it has to be a headword the glossary already cites, so
+ * the exercise inherits the provenance of the words it is built from.
+ *
+ * Case is folded before the lookup, so a sentence-initial capital is the same
+ * word; nothing else is folded, and ll and rr in particular are left alone
+ * (THK06:88), so `gul` does not pass as `gull`.
+ *
+ * There is no allowlist for inflected forms. Sorani inflects, and a lesson that
+ * needs a form the headword list does not carry will have to add one, but it
+ * would be a taught string with no page behind it, so it has to answer for
+ * itself in the data the way an authored theme label or lesson title does. An
+ * empty hook here would be a way past the rule that nothing had to explain.
+ */
+export function checkExerciseLexicon(
+  exercises: LexExercise[],
+  headwords: string[],
+  spec: OrthographySpec,
+): ContentIssue[] {
+  const letters = new Set([...spec.letters, ...spec.lettersUpper]);
+  const lexicon = new Set(headwords.map((w) => w.normalize('NFC').toLowerCase()));
+  const longest = [...lexicon].reduce((n, w) => Math.max(n, w.split(' ').length), 1);
+  const issues: ContentIssue[] = [];
+
+  for (const ex of exercises) {
+    const fields: { field: string; text: string }[] = [];
+    if (ex.questionKu !== undefined) fields.push({ field: 'questionKu', text: ex.questionKu });
+    (ex.pairs ?? []).forEach((pair, i) => fields.push({ field: `pairs[${i}].ku`, text: pair.ku }));
+    if (ex.answerIn === 'ckb') {
+      (ex.options ?? []).forEach((option, i) => fields.push({ field: `options[${i}]`, text: option }));
+      if (Array.isArray(ex.correctAnswer)) {
+        ex.correctAnswer.forEach((a, i) => fields.push({ field: `correctAnswer[${i}]`, text: a }));
+      } else {
+        fields.push({ field: 'correctAnswer', text: ex.correctAnswer });
+      }
+    }
+
+    for (const { field, text } of fields) {
+      for (const token of new Set(unknownWords(text, letters, lexicon, longest))) {
+        issues.push({
+          severity: 'error',
+          rule: 'LEX-01',
+          message: `[LEX-01] Exercise "${ex.id}" ${field}: "${token}" is not a cited vocabulary headword. An exercise carries no citation of its own, so every taught token in one has to be a word the glossary already cites.`,
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
 /** Returns every content issue, errors and informational notes alike. */
 export function validateContentDetailed(): ContentIssue[] {
   const problems: ContentIssue[] = [];
@@ -286,59 +481,7 @@ export function validateContentDetailed(): ContentIssue[] {
       for (const lesson of unit.lessons) {
         const exercises = getExercisesForLesson(lesson.id);
         lessonSummaries.push({ id: lesson.id, title: lesson.title, exerciseCount: exercises.length });
-        if (exercises.length === 0) {
-          continue;
-        }
-        for (const ex of exercises) {
-          const ca = ex.correctAnswer;
-          if (ex.type === 'multiple_choice') {
-            if (!ex.options || ex.options.length < 2) {
-              problems.push({ severity: 'error', message: `Exercise "${ex.id}" (multiple_choice) has fewer than 2 options.` });
-            } else if (typeof ca !== 'string') {
-              problems.push({ severity: 'error', message: `Exercise "${ex.id}" (multiple_choice) correctAnswer must be a string.` });
-            } else if (!ex.options.includes(ca)) {
-              problems.push({ severity: 'error', message: `Exercise "${ex.id}" correctAnswer "${ca}" is not among its options [${ex.options.join(', ')}].` });
-            }
-          } else if (ex.type === 'true_false') {
-            if (ca !== 'True' && ca !== 'False') {
-              problems.push({ severity: 'error', message: `Exercise "${ex.id}" (true_false) correctAnswer must be "True" or "False", got "${String(ca)}".` });
-            }
-          } else if (ex.type === 'translation' || ex.type === 'fill_blank') {
-            if (typeof ca !== 'string' || ca.trim() === '') {
-              problems.push({ severity: 'error', message: `Exercise "${ex.id}" (${ex.type}) correctAnswer must be a non-empty string.` });
-            }
-          } else if (ex.type === 'match_pairs') {
-            if (!ex.pairs || ex.pairs.length < 2) {
-              problems.push({ severity: 'error', message: `Exercise "${ex.id}" (match_pairs) needs at least 2 pairs.` });
-            } else {
-              ex.pairs.forEach((p, pi) => {
-                if (!p.ku || !p.en) {
-                  problems.push({ severity: 'error', message: `Exercise "${ex.id}" pair ${pi + 1} is missing a Kurdish word or meaning.` });
-                }
-              });
-            }
-          }
-
-          // Turkish parity (only checked where a translation exists, so untranslated
-          // content is silent). For choice-based exercises, optionsTr + correctAnswerTr
-          // must come as a complete pair (so resolveChoices never desyncs) and the
-          // answer must be among the options. Typed exercises (translation/fill_blank)
-          // may legitimately carry only correctAnswerTr (a fill-in gloss), so they are
-          // exempt from the pairing rule.
-          const isChoice = ex.type === 'multiple_choice';
-          if (isChoice && (ex.optionsTr || ex.correctAnswerTr !== undefined)) {
-            if (!ex.optionsTr || ex.correctAnswerTr === undefined) {
-              problems.push({ severity: 'error', message: `Exercise "${ex.id}" has a partial Turkish choice set (optionsTr and correctAnswerTr must both be present).` });
-            } else {
-              const caTr = ex.correctAnswerTr;
-              if (typeof caTr === 'string' && !ex.optionsTr.includes(caTr)) {
-                problems.push({ severity: 'error', message: `Exercise "${ex.id}" correctAnswerTr "${caTr}" is not among its optionsTr [${ex.optionsTr.join(', ')}].` });
-              }
-            }
-          } else if (!isChoice && ex.optionsTr) {
-            problems.push({ severity: 'error', message: `Exercise "${ex.id}" (${ex.type}) should not define optionsTr.` });
-          }
-        }
+        problems.push(...checkExerciseShapes(exercises));
       }
     }
   }
@@ -458,8 +601,8 @@ export function validateContentDetailed(): ContentIssue[] {
 
   // Sorani lessons hold their exercises inline rather than in a keyed module, so
   // this reads the tree and not getExercisesForLesson, which answers for
-  // Kurmanji. Forty empty lessons are one TRACK-01 note while the track is in
-  // progress and forty errors the day it calls itself complete.
+  // Kurmanji. The lessons still without one are a single TRACK-01 note while the
+  // track is in progress, and one error each the day it calls itself complete.
   problems.push(
     ...checkLessonCoverage(
       CKB_COURSES.flatMap((course) =>
@@ -472,6 +615,24 @@ export function validateContentDetailed(): ContentIssue[] {
         ),
       ),
       CKB_POLICY,
+    ),
+  );
+
+  // The Sorani exercises, under the shape rules every track answers to and under
+  // LEX-01 on top of them. LEX-01 is the whole of an exercise's provenance: it
+  // cites no page of its own, so every taught token in one has to be a word that
+  // does. The lexicon is the vocabulary and nothing else: a theme label or a
+  // lesson title may be authored rather than cited, and an exercise may not
+  // borrow one of those to teach with.
+  const ckbExercises = CKB_COURSES.flatMap((course) =>
+    course.units.flatMap((unit) => unit.lessons.flatMap((lesson) => lesson.exercises)),
+  );
+  problems.push(...checkExerciseShapes(ckbExercises));
+  problems.push(
+    ...checkExerciseLexicon(
+      ckbExercises,
+      CKB_VOCABULARY.map((word) => word.wordKu),
+      SORANI_LATIN,
     ),
   );
 

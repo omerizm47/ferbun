@@ -12,8 +12,9 @@
 // matches the corpus, that the one label the glossary cannot cite is exempt
 // from the citation rule and from nothing else, that the Sorani course tree is
 // the shape the Learn tab expects and every one of its titles says whether it is
-// cited or authored, and that the v1→v2 progress migration carries a real
-// user's stored blob across without touching a single global.
+// cited or authored, that every Sorani token in an authored exercise is a
+// headword the glossary already cites, and that the v1→v2 progress migration
+// carries a real user's stored blob across without touching a single global.
 // What no assertion here can do is open the book. `npm run verify-citations`
 // does that, and is a separate script because it needs a PDF this repository
 // does not carry.
@@ -39,6 +40,8 @@ import {
   checkChrome,
   checkCitedEntries,
   checkDuplicateIds,
+  checkExerciseLexicon,
+  checkExerciseShapes,
   checkLessonCoverage,
   validateContent,
   validateContentDetailed,
@@ -72,6 +75,10 @@ import {
   FULL_KMR_TRACK,
   ILLEGAL_LETTER_CHROME,
   INHERITED_TRACK_PROGRESS,
+  LEX_CITED_EXERCISE,
+  LEX_HEADWORDS,
+  LEX_SAMPLES,
+  LEX_UNCITED_EXERCISE,
   MINIMAL_PAIR_TRANSCRIPTIONS,
   MIXED_PROGRESS,
   PARTIAL_CKB_TRACK,
@@ -146,10 +153,10 @@ check('shipped corpus has no content errors', corpusErrors.length === 0, corpusE
 
 // Wiring the Sorani track into validateContentDetailed() put two notes into the
 // shipped run: every ckb chrome slot is still pending, which is a note while the
-// track is in progress and 95 errors the day it calls itself complete, and every
-// ckb lesson is still without exercises, which is the same bargain over the
-// forty lessons the course tree now ships. Both are spelled out in full rather
-// than counted, so a third note cannot slip in behind them unread.
+// track is in progress and 95 errors the day it calls itself complete, and the
+// twenty-eight lessons of courses 2 and 3 are still without exercises, which is
+// the same bargain. Both are spelled out in full rather than counted, so a third
+// note cannot slip in behind them unread.
 const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
   {
     rule: 'CHROME-02',
@@ -161,7 +168,7 @@ const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
   {
     rule: 'TRACK-01',
     message:
-      '[TRACK-01] Track "ckb" is in progress: 0 of 40 lessons authored (40 empty). ' +
+      '[TRACK-01] Track "ckb" is in progress: 12 of 40 lessons authored (28 empty). ' +
       'Empty lessons are not errors until the track is complete, and mechanical checks never ' +
       'confirm meaning or idiom.',
   },
@@ -226,10 +233,11 @@ check(
   ckb.policy.orthography?.id ?? 'null',
 );
 
-// 10. The half of the ckb track that is still unauthored, the stories and the
-// exercises, answers every accessor rather than throwing, so a screen rendering
-// it gets an empty state instead of a crash. The vocabulary and the course tree
-// are authored and are checked below.
+// 10. The half of the ckb track that is still unauthored, the stories, the
+// teach cards and the exercises of the twenty-eight lessons outside course 1,
+// answers every accessor rather than throwing, so a screen rendering it gets an
+// empty state instead of a crash. The vocabulary, the course tree and the
+// exercises that are authored are checked below.
 const ckbContent = ckb.content;
 
 // The vocab-theme accessor used to be probed with the id of a theme the Sorani
@@ -253,14 +261,23 @@ let ckbEmpty = false;
 let ckbThrew = '';
 const ckbUnits = CKB_COURSES.flatMap((course) => course.units);
 const ckbLessons = ckbUnits.flatMap((unit) => unit.lessons);
+// A lesson no exercise has been authored for yet, found rather than named, so
+// this probe goes vacuous the day course 3 lands instead of quietly asking
+// about a lesson that now has content.
+const ckbUnauthored = ckbLessons.find((lesson) => lesson.exercises.length === 0);
+check(
+  'a Sorani lesson without exercises is still there to probe the empty accessors with',
+  ckbUnauthored !== undefined,
+  ckbUnauthored?.id ?? 'every lesson is authored',
+);
 try {
   ckbEmpty =
     ckbContent.stories.length === 0 &&
     ckbContent.getStoryById('s1') === undefined &&
     ckbContent.getVocabByTheme(ckbMissingTheme).length === 0 &&
     ckbContent.getVocabById('v1') === undefined &&
-    ckbContent.getExercisesForLesson(ckbLessons[0].id).length === 0 &&
-    ckbContent.getOrderedExercisesForLesson(ckbLessons[0].id).length === 0 &&
+    ckbContent.getExercisesForLesson(ckbUnauthored?.id ?? '').length === 0 &&
+    ckbContent.getOrderedExercisesForLesson(ckbUnauthored?.id ?? '').length === 0 &&
     ckbContent.getLessonTeachCards(ckbLessons[0].id).length === 0;
 } catch (err) {
   ckbThrew = err instanceof Error ? err.message : String(err);
@@ -1210,6 +1227,163 @@ check(
     authoredStillGraded.some((i) => i.rule === 'ORTH-01') &&
     authoredStillGraded.some((i) => i.rule === 'GLOSS-01'),
   summarise(authoredStillGraded),
+);
+
+// 19. LEX-01, which is the whole of an exercise's provenance. A vocabulary entry
+// cites the page it was copied off; an exercise is authored pedagogy and has no
+// page to cite, so what is checked instead is that it asserts no word the
+// glossary does not already carry.
+const lexClean = checkExerciseLexicon([LEX_CITED_EXERCISE], LEX_HEADWORDS, SORANI_LATIN);
+check('an exercise built only from cited headwords raises nothing', lexClean.length === 0, summarise(lexClean));
+
+// The unguarded path, run before the guard: the exercise that teaches heval
+// passes every rule that predates LEX-01, one by one.
+const uncitedFields = [LEX_UNCITED_EXERCISE.questionKu ?? '', ...(LEX_UNCITED_EXERCISE.options ?? [])];
+check(
+  'every field of the exercise teaching an uncited word is legal under the p. 88 alphabet',
+  uncitedFields.every((field) => checkOrthography(field, SORANI_LATIN).length === 0),
+  uncitedFields.filter((field) => checkOrthography(field, SORANI_LATIN).length > 0).join(',') || 'all legal',
+);
+const uncitedShape = checkExerciseShapes([
+  {
+    id: LEX_UNCITED_EXERCISE.id,
+    lessonId: 'fx-lex',
+    type: 'multiple_choice',
+    options: LEX_UNCITED_EXERCISE.options,
+    correctAnswer: LEX_UNCITED_EXERCISE.correctAnswer,
+    order: 1,
+  },
+]);
+check(
+  'and its shape is sound: four options, the answer among them, no partial Turkish set',
+  uncitedShape.length === 0,
+  summarise(uncitedShape),
+);
+check(
+  'and the word it teaches raises nothing at all once it is cited and glossed, so no rule that predates LEX-01 would have reported it',
+  checkCitedEntries(
+    [{ id: 'fx-lex-heval', taught: { wordKu: 'heval' }, src: 'THK06:2', glossEn: 'friend', glossTr: 'arkadaş' }],
+    FIXTURE_CKB_POLICY,
+  ).length === 0,
+);
+const lexUncited = checkExerciseLexicon([LEX_UNCITED_EXERCISE], LEX_HEADWORDS, SORANI_LATIN);
+check(
+  'LEX-01 fires on it twice, once for the option and once for the answer, naming the word each time',
+  lexUncited.length === 2 &&
+    lexUncited.every((i) => i.severity === 'error' && i.rule === 'LEX-01' && i.message.includes('"heval"')) &&
+    lexUncited.some((i) => i.message.includes('options[0]')) &&
+    lexUncited.some((i) => i.message.includes('correctAnswer:')),
+  summarise(lexUncited),
+);
+
+// answerIn is the one thing the rule takes on the author's word, so both halves
+// of that bargain are shown: it governs the answer side, and it governs nothing
+// else.
+const lexAsBridge = checkExerciseLexicon(
+  [{ ...LEX_UNCITED_EXERCISE, answerIn: 'bridge' }],
+  LEX_HEADWORDS,
+  SORANI_LATIN,
+);
+check(
+  'the same exercise declared bridge-sided raises nothing on its options, which would then be glosses',
+  lexAsBridge.length === 0,
+  summarise(lexAsBridge),
+);
+const lexBridgePrompt = checkExerciseLexicon(
+  [{ id: 'fx-lex-prompt', answerIn: 'bridge', questionKu: 'heval', correctAnswer: 'friend' }],
+  LEX_HEADWORDS,
+  SORANI_LATIN,
+);
+check(
+  'but questionKu is read whichever way the answer side is declared, so the declaration cannot silence a taught prompt',
+  lexBridgePrompt.length === 1 && lexBridgePrompt[0].message.includes('questionKu'),
+  summarise(lexBridgePrompt),
+);
+const lexPairs = checkExerciseLexicon(
+  [{ id: 'fx-lex-pairs', answerIn: 'bridge', correctAnswer: '', pairs: [{ ku: 'gull' }, { ku: 'heval' }] }],
+  LEX_HEADWORDS,
+  SORANI_LATIN,
+);
+check(
+  'and so is every pairs[].ku, with only the uncited half of the pair firing',
+  lexPairs.length === 1 && lexPairs[0].message.includes('pairs[1].ku'),
+  summarise(lexPairs),
+);
+
+// What the tokeniser does with everything that is not a letter, and with the
+// three cases where a word and a headword do not line up one to one.
+for (const sample of LEX_SAMPLES) {
+  const issues = checkExerciseLexicon(
+    [{ id: 'fx-lex-sample', answerIn: 'bridge', questionKu: sample.text, correctAnswer: '' }],
+    LEX_HEADWORDS,
+    SORANI_LATIN,
+  );
+  check(
+    `${sample.why}: "${sample.text}" leaves ${sample.unknown.join(', ') || 'nothing'} unaccounted for`,
+    issues.length === sample.unknown.length &&
+      sample.unknown.every((token) => issues.some((i) => i.message.includes(`"${token}"`))),
+    summarise(issues),
+  );
+}
+
+// 20. The shipped Sorani exercises, under the same rule and under the shape
+// rules that until now only ran over the Kurmanji corpus.
+const ckbShippedExercises = ckbLessons.flatMap((lesson) => lesson.exercises);
+const ckbAuthoredLessons = ckbLessons.filter((lesson) => lesson.exercises.length > 0);
+check(
+  'the twelve authored Sorani lessons are the twelve of course 1, and each carries six exercises',
+  ckbAuthoredLessons.length === 12 &&
+    ckbShippedExercises.length === 72 &&
+    ckbAuthoredLessons.every((lesson) => lesson.exercises.length === 6 && lesson.id.startsWith('ckb-l')) &&
+    CKB_COURSES[0].units.flatMap((unit) => unit.lessons).every((lesson) => lesson.exercises.length === 6),
+  `${ckbShippedExercises.length} exercises across ${ckbAuthoredLessons.length} lessons`,
+);
+const ckbShippedShapes = checkExerciseShapes(ckbShippedExercises);
+check('every shipped Sorani exercise is answerable', ckbShippedShapes.length === 0, summarise(ckbShippedShapes));
+const ckbHeadwords = CKB_VOCABULARY.map((word) => word.wordKu);
+const ckbShippedLex = checkExerciseLexicon(ckbShippedExercises, ckbHeadwords, SORANI_LATIN);
+check(
+  'and every Sorani token in one is a headword the glossary already cites',
+  ckbShippedLex.length === 0,
+  summarise(ckbShippedLex),
+);
+const withoutOneHeadword = checkExerciseLexicon(
+  ckbShippedExercises,
+  ckbHeadwords.filter((word) => word !== 'sllaw'),
+  SORANI_LATIN,
+);
+check(
+  'dropping one headword from the lexicon makes the same run fire, so the clean result above is not vacuous',
+  withoutOneHeadword.length > 0 && withoutOneHeadword.every((i) => i.message.includes('"sllaw"')),
+  summarise(withoutOneHeadword),
+);
+const ckbExerciseIdIssues = checkDuplicateIds(ckbShippedExercises.map((ex) => ex.id), 'Sorani exercises');
+check(
+  'no Sorani exercise id repeats',
+  ckbExerciseIdIssues.length === 0,
+  summarise(ckbExerciseIdIssues),
+);
+const ckbMisfiled = ckbAuthoredLessons.flatMap((lesson) =>
+  lesson.exercises.filter((ex) => ex.lessonId !== lesson.id).map((ex) => ex.id),
+);
+check(
+  'and every one of them names the lesson it hangs off',
+  ckbMisfiled.length === 0,
+  ckbMisfiled.join(',') || 'none',
+);
+
+// They reach the screens through the registry or they do not ship, and the
+// Lesson screen reads the ordered accessor, not the raw one.
+const firstLesson = ckbContent.getExercisesForLesson('ckb-l1_1');
+const firstOrdered = ckbContent.getOrderedExercisesForLesson('ckb-l1_1');
+const productionAt = firstOrdered.findIndex((ex) => ex.type === 'writing' || ex.type === 'translation');
+check(
+  'the registry serves lesson 1 of unit 1, recognition before production',
+  firstLesson.length === 6 &&
+    firstOrdered.length === 6 &&
+    productionAt > 0 &&
+    firstOrdered.slice(productionAt).every((ex) => ex.type === 'writing' || ex.type === 'translation'),
+  firstOrdered.map((ex) => ex.type).join(',') || 'none',
 );
 
 if (failures.length > 0) {

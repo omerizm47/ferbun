@@ -14,7 +14,7 @@
 
 import { ChromeSlot, PENDING } from '../src/data/chrome';
 import { SORANI_LATIN } from '../src/data/orthography';
-import { CitedEntry, TrackPolicy } from '../src/data/validate';
+import { CitedEntry, LexExercise, TrackPolicy } from '../src/data/validate';
 import { ProgressSnapshot, TrackSnapshot } from '../src/utils/badges';
 
 // A policy no production code owns, so tightening it here cannot change what
@@ -174,6 +174,50 @@ export const DUPLICATE_ID_ENTRIES: CitedEntry[] = [
 // Three ids with one repeat, so a rule that reported per occurrence rather than
 // per repeated id would be visible.
 export const DUPLICATE_THEME_IDS = ['family', 'body', 'family'];
+
+// The lexicon a fixture exercise may draw on, kept to six headwords so an
+// exercise can be read against it by eye. gull and xorr are the p. 2 and p. 3
+// minimal pairs this file already uses and rêkkewtin and berrêz the p. 89
+// samples; spas is p. 228. bo çi is the two-word sub-entry at p. 173, and it is
+// here because a headword printed as two words is the one case the rule cannot
+// settle token by token.
+export const LEX_HEADWORDS = ['gull', 'xorr', 'r\u00EAkkewtin', 'berr\u00EAz', 'spas', 'bo \u00E7i'];
+
+// One exercise in two states, differing in a single word. Both are well formed
+// under every rule that predates LEX-01: legally spelled, two or more options,
+// the answer among them, no partial Turkish set. The difference is that the
+// second one teaches heval, which is the Kurmanji word for friend and is not a
+// headword this corpus cites, so shipping it would have the app assert a Sorani
+// word on its own authority.
+export const LEX_CITED_EXERCISE: LexExercise = {
+  id: 'fx-lex-cited',
+  answerIn: 'ckb',
+  questionKu: 'Gull.',
+  options: ['spas', 'gull', 'xorr', 'berr\u00EAz'],
+  correctAnswer: 'spas',
+};
+
+export const LEX_UNCITED_EXERCISE: LexExercise = {
+  id: 'fx-lex-uncited',
+  answerIn: 'ckb',
+  questionKu: 'Gull.',
+  options: ['heval', 'gull', 'xorr', 'berr\u00EAz'],
+  correctAnswer: 'heval',
+};
+
+// What the tokeniser has to do with everything that is not a letter, and with
+// the three cases where a word and a headword do not line up one to one. Each
+// text is read as a questionKu, which is a taught field whichever way the
+// answer side is declared.
+export const LEX_SAMPLES: { why: string; text: string; unknown: string[] }[] = [
+  { why: 'punctuation, digits and the fill_blank slot marker are separators, never tokens', text: 'Gull, xorr: ____ (11)!', unknown: [] },
+  { why: 'a leading capital is the same word', text: 'Gull', unknown: [] },
+  { why: 'a headword printed as two words is matched as the phrase it is cited as', text: 'bo \u00E7i', unknown: [] },
+  { why: 'and neither half of it is a headword on its own', text: 'bo', unknown: ['bo'] },
+  { why: 'll is not folded to l, so the leper does not pass as the flower', text: 'gul', unknown: ['gul'] },
+  { why: 'a word from the other track is not a Sorani headword', text: 'heval', unknown: ['heval'] },
+  { why: 'a character outside the p. 88 alphabet cuts the word around it into fragments, which are not headwords either', text: 'gu\u0142l', unknown: ['gu', 'l'] },
+];
 
 export const FIXTURE_LESSONS = [
   { id: 'fx-l1', title: 'A', exerciseCount: 3 },

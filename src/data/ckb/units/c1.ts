@@ -3,7 +3,10 @@
 // above each unit records which theme each of its lessons draws on and which
 // words, because the exercises milestone has to pick from exactly that pool and
 // the Lesson type has no field for it.
+// The exercises themselves are authored in ./c1-exercises.ts and attached
+// below, one array per lesson.
 
+import { CKB_L1_1, CKB_L1_2, CKB_L1_3, CKB_L1_4, CKB_L2_1, CKB_L2_2, CKB_L2_3, CKB_L2_4, CKB_L3_1, CKB_L3_2, CKB_L3_3, CKB_L3_4 } from './c1-exercises';
 import { REVIEW_TITLE, REVIEW_TITLE_KU } from './review';
 import type { SoraniUnit } from '../courses';
 
@@ -23,12 +26,12 @@ export const CKB_C1_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l1_1', unitId: 'ckb-u1', title: 'Greetings & Friends', titleKu: 'dost',
-        titleTr: 'Selamlaşma & Arkadaşlar', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Selamlaşma & Arkadaşlar', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L1_1,
         titleOrigin: 'cited', src: 'THK06:182', from: 'dost',
       },
       {
         id: 'ckb-l1_2', unitId: 'ckb-u1', title: 'Yes, No & Common Words', titleKu: 'erê u ne',
-        titleTr: 'Evet, Hayır & Sık Kelimeler', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Evet, Hayır & Sık Kelimeler', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L1_2,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from erê "yes" (THK06:164, are) and ne "no" (THK06:208, na), joined by ' +
@@ -36,7 +39,7 @@ export const CKB_C1_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l1_3', unitId: 'ckb-u1', title: 'This, That & Questions', titleKu: 'eme u ew',
-        titleTr: 'Bu, Şu & Sorular', type: 'grammar', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Bu, Şu & Sorular', type: 'grammar', order: 3, xpReward: 10, exercises: CKB_L1_3,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from the two demonstratives the lesson opens on, eme "this" (THK06:163, ama) ' +
@@ -46,7 +49,7 @@ export const CKB_C1_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l1_4', unitId: 'ckb-u1', title: 'Review: Basics', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Temeller', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Temeller', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L1_4,
         ...REVIEW_TITLE,
       },
     ],
@@ -67,7 +70,7 @@ export const CKB_C1_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l2_1', unitId: 'ckb-u2', title: 'Parents & Siblings', titleKu: 'bawk u dayk',
-        titleTr: 'Anne Baba & Kardeşler', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Anne Baba & Kardeşler', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L2_1,
         titleOrigin: 'authored',
         titleNote:
           'Composed for this app from bawk "father" (THK06:171, bâwk) and dayk "mother" (THK06:181, dâyk), ' +
@@ -76,17 +79,17 @@ export const CKB_C1_UNITS: SoraniUnit[] = [
       },
       {
         id: 'ckb-l2_2', unitId: 'ckb-u2', title: 'Children & Young People', titleKu: 'minall',
-        titleTr: 'Çocuklar & Gençler', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Çocuklar & Gençler', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L2_2,
         titleOrigin: 'cited', src: 'THK06:207', from: 'minâł',
       },
       {
         id: 'ckb-l2_3', unitId: 'ckb-u2', title: 'People & Nation', titleKu: 'xellk',
-        titleTr: 'İnsanlar & Ulus', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'İnsanlar & Ulus', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L2_3,
         titleOrigin: 'cited', src: 'THK06:196', from: 'khałk',
       },
       {
         id: 'ckb-l2_4', unitId: 'ckb-u2', title: 'Review: People', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: İnsanlar', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: İnsanlar', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L2_4,
         ...REVIEW_TITLE,
       },
     ],
@@ -110,22 +113,22 @@ export const CKB_C1_UNITS: SoraniUnit[] = [
     lessons: [
       {
         id: 'ckb-l3_1', unitId: 'ckb-u3', title: 'Food & Drink', titleKu: 'xorak',
-        titleTr: 'Yiyecek & İçecek', type: 'vocab', order: 1, xpReward: 10, exercises: [],
+        titleTr: 'Yiyecek & İçecek', type: 'vocab', order: 1, xpReward: 10, exercises: CKB_L3_1,
         titleOrigin: 'cited', src: 'THK06:199', from: 'khorâk',
       },
       {
         id: 'ckb-l3_2', unitId: 'ckb-u3', title: 'At the Table', titleKu: 'mêz',
-        titleTr: 'Sofrada', type: 'vocab', order: 2, xpReward: 10, exercises: [],
+        titleTr: 'Sofrada', type: 'vocab', order: 2, xpReward: 10, exercises: CKB_L3_2,
         titleOrigin: 'cited', src: 'THK06:207', from: 'mez',
       },
       {
         id: 'ckb-l3_3', unitId: 'ckb-u3', title: 'Around the House', titleKu: 'mall',
-        titleTr: 'Evde', type: 'vocab', order: 3, xpReward: 10, exercises: [],
+        titleTr: 'Evde', type: 'vocab', order: 3, xpReward: 10, exercises: CKB_L3_3,
         titleOrigin: 'cited', src: 'THK06:206', from: 'mâł',
       },
       {
         id: 'ckb-l3_4', unitId: 'ckb-u3', title: 'Review: Everyday', titleKu: REVIEW_TITLE_KU,
-        titleTr: 'Tekrar: Günlük', type: 'vocab', order: 4, xpReward: 10, exercises: [],
+        titleTr: 'Tekrar: Günlük', type: 'vocab', order: 4, xpReward: 10, exercises: CKB_L3_4,
         ...REVIEW_TITLE,
       },
     ],

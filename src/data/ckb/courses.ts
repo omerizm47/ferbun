@@ -2,9 +2,11 @@
 // courses, ten units, forty lessons, the same shape and the same
 // beginner-to-advanced arc as the Kurmanji tree in ../courses.ts, resting on the
 // 255 words the seventeen ./vocab themes teach.
-// No exercises: every lesson ships with an empty `exercises` array, which the
-// Lesson screen answers with its "coming soon" state and validate.ts reports as
-// one TRACK-01 note while the track is in progress.
+// The twelve lessons of course 1 carry their exercises, authored in
+// ./units/c1-exercises.ts and attached in ./units/c1.ts. The other twenty-eight
+// still ship an empty `exercises` array, which the Lesson screen answers with
+// its "coming soon" state and validate.ts reports as one TRACK-01 note while the
+// track is in progress.
 //
 // WHY A TITLE CARRIES A PROVENANCE FIELD. A course, unit or lesson title is
 // authored navigation copy, not taught vocabulary, and most of them name a class
@@ -34,6 +36,7 @@
 import { CKB_C1_UNITS } from './units/c1';
 import { CKB_C2_UNITS } from './units/c2';
 import { CKB_C3_UNITS } from './units/c3';
+import type { SoraniExercise } from './exercises';
 import type { Course, Lesson, Unit } from '../types';
 
 /** A title whose Sorani wording is a headword Thackston prints, carrying the locator for it. */
@@ -65,7 +68,9 @@ export interface AuthoredTitle {
 /** Cited or authored, never both and never neither. */
 export type SoraniTitle = CitedTitle | AuthoredTitle;
 
-export type SoraniLesson = Lesson & SoraniTitle;
+// The exercises are narrowed to the Sorani variant, so a lesson cannot hold one
+// that has not declared which side of it is Sorani.
+export type SoraniLesson = Omit<Lesson, 'exercises'> & { exercises: SoraniExercise[] } & SoraniTitle;
 export type SoraniUnit = Omit<Unit, 'lessons'> & { lessons: SoraniLesson[] } & SoraniTitle;
 export type SoraniCourse = Omit<Course, 'units'> & { units: SoraniUnit[] } & SoraniTitle;
 
