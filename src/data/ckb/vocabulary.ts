@@ -1,5 +1,6 @@
-// Fêrbûn: the Sorani vocabulary barrel. Seven themes so far: family, body,
-// home, nature, animals, description and numbers, one file each under ./vocab.
+// Fêrbûn: the Sorani vocabulary barrel. Ten themes so far: greetings, family,
+// body, home, clothing, food, nature, animals, description and numbers, one
+// file each under ./vocab.
 // Source: Thackston, W. M., "Sorani Kurdish: A Reference Grammar with Selected
 // Readings", declared as THK06 in src/data/sources.ts.
 //
@@ -21,8 +22,11 @@ import type { VocabWord } from '../types';
 import type { VocabTheme } from '../vocabulary';
 import { CKB_ANIMALS } from './vocab/animals';
 import { CKB_BODY } from './vocab/body';
+import { CKB_CLOTHING } from './vocab/clothing';
 import { CKB_DESCRIPTION } from './vocab/description';
 import { CKB_FAMILY } from './vocab/family';
+import { CKB_FOOD } from './vocab/food';
+import { CKB_GREETINGS } from './vocab/greetings';
 import { CKB_HOME } from './vocab/home';
 import { CKB_NATURE } from './vocab/nature';
 import { CKB_NUMBERS } from './vocab/numbers';
@@ -63,9 +67,12 @@ export const CKB_GLOSS_PROVENANCE =
 // export. Theme order follows VOCAB_THEMES, so the two Words screens list the
 // themes they share in the same order.
 export const CKB_VOCABULARY: SoraniVocabWord[] = [
+  ...CKB_GREETINGS,
   ...CKB_FAMILY,
   ...CKB_BODY,
   ...CKB_HOME,
+  ...CKB_CLOTHING,
+  ...CKB_FOOD,
   ...CKB_NATURE,
   ...CKB_ANIMALS,
   ...CKB_DESCRIPTION,
@@ -76,6 +83,20 @@ export const CKB_VOCABULARY: SoraniVocabWord[] = [
 // as the same screen in two languages. labelKu is the only taught string here,
 // which is why it is the only part of a row that carries a locator.
 export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
+  // słâw is the same headword ./vocab/greetings.ts teaches for "greetings", and
+  // the only entry in the glossary glossed that way. It is the label for a
+  // theme whose English is "Greetings & Social", and no headword names the
+  // social half; the greeting is what the book can carry.
+  {
+    id: 'greetings',
+    label: 'Greetings & Social',
+    labelKu: 'sllaw',
+    labelTr: 'Selamlaşma & Sosyal',
+    icon: 'chatbubble-outline',
+    color: '#D2693E',
+    src: 'THK06:228',
+    from: 'słâw',
+  },
   {
     id: 'family',
     label: 'Family & People',
@@ -113,6 +134,32 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     color: '#8A5A38',
     src: 'THK06:206',
     from: 'mâł',
+  },
+  // jil is the same headword ./vocab/clothing.ts teaches for "clothes, togs".
+  // barg (p. 169, "clothes; cover") carries the same sense and is taught too,
+  // but its gloss runs on into the covering, which a theme label should not.
+  {
+    id: 'clothing',
+    label: 'Clothing',
+    labelKu: 'cil',
+    labelTr: 'Giysiler',
+    icon: 'shirt-outline',
+    color: '#A8743C',
+    src: 'THK06:193',
+    from: 'jil',
+  },
+  // khorâk is a bare one-word entry, "food", and it is the same headword
+  // ./vocab/food.ts teaches. The drink half of "Food & Drink" has no headword:
+  // âw (p. 167) is "water", the liquid and not the category.
+  {
+    id: 'food',
+    label: 'Food & Drink',
+    labelKu: 'xorak',
+    labelTr: 'Yiyecek & İçecek',
+    icon: 'restaurant-outline',
+    color: '#D99A1C',
+    src: 'THK06:199',
+    from: 'khorâk',
   },
   // sirusht is a bare one-word entry, "nature". p. 228 prints surisht beside
   // it as a cross-reference to this spelling, not as a rival with a gloss.

@@ -227,7 +227,7 @@ try {
     ckbContent.getLessonById('l1_1') === undefined &&
     ckbContent.getTotalLessons() === 0 &&
     ckbContent.getStoryById('s1') === undefined &&
-    ckbContent.getVocabByTheme('greetings').length === 0 &&
+    ckbContent.getVocabByTheme('time').length === 0 &&
     ckbContent.getVocabById('v1') === undefined &&
     ckbContent.getExercisesForLesson('l1_1').length === 0 &&
     ckbContent.getOrderedExercisesForLesson('l1_1').length === 0 &&
