@@ -10,9 +10,10 @@
 // corpus, that every Sorani spelling is the conversion table's output on the
 // transcription its entry stores, that the corpus's own provenance claim still
 // matches the corpus, that the one label the glossary cannot cite is exempt
-// from the citation rule and from nothing else, and that the v1→v2 progress
-// migration carries a real user's stored blob across without touching a single
-// global.
+// from the citation rule and from nothing else, that the Sorani course tree is
+// the shape the Learn tab expects and every one of its titles says whether it is
+// cited or authored, and that the v1→v2 progress migration carries a real
+// user's stored blob across without touching a single global.
 // What no assertion here can do is open the book. `npm run verify-citations`
 // does that, and is a separate script because it needs a PDF this repository
 // does not carry.
@@ -23,6 +24,8 @@
 
 import { readFileSync } from 'fs';
 import { CKB_CHROME, KMR_CHROME } from '../src/data/chrome';
+import { CKB_COURSES, CKB_TITLES, isCitedTitle } from '../src/data/ckb/courses';
+import { REVIEW_TITLE_KU } from '../src/data/ckb/units/review';
 import { CKB_GLOSS_PROVENANCE, CKB_VOCABULARY, CKB_VOCAB_THEMES, isCitedTheme } from '../src/data/ckb/vocabulary';
 import { DIGRAPH_MINIMAL_PAIRS, SORANI_LATIN, checkOrthography, foldDiacritics } from '../src/data/orthography';
 import { ALL_BADGES } from '../src/data/badges';
@@ -141,11 +144,12 @@ check(
 const corpusErrors = validateContent();
 check('shipped corpus has no content errors', corpusErrors.length === 0, corpusErrors.join(' | '));
 
-// Wiring the Sorani track into validateContentDetailed() put one note into the
+// Wiring the Sorani track into validateContentDetailed() put two notes into the
 // shipped run: every ckb chrome slot is still pending, which is a note while the
-// track is in progress and 95 errors the day it calls itself complete. The note
-// is spelled out in full rather than counted, so a second note cannot slip in
-// behind it unread.
+// track is in progress and 95 errors the day it calls itself complete, and every
+// ckb lesson is still without exercises, which is the same bargain over the
+// forty lessons the course tree now ships. Both are spelled out in full rather
+// than counted, so a third note cannot slip in behind them unread.
 const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
   {
     rule: 'CHROME-02',
@@ -153,6 +157,13 @@ const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
       '[CHROME-02] Track "ckb" is in progress: 0 of 95 chrome slots authored (95 pending). ' +
       'Pending slots are not errors until the track is complete, and a filled slot is still ' +
       'only checked for spelling and provenance, never for meaning.',
+  },
+  {
+    rule: 'TRACK-01',
+    message:
+      '[TRACK-01] Track "ckb" is in progress: 0 of 40 lessons authored (40 empty). ' +
+      'Empty lessons are not errors until the track is complete, and mechanical checks never ' +
+      'confirm meaning or idiom.',
   },
 ];
 const corpusNotes = validateContentDetailed().filter((i) => i.severity === 'info');
@@ -215,9 +226,10 @@ check(
   ckb.policy.orthography?.id ?? 'null',
 );
 
-// 10. The half of the ckb track that is still unauthored answers every accessor
-// rather than throwing, so a screen rendering it gets an empty state instead of
-// a crash. The vocabulary is authored and is checked below.
+// 10. The half of the ckb track that is still unauthored, the stories and the
+// exercises, answers every accessor rather than throwing, so a screen rendering
+// it gets an empty state instead of a crash. The vocabulary and the course tree
+// are authored and are checked below.
 const ckbContent = ckb.content;
 
 // The vocab-theme accessor used to be probed with the id of a theme the Sorani
@@ -239,25 +251,22 @@ check(
 
 let ckbEmpty = false;
 let ckbThrew = '';
+const ckbUnits = CKB_COURSES.flatMap((course) => course.units);
+const ckbLessons = ckbUnits.flatMap((unit) => unit.lessons);
 try {
   ckbEmpty =
-    ckbContent.courses.length === 0 &&
     ckbContent.stories.length === 0 &&
-    ckbContent.getCourseById('c1') === undefined &&
-    ckbContent.getUnitById('u1') === undefined &&
-    ckbContent.getLessonById('l1_1') === undefined &&
-    ckbContent.getTotalLessons() === 0 &&
     ckbContent.getStoryById('s1') === undefined &&
     ckbContent.getVocabByTheme(ckbMissingTheme).length === 0 &&
     ckbContent.getVocabById('v1') === undefined &&
-    ckbContent.getExercisesForLesson('l1_1').length === 0 &&
-    ckbContent.getOrderedExercisesForLesson('l1_1').length === 0 &&
-    ckbContent.getLessonTeachCards('l1_1').length === 0;
+    ckbContent.getExercisesForLesson(ckbLessons[0].id).length === 0 &&
+    ckbContent.getOrderedExercisesForLesson(ckbLessons[0].id).length === 0 &&
+    ckbContent.getLessonTeachCards(ckbLessons[0].id).length === 0;
 } catch (err) {
   ckbThrew = err instanceof Error ? err.message : String(err);
 }
 check(
-  'every unauthored ckb accessor returns empty or undefined without throwing',
+  'every ckb accessor still unauthored returns empty or undefined without throwing',
   ckbEmpty && ckbThrew === '',
   ckbThrew || 'an accessor returned a value',
 );
@@ -272,6 +281,40 @@ check(
     ckbContent.vocabThemes.every((t) => ckbContent.getVocabByTheme(t.id).length > 0) &&
     ckbContent.getVocabById(CKB_VOCABULARY[0].id)?.id === CKB_VOCABULARY[0].id,
   `${ckbContent.vocabulary.length} words in ${ckbContent.vocabThemes.length} theme(s)`,
+);
+
+// The course tree is what the Learn tab renders, so its shape is asserted as a
+// shape: the counts, the parent links every screen navigates on, and the three
+// lookups. The id spaces are disjoint from Kurmanji's by construction, and the
+// lookups are probed with a Kurmanji id to prove it, because a tree answering
+// 'l1_1' would be answering for the wrong track.
+check(
+  'the registry serves 3 Sorani courses, 10 units and 40 lessons, and getTotalLessons agrees',
+  ckbContent.courses.length === 3 &&
+    ckbUnits.length === 10 &&
+    ckbLessons.length === 40 &&
+    ckbContent.getTotalLessons() === ckbLessons.length,
+  `${ckbContent.courses.length} courses, ${ckbUnits.length} units, ${ckbLessons.length} lessons, getTotalLessons ${ckbContent.getTotalLessons()}`,
+);
+
+const ckbBrokenLinks = [
+  ...CKB_COURSES.flatMap((course) => course.units.filter((u) => u.courseId !== course.id).map((u) => u.id)),
+  ...ckbUnits.flatMap((unit) => unit.lessons.filter((l) => l.unitId !== unit.id).map((l) => l.id)),
+];
+check(
+  'every Sorani unit and lesson names the parent it is nested under',
+  ckbBrokenLinks.length === 0,
+  ckbBrokenLinks.join(',') || 'none',
+);
+
+check(
+  'the three Sorani tree lookups answer for a tree id and undefined for a Kurmanji one',
+  ckbContent.getCourseById(CKB_COURSES[2].id)?.id === CKB_COURSES[2].id &&
+    ckbContent.getUnitById(ckbUnits[9].id)?.id === ckbUnits[9].id &&
+    ckbContent.getLessonById(ckbLessons[39].id)?.id === ckbLessons[39].id &&
+    ckbContent.getCourseById('c1') === undefined &&
+    ckbContent.getUnitById('u1') === undefined &&
+    ckbContent.getLessonById('l1_1') === undefined,
 );
 
 // Progress is keyed by word id and stored per track, but a shared id would still
@@ -1055,6 +1098,59 @@ check(
   'every theme row holds the keys its labelOrigin admits and none of the other variant\u2019s, so the discriminant survives erasure',
   themeKeyDrift.length === 0,
   themeKeyDrift.join(',') || 'none',
+);
+
+// The same split, over the fifty-three titles of the course tree. A title is
+// navigation copy rather than taught vocabulary, so most of them are authored
+// phrases; the point of the discriminant is that being authored is stated in the
+// data and not left to a reader to infer from a missing src.
+const ckbCitedTitles = CKB_TITLES.filter((t) => isCitedTitle(t.origin));
+const ckbAuthoredTitles = CKB_TITLES.filter((t) => !isCitedTitle(t.origin));
+check(
+  'every title in the Sorani tree is cited or authored, and the tree holds both, so neither half is vacuous',
+  ckbCitedTitles.length > 0 &&
+    ckbAuthoredTitles.length > 0 &&
+    ckbCitedTitles.length + ckbAuthoredTitles.length === CKB_TITLES.length &&
+    CKB_TITLES.length === CKB_COURSES.length + ckbUnits.length + ckbLessons.length,
+  `${ckbCitedTitles.length} cited, ${ckbAuthoredTitles.length} authored of ${CKB_TITLES.length}`,
+);
+const titleKeyDrift = CKB_TITLES.filter((t) => {
+  const keys = Object.keys(t.origin);
+  const cited = keys.includes('src') && keys.includes('from');
+  const authored = keys.includes('titleNote');
+  return isCitedTitle(t.origin) ? !cited || authored : cited || !authored;
+}).map((t) => t.id);
+check(
+  'every title holds the keys its titleOrigin admits and none of the other variant\u2019s',
+  titleKeyDrift.length === 0,
+  titleKeyDrift.join(',') || 'none',
+);
+const titleUnexplained = CKB_TITLES.flatMap((t) =>
+  isCitedTitle(t.origin) ? [] : t.origin.titleNote.trim() === '' ? [t.id] : [],
+);
+check(
+  'and each authored title says in its titleNote what it is composed of, or why nothing can be cited',
+  titleUnexplained.length === 0,
+  titleUnexplained.join(',') || 'none',
+);
+const illegalTitles = CKB_TITLES.filter((t) => checkOrthography(t.titleKu, SORANI_LATIN).length > 0).map((t) => t.id);
+check(
+  'an authored title is still spelled in the p. 88 alphabet: only the citation is lifted, never the spelling',
+  illegalTitles.length === 0,
+  illegalTitles.join(',') || 'none',
+);
+
+// dûbare is the one authored title that is a single word rather than a phrase
+// built from cited headwords, and it is on ten lessons, so it is asserted to be
+// one word carrying one note rather than ten strings that happen to match today.
+const ckbReviews = ckbLessons.filter((l) => l.title.startsWith('Review:'));
+const reviewNotes = new Set(ckbReviews.map((l) => (l.titleOrigin === 'authored' ? l.titleNote : `cited:${l.id}`)));
+check(
+  'all ten Sorani review lessons carry the one authored word, with one note between them',
+  ckbReviews.length === 10 &&
+    ckbReviews.every((l) => l.titleKu === REVIEW_TITLE_KU && l.titleOrigin === 'authored') &&
+    reviewNotes.size === 1,
+  `${ckbReviews.length} reviews, ${reviewNotes.size} distinct note(s)`,
 );
 check(
   'no vocabulary entry is authored: the exemption reaches labels only, and a word without a src is not expressible',

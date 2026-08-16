@@ -3,17 +3,24 @@
 // in. Adding a variety means adding an entry here, not teaching a screen a new
 // id.
 // This file holds no taught content of its own. Kurmanji binds the shipped data
-// modules straight through, unchanged. Sorani binds the one corpus authored so
-// far, the family vocabulary, and registers empty courses and stories so an
-// unauthored half reads as a real, empty track instead of a crash; its
-// orthography contract is Thackston's conversion table (THK06:88), carried in
-// SORANI_LATIN. Endonyms are written in the Hawar alphabet with accented
-// letters escaped, so a lookalike cannot be pasted in unnoticed; they are
-// display labels, not speaker-reviewed learner content.
+// modules straight through, unchanged. Sorani binds the two corpora authored so
+// far, the vocabulary and the course tree, and registers empty stories and
+// empty exercise accessors so an unauthored half reads as a real, empty track
+// instead of a crash; its orthography contract is Thackston's conversion table
+// (THK06:88), carried in SORANI_LATIN. Endonyms are written in the Hawar
+// alphabet with accented letters escaped, so a lookalike cannot be pasted in
+// unnoticed; they are display labels, not speaker-reviewed learner content.
 // Script is a stored field and is never inferred from the id, so an
 // Arabic-script Sorani is a second script on the same track id.
 
 import { CKB_CHROME, KMR_CHROME, TaughtChrome } from './chrome';
+import {
+  CKB_COURSES,
+  getCkbCourseById,
+  getCkbLessonById,
+  getCkbTotalLessons,
+  getCkbUnitById,
+} from './ckb/courses';
 import {
   CKB_VOCABULARY,
   CKB_VOCAB_THEMES,
@@ -85,18 +92,20 @@ export const KMR_CONTENT: TrackContent = {
   getLessonTeachCards,
 };
 
-// Vocabulary is authored and bound through; courses and stories are not, so
-// they answer empty rather than throwing and a screen reading them shows its
-// empty state.
+// Vocabulary and the course tree are authored and bound through. Stories are
+// not, and neither are the exercises the forty lessons will hang off, so those
+// accessors answer empty rather than throwing and a screen reading them shows
+// its empty state: the Lesson screen's "coming soon" card for a lesson with no
+// exercises, the Stories tab's empty state for a track with no stories.
 export const CKB_CONTENT: TrackContent = {
-  courses: [],
+  courses: CKB_COURSES,
   stories: [],
   vocabulary: CKB_VOCABULARY,
   vocabThemes: CKB_VOCAB_THEMES,
-  getCourseById: () => undefined,
-  getUnitById: () => undefined,
-  getLessonById: () => undefined,
-  getTotalLessons: () => 0,
+  getCourseById: getCkbCourseById,
+  getUnitById: getCkbUnitById,
+  getLessonById: getCkbLessonById,
+  getTotalLessons: getCkbTotalLessons,
   getStoryById: () => undefined,
   getVocabByTheme: getCkbVocabByTheme,
   getVocabById: getCkbVocabById,

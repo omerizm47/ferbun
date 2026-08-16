@@ -12,6 +12,7 @@
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
 import { CKB_CHROME, ChromeSlot, KMR_CHROME } from './chrome';
+import { CKB_COURSES, CKB_TITLES, isCitedTitle } from './ckb/courses';
 import { CKB_VOCABULARY, CKB_VOCAB_THEMES, getCkbVocabByTheme, isCitedTheme } from './ckb/vocabulary';
 import { courses } from './courses';
 import { getExercisesForLesson } from './exercises';
@@ -70,10 +71,13 @@ export const CKB_POLICY: TrackPolicy = {
 };
 
 // The single exemption from CKB_POLICY, written as a policy of its own so it
-// stays exactly one rule wide: a vocab theme label naming a class the glossary
-// has no headword for is authored like its Turkish label and has no page to
-// cite. It is still spelled in the p. 88 alphabet and still glossed twice,
-// because those two fields are copied from CKB_POLICY rather than restated.
+// stays exactly one rule wide: a taught label naming a class the glossary has no
+// headword for is authored like its Turkish counterpart and has no page to cite.
+// Two kinds of label answer to it, a vocab theme's labelKu and a course, unit or
+// lesson titleKu, and both declare the exemption in the data, under labelOrigin
+// and titleOrigin. It is still spelled in the p. 88 alphabet and still glossed
+// twice, because those two fields are copied from CKB_POLICY rather than
+// restated.
 export const CKB_AUTHORED_LABEL_POLICY: TrackPolicy = { ...CKB_POLICY, requireCitation: false };
 
 // Called from validateContentDetailed() over the Sorani corpus, and covered
@@ -421,6 +425,55 @@ export function validateContentDetailed(): ContentIssue[] {
       problems.push({ severity: 'error', message: `Sorani vocab theme "${theme.id}" (${theme.label}) has no words.` });
     }
   }
+
+  // Course, unit and lesson titles, split by titleOrigin on the same footing as
+  // the theme labels above and joined to the same two arrays, so a title is not
+  // a second kind of taught string with a second set of rules.
+  for (const title of CKB_TITLES) {
+    const entry: CitedEntry = {
+      id: title.id,
+      taught: { titleKu: title.titleKu },
+      glossEn: title.titleEn,
+      glossTr: title.titleTr,
+    };
+    if (isCitedTitle(title.origin)) {
+      ckbEntries.push({ ...entry, src: title.origin.src });
+    } else {
+      ckbAuthoredLabels.push(entry);
+    }
+  }
+
+  // One id space, not three: a unit sharing an id with a lesson would still
+  // resolve, but not to the row anyone meant, and a repeated lesson id would
+  // put two lessons behind one progress key.
+  problems.push(
+    ...checkDuplicateIds(
+      CKB_COURSES.flatMap((course) => [
+        course.id,
+        ...course.units.flatMap((unit) => [unit.id, ...unit.lessons.map((lesson) => lesson.id)]),
+      ]),
+      'Sorani course tree',
+    ),
+  );
+
+  // Sorani lessons hold their exercises inline rather than in a keyed module, so
+  // this reads the tree and not getExercisesForLesson, which answers for
+  // Kurmanji. Forty empty lessons are one TRACK-01 note while the track is in
+  // progress and forty errors the day it calls itself complete.
+  problems.push(
+    ...checkLessonCoverage(
+      CKB_COURSES.flatMap((course) =>
+        course.units.flatMap((unit) =>
+          unit.lessons.map((lesson) => ({
+            id: lesson.id,
+            title: lesson.title,
+            exerciseCount: lesson.exercises.length,
+          })),
+        ),
+      ),
+      CKB_POLICY,
+    ),
+  );
 
   problems.push(...checkCitedEntries(ckbEntries, CKB_POLICY));
   problems.push(...checkCitedEntries(ckbAuthoredLabels, CKB_AUTHORED_LABEL_POLICY));
