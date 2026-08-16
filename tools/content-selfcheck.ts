@@ -16,7 +16,8 @@
 
 import { readFileSync } from 'fs';
 import { CKB_CHROME, KMR_CHROME } from '../src/data/chrome';
-import { DIGRAPH_MINIMAL_PAIRS, SORANI_LATIN, checkOrthography } from '../src/data/orthography';
+import { CKB_VOCABULARY } from '../src/data/ckb/vocabulary';
+import { DIGRAPH_MINIMAL_PAIRS, SORANI_LATIN, checkOrthography, foldDiacritics } from '../src/data/orthography';
 import { ALL_BADGES } from '../src/data/badges';
 import { TrackId, getTrack, isTrackId } from '../src/data/tracks';
 import {
@@ -29,6 +30,7 @@ import {
   validateContent,
   validateContentDetailed,
 } from '../src/data/validate';
+import { vocabulary } from '../src/data/vocabulary';
 import {
   PROGRESS_BACKUP_KEY,
   PROGRESS_SCHEMA_VERSION,
@@ -45,6 +47,8 @@ import { TrackSnapshot, computeBadges } from '../src/utils/badges';
 import {
   BAD_ENTRIES,
   CLEAN_ENTRY,
+  CONVERSION_GOLD,
+  CONVERSION_UNWITNESSED,
   EMPTY_CKB_TRACK,
   FIXTURE_CKB_POLICY,
   FIXTURE_COMPLETE_POLICY,
@@ -53,13 +57,17 @@ import {
   FULL_KMR_TRACK,
   ILLEGAL_LETTER_CHROME,
   INHERITED_TRACK_PROGRESS,
+  MINIMAL_PAIR_TRANSCRIPTIONS,
   MIXED_PROGRESS,
   PARTIAL_CKB_TRACK,
   PENDING_CHROME,
   ROLLBACK_V1_PROGRESS,
+  ROWS_WITHOUT_A_SAMPLE,
+  UNMAPPED_INPUT,
   V1_GLOBAL_KEYS,
   V1_PROGRESS,
 } from './content-selfcheck.fixture';
+import { THACKSTON_TO_HAWAR, toHawar } from './thackston-latin';
 
 const failures: string[] = [];
 let total = 0;
@@ -120,12 +128,34 @@ check(
 // 6. Regression: the shipped corpus is unaffected by any of the above.
 const corpusErrors = validateContent();
 check('shipped corpus has no content errors', corpusErrors.length === 0, corpusErrors.join(' | '));
+
+// Wiring the Sorani track into validateContentDetailed() put one note into the
+// shipped run: every ckb chrome slot is still pending, which is a note while the
+// track is in progress and 95 errors the day it calls itself complete. The note
+// is spelled out in full rather than counted, so a second note cannot slip in
+// behind it unread.
+const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
+  {
+    rule: 'CHROME-02',
+    message:
+      '[CHROME-02] Track "ckb" is in progress: 0 of 95 chrome slots authored (95 pending). ' +
+      'Pending slots are not errors until the track is complete, and a filled slot is still ' +
+      'only checked for spelling and provenance, never for meaning.',
+  },
+];
 const corpusNotes = validateContentDetailed().filter((i) => i.severity === 'info');
-check('shipped corpus raises no info notes', corpusNotes.length === 0, summarise(corpusNotes));
+check(
+  'shipped corpus raises exactly the expected notes, word for word',
+  corpusNotes.length === EXPECTED_CORPUS_NOTES.length &&
+    corpusNotes.every(
+      (note, i) => note.rule === EXPECTED_CORPUS_NOTES[i].rule && note.message === EXPECTED_CORPUS_NOTES[i].message,
+    ),
+  summarise(corpusNotes),
+);
 
 // 7. Digraph no-fold guard on the grader, run over every minimal pair
-// Thackston records at p. 2. ll and rr are separate phonemes (THK06:88), so a
-// grader that folded them would accept 'gul' for 'gull', leper for flower.
+// Thackston records at pp. 2 to 3. ll and rr are separate phonemes (THK06:88),
+// so a grader that folded them would accept 'gul' for 'gull', leper for flower.
 for (const pair of DIGRAPH_MINIMAL_PAIRS) {
   check(
     `checkTypedAnswer('${pair.plain}', '${pair.digraph}') is false (${pair.gloss})`,
@@ -173,8 +203,9 @@ check(
   ckb.policy.orthography?.id ?? 'null',
 );
 
-// 10. An unauthored track answers every accessor rather than throwing, so a
-// screen rendering it gets an empty state instead of a crash.
+// 10. The half of the ckb track that is still unauthored answers every accessor
+// rather than throwing, so a screen rendering it gets an empty state instead of
+// a crash. The vocabulary is authored and is checked below.
 const ckbContent = ckb.content;
 let ckbEmpty = false;
 let ckbThrew = '';
@@ -182,8 +213,6 @@ try {
   ckbEmpty =
     ckbContent.courses.length === 0 &&
     ckbContent.stories.length === 0 &&
-    ckbContent.vocabulary.length === 0 &&
-    ckbContent.vocabThemes.length === 0 &&
     ckbContent.getCourseById('c1') === undefined &&
     ckbContent.getUnitById('u1') === undefined &&
     ckbContent.getLessonById('l1_1') === undefined &&
@@ -198,9 +227,46 @@ try {
   ckbThrew = err instanceof Error ? err.message : String(err);
 }
 check(
-  'every ckb accessor returns empty or undefined without throwing',
+  'every unauthored ckb accessor returns empty or undefined without throwing',
   ckbEmpty && ckbThrew === '',
   ckbThrew || 'an accessor returned a value',
+);
+
+// The authored half reaches the screens through the registry, or it does not
+// ship at all.
+check(
+  'the registry serves the Sorani vocabulary, themes and both lookups',
+  ckbContent.vocabulary.length === CKB_VOCABULARY.length &&
+    CKB_VOCABULARY.length > 0 &&
+    ckbContent.vocabThemes.length > 0 &&
+    ckbContent.vocabThemes.every((t) => ckbContent.getVocabByTheme(t.id).length > 0) &&
+    ckbContent.getVocabById(CKB_VOCABULARY[0].id)?.id === CKB_VOCABULARY[0].id,
+  `${ckbContent.vocabulary.length} words in ${ckbContent.vocabThemes.length} theme(s)`,
+);
+
+// Progress is keyed by word id and stored per track, but a shared id would still
+// put a Sorani word behind a Kurmanji row in any code that reads the two corpora
+// together, so the id spaces are kept disjoint.
+const kmrIds = new Set(vocabulary.map((w) => w.id));
+const sharedIds = CKB_VOCABULARY.filter((w) => kmrIds.has(w.id)).map((w) => w.id);
+check('no Sorani word id appears in the Kurmanji corpus', sharedIds.length === 0, sharedIds.join(',') || 'none');
+const kmrSelfHits = vocabulary.filter((w) => kmrIds.has(w.id)).length;
+check(
+  'and the same test over the Kurmanji corpus finds every one of its ids, so the empty result is not vacuous',
+  kmrIds.size > 0 && kmrSelfHits === vocabulary.length,
+  `${kmrSelfHits} of ${vocabulary.length}`,
+);
+
+// Sorani has no grammatical gender. VocabWord carries the field because Kurmanji
+// needs it, and a Sorani entry that filled it in would be inventing a claim about
+// the language rather than copying one off a page.
+const ckbGendered = CKB_VOCABULARY.filter((w) => w.gender !== undefined).map((w) => w.id);
+check('no Sorani entry carries a gender', ckbGendered.length === 0, ckbGendered.join(',') || 'none');
+const kmrGendered = vocabulary.filter((w) => w.gender !== undefined).length;
+check(
+  'and the Kurmanji corpus does fill that field, so the absence is a decision and not an unused type',
+  kmrGendered > 0,
+  `${kmrGendered} of ${vocabulary.length} Kurmanji words carry one`,
 );
 
 // 11. Storage. The stub replays loadFromStorage's exact sequence over the real
@@ -558,6 +624,235 @@ check(
   'every character on the strip is a letter of the p. 88 alphabet',
   strangers.length === 0,
   strangers.join(',') || 'none',
+);
+
+// 15. The conversion table Thackston prints across pp. 88 and 89, and the
+// converter that reads it. Two rows put the output of one rule in the path of
+// another: j becomes c while zh becomes j, and five digraphs sit on top of
+// single letters that also have rows. A sequence of String.replace passes gets
+// that wrong without raising anything, so the naive version is run below on the
+// same words as the real one and its answers are printed.
+const tableSources = THACKSTON_TO_HAWAR.map((row) => row.from);
+check(
+  'the conversion table holds one row per Thackston character, none repeated',
+  THACKSTON_TO_HAWAR.length === 35 && new Set(tableSources).size === 35,
+  `${THACKSTON_TO_HAWAR.length} rows, ${new Set(tableSources).size} distinct`,
+);
+
+const illegalTargets = THACKSTON_TO_HAWAR.filter(
+  (row) => row.to !== '' && checkOrthography(row.to, SORANI_LATIN).length > 0,
+).map((row) => row.from);
+check('every row lands inside the p. 88 alphabet', illegalTargets.length === 0, illegalTargets.join(',') || 'none');
+
+// Converting a row's own source token is the weakest assertion available: it
+// shows the scan reaches the row, not that the row was read off the page
+// correctly. It is still the only evidence there is for the rows named in
+// ROWS_WITHOUT_A_SAMPLE, and it is what makes the digraphs testable at all,
+// since gh arriving at x rather than at gx is the longest-match rule firing.
+const misreadRows = THACKSTON_TO_HAWAR.filter((row) => toHawar(row.from) !== row.to).map((row) => row.from);
+check('every row converts to its own target', misreadRows.length === 0, misreadRows.join(',') || 'none');
+
+const phantomRows = ROWS_WITHOUT_A_SAMPLE.filter((from) => !tableSources.includes(from));
+check(
+  'every row recorded as having no word behind it is a real row',
+  phantomRows.length === 0,
+  phantomRows.join(',') || 'none',
+);
+
+// Both sides of these are printed in the book, so they test the table as read
+// and not just the scan over it.
+for (const pair of CONVERSION_GOLD) {
+  const got = toHawar(pair.thackston);
+  check(
+    `${pair.src} ${pair.thackston} converts to the ${pair.hawarSrc} form ${pair.hawar} (${pair.gloss})`,
+    got === pair.hawar,
+    got,
+  );
+}
+
+// No Kurmanji form for these is printed anywhere, so the expected string is this
+// project's own reading of the table. They are here because gh, j, zh and ayn
+// are rows the paired material never reaches.
+for (const sample of CONVERSION_UNWITNESSED) {
+  const got = toHawar(sample.thackston);
+  check(`${sample.src} ${sample.thackston} converts to ${sample.hawar} (${sample.gloss})`, got === sample.hawar, got);
+}
+check(
+  'gh and kh both land on x, which is the loss SORANI_LATIN records',
+  toHawar('gham') === 'xem' && toHawar('kham') === 'xem',
+  `${toHawar('gham')} / ${toHawar('kham')}`,
+);
+
+const illegalConversions = [...CONVERSION_GOLD, ...CONVERSION_UNWITNESSED]
+  .map((pair) => toHawar(pair.thackston))
+  .filter((form) => checkOrthography(form, SORANI_LATIN).length > 0);
+check(
+  'every converted form is legal under the p. 88 alphabet',
+  illegalConversions.length === 0,
+  illegalConversions.join(',') || 'none',
+);
+
+check(
+  'digits, the hyphen and the parentheses of the p. 89 sample pass through',
+  toHawar('11-\u00EE') === '11-\u00EE' && toHawar('(misogar)') === '(misoger)',
+  `${toHawar('11-\u00EE')} ${toHawar('(misogar)')}`,
+);
+check("a leading capital carries the digraph with it: Zher gives J\u00EAr", toHawar('Zher') === 'J\u00EAr', toHawar('Zher'));
+check(
+  'the capital does not spread down the word: Ba\u0159ez gives Berr\u00EAz',
+  toHawar('Ba\u0159ez') === 'Berr\u00EAz',
+  toHawar('Ba\u0159ez'),
+);
+
+// DIGRAPH_MINIMAL_PAIRS was converted by hand. Running Thackston's own
+// transcriptions of the same eight words through the converter is a second,
+// independent reading of them.
+for (const committed of DIGRAPH_MINIMAL_PAIRS) {
+  const source = MINIMAL_PAIR_TRANSCRIPTIONS.find((entry) => entry.gloss === committed.gloss);
+  if (!source) {
+    check(`a transcription is on file for the ${committed.gloss} pair`, false, 'no entry with that gloss');
+    continue;
+  }
+  const plain = toHawar(source.plain);
+  const digraph = toHawar(source.digraph);
+  check(
+    `${source.src} ${source.plain}/${source.digraph} reproduces the committed ${committed.plain}/${committed.digraph}`,
+    plain === committed.plain && digraph === committed.digraph,
+    `${plain}/${digraph}`,
+  );
+}
+
+for (const { text, why } of UNMAPPED_INPUT) {
+  let thrown = '';
+  try {
+    toHawar(text);
+  } catch (err) {
+    thrown = err instanceof Error ? err.message : String(err);
+  }
+  check(
+    `an input the table has no row for (${why}) throws instead of passing the character through`,
+    thrown.startsWith('toHawar: no conversion-table row'),
+    thrown || 'nothing was thrown',
+  );
+}
+
+let accentThrow = '';
+try {
+  toHawar('tanak\u00E1');
+} catch (err) {
+  accentThrow = err instanceof Error ? err.message : String(err);
+}
+check(
+  'the throw names the character, its codepoint and its index',
+  accentThrow.includes('"\u00E1"') && accentThrow.includes('U+00E1') && accentThrow.includes('index 5'),
+  accentThrow || 'nothing was thrown',
+);
+
+// The obvious implementation, and the one that has to be seen failing: sweep the
+// digraph rows with String.replace, then sweep the single letters. Running the
+// digraphs first is exactly what makes it look safe.
+function naiveTwoPass(text: string): string {
+  const digraphs = THACKSTON_TO_HAWAR.filter((row) => row.from.length > 1);
+  const singles = THACKSTON_TO_HAWAR.filter((row) => row.from.length === 1);
+  let out = text.normalize('NFC');
+  for (const row of [...digraphs, ...singles]) out = out.split(row.from).join(row.to);
+  return out.normalize('NFC');
+}
+
+check(
+  'the naive two-pass agrees with the converter on gisht\u00EE, so it reads as sound',
+  naiveTwoPass('gisht\u00EE') === toHawar('gisht\u00EE'),
+  naiveTwoPass('gisht\u00EE'),
+);
+check(
+  "the same two-pass turns Thackston's zhin 'wife' into cin, because zh has already become j by the time the j row runs",
+  naiveTwoPass('zhin') === 'cin' && toHawar('zhin') === 'jin',
+  `naive ${naiveTwoPass('zhin')}, converter ${toHawar('zhin')}`,
+);
+check(
+  'it makes the same mistake with a becoming e and then \u00EA: bar gives b\u00EAr, not ber',
+  naiveTwoPass('bar') === 'b\u00EAr' && toHawar('bar') === 'ber',
+  `naive ${naiveTwoPass('bar')}, converter ${toHawar('bar')}`,
+);
+
+const naiveWrong = [...CONVERSION_GOLD, ...CONVERSION_UNWITNESSED].filter(
+  (pair) => naiveTwoPass(pair.thackston) !== pair.hawar,
+);
+check(
+  'the naive two-pass corrupts part of the sample',
+  naiveWrong.length > 0,
+  naiveWrong.map((pair) => `${pair.thackston}=${naiveTwoPass(pair.thackston)}`).join(' ') || 'none',
+);
+check(
+  'and every form it corrupts is legal under the p. 88 alphabet, so no rule in this repository would report one',
+  naiveWrong.every((pair) => checkOrthography(naiveTwoPass(pair.thackston), SORANI_LATIN).length === 0),
+);
+
+// The search fold. Search is the second place after the grader where folding ll
+// to l or rr to r would put the wrong word in front of a learner, so the same
+// no-fold property is checked on foldDiacritics itself. The property is that the
+// doubled letter survives, not that the string is untouched: çil holds an
+// accented letter the fold is required to lower, and does lower.
+for (const pair of DIGRAPH_MINIMAL_PAIRS) {
+  const doubled = SORANI_LATIN.digraphs.find((d) => pair.digraph.includes(d)) ?? '';
+  check(
+    `foldDiacritics carries the ${doubled || '(none)'} of ${pair.digraph} through (${pair.gloss})`,
+    doubled !== '' &&
+      foldDiacritics(pair.digraph).includes(doubled) &&
+      !foldDiacritics(pair.plain).includes(doubled),
+    `${foldDiacritics(pair.plain)}/${foldDiacritics(pair.digraph)}`,
+  );
+  check(
+    `folded ${pair.plain} and folded ${pair.digraph} stay distinct`,
+    foldDiacritics(pair.plain) !== foldDiacritics(pair.digraph),
+    `${foldDiacritics(pair.plain)}/${foldDiacritics(pair.digraph)}`,
+  );
+}
+
+// The fold that would break it, shown breaking rather than described: add the
+// two digraph rows to the sweep and every pair above collides.
+function collidingFold(text: string): string {
+  return foldDiacritics(text).replace(/ll/g, 'l').replace(/rr/g, 'r');
+}
+const collided = DIGRAPH_MINIMAL_PAIRS.filter(
+  (pair) => collidingFold(pair.plain) === collidingFold(pair.digraph),
+);
+check(
+  'a fold that took ll to l and rr to r would collide every minimal pair',
+  collided.length === DIGRAPH_MINIMAL_PAIRS.length,
+  `${collided.length} of ${DIGRAPH_MINIMAL_PAIRS.length}`,
+);
+check(
+  'and each collided form is legal under the alphabet, so no rule in this repository would report one',
+  collided.every((pair) => checkOrthography(collidingFold(pair.digraph), SORANI_LATIN).length === 0),
+);
+
+// foldDiacritics replaced an inline normalizer in VocabScreen. That normalizer
+// is kept here verbatim so the swap is shown to be behaviour-preserving over the
+// whole shipped Kurmanji vocabulary, not asserted to be.
+function legacyNormalizeString(str: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFC')
+    .replace(/\u00EA/g, 'e')
+    .replace(/\u00EE/g, 'i')
+    .replace(/\u00FB/g, 'u')
+    .replace(/\u015F/g, 's')
+    .replace(/\u00E7/g, 'c');
+}
+const searchFields = vocabulary.flatMap((word) => [word.wordKu, word.wordEn, word.wordTr || '']);
+const foldDrift = searchFields.filter((field) => foldDiacritics(field) !== legacyNormalizeString(field));
+check(
+  `foldDiacritics agrees with the replaced normalizer on all ${searchFields.length} Kurmanji search fields`,
+  foldDrift.length === 0,
+  foldDrift.slice(0, 3).join(',') || 'none',
+);
+const foldedAway = searchFields.filter((field) => foldDiacritics(field) !== field.toLowerCase());
+check(
+  'and the sample reaches the accented rows, so that agreement is not vacuous',
+  foldedAway.length > 0,
+  `${foldedAway.length} of ${searchFields.length} fields change under the fold`,
 );
 
 if (failures.length > 0) {

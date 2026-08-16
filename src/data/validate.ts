@@ -10,7 +10,8 @@
 // All of it checks shape, legality and provenance only. Nothing here confirms
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
-import { ChromeSlot } from './chrome';
+import { CKB_CHROME, ChromeSlot, KMR_CHROME } from './chrome';
+import { CKB_VOCABULARY, CKB_VOCAB_THEMES, getCkbVocabByTheme } from './ckb/vocabulary';
 import { courses } from './courses';
 import { getExercisesForLesson } from './exercises';
 import { SORANI_LATIN, checkOrthography, OrthographySpec } from './orthography';
@@ -67,8 +68,8 @@ export const CKB_POLICY: TrackPolicy = {
   requireBothGlosses: true,
 };
 
-// Wiring point, not dead code: exported and covered by fixtures, but nothing
-// calls it from validateContent() until a track with these obligations exists.
+// Called from validateContentDetailed() over the Sorani corpus, and covered
+// rule by rule by the fixtures in tools/content-selfcheck.fixture.ts.
 export function checkCitedEntries(entries: CitedEntry[], policy: TrackPolicy): ContentIssue[] {
   const issues: ContentIssue[] = [];
 
@@ -135,9 +136,6 @@ export function checkCitedEntries(entries: CitedEntry[], policy: TrackPolicy): C
  * resolvably cited has passed a shape, legality and provenance check and
  * nothing more. Whether the wording is right is a question only a speaker of
  * the language can answer.
- *
- * Wiring point, like checkCitedEntries: exported and covered by the self-check,
- * not called from validateContent().
  */
 export function checkChrome(slots: Record<string, ChromeSlot>, policy: TrackPolicy): ContentIssue[] {
   // Object.entries, never `slots[key]`: a bare index on an object literal
@@ -349,6 +347,41 @@ export function validateContentDetailed(): ContentIssue[] {
       problems.push({ severity: 'error', message: `Vocab theme "${theme.id}" (${theme.label}) has no words.` });
     }
   }
+
+  // --- Taught chrome, each table under its own track's policy ---
+  problems.push(...checkChrome(KMR_CHROME, KMR_POLICY));
+  problems.push(...checkChrome(CKB_CHROME, CKB_POLICY));
+
+  // --- Sorani corpus ---
+  // Read from the module directly and never through getTrack('ckb'): tracks.ts
+  // imports CKB_POLICY from this file, so reaching back through the registry
+  // would close an import cycle.
+  // exampleKu is folded in when an entry carries one, so the milestone that
+  // adds example sentences is already under the orthography rule.
+  const ckbEntries: CitedEntry[] = CKB_VOCABULARY.map((word) => ({
+    id: word.id,
+    taught: { wordKu: word.wordKu, ...(word.exampleKu ? { exampleKu: word.exampleKu } : {}) },
+    src: word.src,
+    glossEn: word.wordEn,
+    glossTr: word.wordTr,
+  }));
+
+  for (const theme of CKB_VOCAB_THEMES) {
+    ckbEntries.push({
+      id: `ckb vocab theme "${theme.id}"`,
+      taught: { labelKu: theme.labelKu },
+      src: theme.src,
+      glossEn: theme.label,
+      glossTr: theme.labelTr,
+    });
+    // A registered theme with no words is a tab that opens on nothing, which is
+    // a defect while the track is in progress as much as after it is finished.
+    if (getCkbVocabByTheme(theme.id).length === 0) {
+      problems.push({ severity: 'error', message: `Sorani vocab theme "${theme.id}" (${theme.label}) has no words.` });
+    }
+  }
+
+  problems.push(...checkCitedEntries(ckbEntries, CKB_POLICY));
 
   return problems;
 }

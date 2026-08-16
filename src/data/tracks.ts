@@ -3,8 +3,9 @@
 // in. Adding a variety means adding an entry here, not teaching a screen a new
 // id.
 // This file holds no taught content of its own. Kurmanji binds the shipped data
-// modules straight through, unchanged. Sorani is registered with empty content
-// so an unauthored track reads as a real, empty track instead of a crash; its
+// modules straight through, unchanged. Sorani binds the one corpus authored so
+// far, the family vocabulary, and registers empty courses and stories so an
+// unauthored half reads as a real, empty track instead of a crash; its
 // orthography contract is Thackston's conversion table (THK06:88), carried in
 // SORANI_LATIN. Endonyms are written in the Hawar alphabet with accented
 // letters escaped, so a lookalike cannot be pasted in unnoticed; they are
@@ -13,6 +14,12 @@
 // Arabic-script Sorani is a second script on the same track id.
 
 import { CKB_CHROME, KMR_CHROME, TaughtChrome } from './chrome';
+import {
+  CKB_VOCABULARY,
+  CKB_VOCAB_THEMES,
+  getCkbVocabById,
+  getCkbVocabByTheme,
+} from './ckb/vocabulary';
 import { courses, getCourseById, getLessonById, getTotalLessons, getUnitById } from './courses';
 import {
   TeachCard,
@@ -78,20 +85,21 @@ export const KMR_CONTENT: TrackContent = {
   getLessonTeachCards,
 };
 
-// No corpus authored yet. Empty results, never a throw: a screen that renders
-// this track shows its empty state.
+// Vocabulary is authored and bound through; courses and stories are not, so
+// they answer empty rather than throwing and a screen reading them shows its
+// empty state.
 export const CKB_CONTENT: TrackContent = {
   courses: [],
   stories: [],
-  vocabulary: [],
-  vocabThemes: [],
+  vocabulary: CKB_VOCABULARY,
+  vocabThemes: CKB_VOCAB_THEMES,
   getCourseById: () => undefined,
   getUnitById: () => undefined,
   getLessonById: () => undefined,
   getTotalLessons: () => 0,
   getStoryById: () => undefined,
-  getVocabByTheme: () => [],
-  getVocabById: () => undefined,
+  getVocabByTheme: getCkbVocabByTheme,
+  getVocabById: getCkbVocabById,
   getExercisesForLesson: () => [],
   getOrderedExercisesForLesson: () => [],
   getLessonTeachCards: () => [],

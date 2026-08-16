@@ -302,3 +302,88 @@ export const FULL_KMR_SNAPSHOT: ProgressSnapshot = {
   streakCount: 30,
   maxComboEver: 12,
 };
+
+// Converter evidence. Every string below was read off the extracted pages of
+// Thackston, not reconstructed from memory, and the accented letters are
+// escaped so a lookalike cannot be pasted in unnoticed.
+
+export interface ConversionPair {
+  thackston: string;
+  hawar: string;
+  /** Where Thackston's transcription is printed. */
+  src: string;
+  /** Where the Kurmanji alphabet form is printed. */
+  hawarSrc: string;
+  gloss: string;
+}
+
+// Both sides of every pair are printed in the book, so these test the table as
+// read, not just the scanner. The first four are the izâfa examples on p. 89,
+// where Thackston gives the transcription and the Kurmanji form on one line:
+// "ray giştî for râ i gishtî 'public opinion'" and "zarawey zanistî for zârâwa
+// i zânistî 'scientific language.'" The izâfa i is dropped and written as a
+// joined y after a vowel, which is a spelling convention of the running text
+// and not a character mapping, so the pairing here is word by word.
+// The rest take their Kurmanji side from the transcribed passage further down
+// p. 89 and their Thackston side from wherever the book prints that word.
+export const CONVERSION_GOLD: ConversionPair[] = [
+  { thackston: 'r\u00E2', hawar: 'ra', src: 'THK06:89', hawarSrc: 'THK06:89', gloss: 'opinion' },
+  { thackston: 'gisht\u00EE', hawar: 'gi\u015Ft\u00EE', src: 'THK06:89', hawarSrc: 'THK06:89', gloss: 'public, general' },
+  { thackston: 'z\u00E2r\u00E2wa', hawar: 'zarawe', src: 'THK06:89', hawarSrc: 'THK06:89', gloss: 'language, terminology' },
+  { thackston: 'z\u00E2nist\u00EE', hawar: 'zanist\u00EE', src: 'THK06:89', hawarSrc: 'THK06:89', gloss: 'scientific' },
+  { thackston: 'ba\u0159ez', hawar: 'berr\u00EAz', src: 'THK06:169', hawarSrc: 'THK06:89', gloss: 'esteemed' },
+  { thackston: 'laga\u0142', hawar: 'legell', src: 'THK06:39', hawarSrc: 'THK06:89', gloss: 'with' },
+  // p. 89 carries the stem under a suffix, as pallpiştiyey.
+  { thackston: 'p\u00E2\u0142pisht\u00EE', hawar: 'pallpi\u015Ft\u00EE', src: 'THK06:214', hawarSrc: 'THK06:89', gloss: 'backing, support' },
+  { thackston: 'khoy', hawar: 'xoy', src: 'THK06:60', hawarSrc: 'THK06:89', gloss: 'his own' },
+  { thackston: 'zher', hawar: 'j\u00EAr', src: 'THK06:116', hawarSrc: 'THK06:89', gloss: 'under' },
+  { thackston: 'misogar', hawar: 'misoger', src: 'THK06:207', hawarSrc: 'THK06:89', gloss: 'insured' },
+  { thackston: 'h\u00EEch', hawar: 'h\u00EE\u00E7', src: 'THK06:1', hawarSrc: 'THK06:89', gloss: 'nothing' },
+];
+
+// The transcriptions behind DIGRAPH_MINIMAL_PAIRS: khor/khoř and bar/bař from
+// the ř entry on p. 3, gul/guł and chil/chił from the ł entry on p. 2. Only the
+// transcription is printed; the Kurmanji forms are what the converter must
+// produce, and comparing them against the committed pairs is the cross-check.
+// The gloss is the join key because it is the one field both sides took from
+// the same line of the book, so a mislabelled pair fails to match at all.
+export const MINIMAL_PAIR_TRANSCRIPTIONS = [
+  { plain: 'khor', digraph: 'kho\u0159', gloss: 'sun / blood', src: 'THK06:3' },
+  { plain: 'bar', digraph: 'ba\u0159', gloss: 'breast / rug', src: 'THK06:3' },
+  { plain: 'gul', digraph: 'gu\u0142', gloss: 'leper / flower', src: 'THK06:2' },
+  { plain: 'chil', digraph: 'chi\u0142', gloss: 'forty / stalk', src: 'THK06:2' },
+];
+
+// Attested transcriptions with no printed Kurmanji counterpart anywhere in the
+// book, so the expected form is this project's reading of the conversion table,
+// not a second witness to it. Weaker than CONVERSION_GOLD and kept apart from
+// it for that reason. They exist because these are the rows the paired material
+// never exercises: gh, j, zh and ayn.
+export const CONVERSION_UNWITNESSED = [
+  { thackston: 'jw\u00E2n', hawar: 'cwan', src: 'THK06:193', gloss: 'pretty, beautiful' },
+  { thackston: 'zhin', hawar: 'jin', src: 'THK06:96', gloss: 'wife' },
+  { thackston: 'gham', hawar: 'xem', src: 'THK06:2', gloss: 'grief' },
+  { thackston: 'kham', hawar: 'xem', src: 'THK06:2', gloss: 'grief, the borrowed variant' },
+  // The two vowels are different rows: the plain a becomes e and only â becomes
+  // a. Written out by hand this came back as mana, and the assertion caught it.
+  { thackston: 'ma\u2018n\u00E2', hawar: 'mena', src: 'THK06:4', gloss: 'meaning' },
+  { thackston: '\u2018arab', hawar: 'ereb', src: 'THK06:4', gloss: 'Arab' },
+  { thackston: '\u0159oysht', hawar: 'rroy\u015Ft', src: 'THK06:3', gloss: 'he went' },
+];
+
+// Rows no word above exercises. Each is asserted only by converting the source
+// token from the table itself, which shows the scanner reaches the row but adds
+// no independent evidence that the row was read off the page correctly.
+export const ROWS_WITHOUT_A_SAMPLE = ['d', 'f', 'k', 'q', '\u00FB', 'v'];
+
+/** Characters the conversion table has no row for, which must throw. */
+export const UNMAPPED_INPUT = [
+  // Thackston's pharyngeal ḥ, p. 2. The conversion table has no row for it, so
+  // whether a word takes h or ḥ is a reading decision and not a mapping one.
+  { text: '\u1E25', why: 'h with dot below, U+1E25' },
+  // tanaká 'tin can', p. 3, carrying the stress accent the table does not have.
+  { text: 'tanak\u00E1', why: 'a with acute, U+00E1' },
+  // An all-capitals run: the H cannot open a word, so no capitalised row applies.
+  { text: 'ZHER', why: 'all capitals' },
+];
+

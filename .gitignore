@@ -51,3 +51,7 @@ RECOVERED-*.md
 __pycache__/
 _ssbuild/
 _audiotest/
+
+# reference source texts, kept locally and deliberately not redistributed:
+# their title pages restrict use to non-commercial educational and research purposes
+docs/sources/

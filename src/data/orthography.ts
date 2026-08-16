@@ -1,7 +1,8 @@
 // Fêrbûn: the orthography adopted for the Sorani track.
-// Bound to Thackston p. 88, "Conversion Table for the Sorani and Kurmanji
-// Alphabets": his table maps Sorani onto the Latin alphabet Kurmanji already
-// uses, so the Sorani track needs no character outside the 31 Hawar letters.
+// Bound to Thackston pp. 88 to 89, "Conversion Table for the Sorani and
+// Kurmanji Alphabets": his table maps Sorani onto the Latin alphabet Kurmanji
+// already uses, so the Sorani track needs no character outside the 31 Hawar
+// letters. Rows a through v are printed on 88, rows w, y, z, zh and ayn on 89.
 // Conformance here is a legality check only: it says a string is spelled with
 // characters this alphabet has. Meaning, idiom and register still need a native
 // speaker.
@@ -20,7 +21,7 @@ export interface OrthographySpec {
 
 export const SORANI_LATIN: OrthographySpec = {
   id: 'ckb-latn',
-  label: 'Sorani in the Kurmanji Latin alphabet (Thackston p. 88)',
+  label: 'Sorani in the Kurmanji Latin alphabet (Thackston pp. 88 to 89)',
   // Accented letters are escaped so a lookalike cannot be pasted in unnoticed.
   // Excluded lookalikes: ı U+0131, İ U+0130, ș U+0219, ł U+0142, ř U+0159, and
   // every combining mark U+0300 to U+036F.
@@ -52,20 +53,21 @@ export const SORANI_LATIN: OrthographySpec = {
     },
     {
       what: 'Ayn is "not indicated" in this alphabet, so it is absent from the Latin form.',
-      src: 'THK06:88',
+      src: 'THK06:89',
     },
   ],
 };
 
-// Minimal pairs from Thackston p. 2, converted through his p. 88 table. These
-// are the evidence for the no-fold rule and double as legality fixtures.
+// Minimal pairs from Thackston pp. 2 to 3, converted through his conversion
+// table (pp. 88 to 89). The l/ł pairs are printed on 2, the r/ř pairs on 3.
+// These are the evidence for the no-fold rule and double as legality fixtures.
 // Residual ambiguity, recorded rather than solved: ll and rr cannot be told
 // apart from a genuine doubled l or r, and p. 4 notes Kurdish has very few
 // doubled consonants (the example is shâłłâ 'God willing'). No mechanical rule
 // resolves the reading, so it is a speaker-review item, not a validator rule.
 export const DIGRAPH_MINIMAL_PAIRS = [
-  { plain: 'xor', digraph: 'xorr', gloss: 'sun / blood', src: 'THK06:2' },
-  { plain: 'ber', digraph: 'berr', gloss: 'breast / rug', src: 'THK06:2' },
+  { plain: 'xor', digraph: 'xorr', gloss: 'sun / blood', src: 'THK06:3' },
+  { plain: 'ber', digraph: 'berr', gloss: 'breast / rug', src: 'THK06:3' },
   { plain: 'gul', digraph: 'gull', gloss: 'leper / flower', src: 'THK06:2' },
   { plain: '\u00E7il', digraph: '\u00E7ill', gloss: 'forty / stalk', src: 'THK06:2' },
 ];
@@ -111,4 +113,16 @@ export function checkOrthography(
   }
 
   return issues;
+}
+
+/** The search fold, and the only definition of it: lowercase, NFC, then the five accented letters to their bases. It never touches ll or rr, which are separate phonemes (THK06:88), not decorated l and r. */
+export function foldDiacritics(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFC')
+    .replace(/\u00EA/g, 'e')
+    .replace(/\u00EE/g, 'i')
+    .replace(/\u00FB/g, 'u')
+    .replace(/\u015F/g, 's')
+    .replace(/\u00E7/g, 'c');
 }

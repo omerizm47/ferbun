@@ -9,6 +9,7 @@ import { useLang } from '../i18n/LanguageProvider';
 import { themeLabel } from '../i18n/content';
 import { useChrome } from '../hooks/useChrome';
 import { useTrackContent } from '../hooks/useTrackContent';
+import { foldDiacritics } from '../data/orthography';
 import { useProgressStore, selectDueVocabIds, selectWeakVocabIds } from '../stores/progressStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,19 +39,6 @@ export default function VocabScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWord, setSelectedWord] = useState<any>(null);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'learning' | 'familiar' | 'mastered' | 'not_studied'>('all');
-
-  // Normalize Kurdish characters for diacritic-insensitive search
-  const normalizeString = (str: string) => {
-    if (!str) return '';
-    return str
-      .toLowerCase()
-      .normalize('NFC')
-      .replace(/ê/g, 'e')
-      .replace(/î/g, 'i')
-      .replace(/û/g, 'u')
-      .replace(/ş/g, 's')
-      .replace(/ç/g, 'c');
-  };
 
   const formatPartOfSpeech = (pos: string, gender?: string) => {
     const isTr = lang === 'tr';
@@ -85,14 +73,14 @@ export default function VocabScreen() {
   const filteredWords = useMemo(() => {
     if (!searchQuery.trim() && selectedFilter === 'all') return [];
 
-    const queryNormalized = searchQuery.trim() ? normalizeString(searchQuery.trim()) : '';
+    const queryNormalized = searchQuery.trim() ? foldDiacritics(searchQuery.trim()) : '';
 
     return vocabulary.filter((word) => {
       // 1. Search Query filter
       if (queryNormalized) {
-        const kuNormalized = normalizeString(word.wordKu);
-        const enNormalized = normalizeString(word.wordEn);
-        const trNormalized = normalizeString(word.wordTr || '');
+        const kuNormalized = foldDiacritics(word.wordKu);
+        const enNormalized = foldDiacritics(word.wordEn);
+        const trNormalized = foldDiacritics(word.wordTr || '');
         const matchesQuery =
           kuNormalized.includes(queryNormalized) ||
           enNormalized.includes(queryNormalized) ||
