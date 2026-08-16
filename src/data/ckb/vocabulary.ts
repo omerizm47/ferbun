@@ -1,5 +1,5 @@
-// Fêrbûn: the Sorani vocabulary barrel. Five themes so far: family, body,
-// nature, animals and numbers, one file each under ./vocab.
+// Fêrbûn: the Sorani vocabulary barrel. Seven themes so far: family, body,
+// home, nature, animals, description and numbers, one file each under ./vocab.
 // Source: Thackston, W. M., "Sorani Kurdish: A Reference Grammar with Selected
 // Readings", declared as THK06 in src/data/sources.ts.
 //
@@ -21,7 +21,9 @@ import type { VocabWord } from '../types';
 import type { VocabTheme } from '../vocabulary';
 import { CKB_ANIMALS } from './vocab/animals';
 import { CKB_BODY } from './vocab/body';
+import { CKB_DESCRIPTION } from './vocab/description';
 import { CKB_FAMILY } from './vocab/family';
+import { CKB_HOME } from './vocab/home';
 import { CKB_NATURE } from './vocab/nature';
 import { CKB_NUMBERS } from './vocab/numbers';
 
@@ -63,8 +65,10 @@ export const CKB_GLOSS_PROVENANCE =
 export const CKB_VOCABULARY: SoraniVocabWord[] = [
   ...CKB_FAMILY,
   ...CKB_BODY,
+  ...CKB_HOME,
   ...CKB_NATURE,
   ...CKB_ANIMALS,
+  ...CKB_DESCRIPTION,
   ...CKB_NUMBERS,
 ];
 
@@ -97,6 +101,19 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     src: 'THK06:203',
     from: 'lash',
   },
+  // mâł is the same headword ./vocab/home.ts teaches for "house, home", and it
+  // is the only entry in the glossary glossed either way. khânû (p. 197) is
+  // "house" with no home sense, so it would name the building and not the theme.
+  {
+    id: 'home',
+    label: 'Home & Objects',
+    labelKu: 'mall',
+    labelTr: 'Ev & Eşyalar',
+    icon: 'home-outline',
+    color: '#8A5A38',
+    src: 'THK06:206',
+    from: 'mâł',
+  },
   // sirusht is a bare one-word entry, "nature". p. 228 prints surisht beside
   // it as a cross-reference to this spelling, not as a rival with a gloss.
   {
@@ -121,6 +138,20 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     color: '#B06A3B',
     src: 'THK06:193',
     from: 'jânawar',
+  },
+  // rang is a bare one-word entry, "color". It is the taught half of a label
+  // whose English names a class, "Colors & Description", and no headword in the
+  // glossary names that class; the colour half is what the book can carry.
+  {
+    id: 'description',
+    label: 'Colors & Description',
+    labelKu: 'reng',
+    labelTr: 'Renkler & Niteleme',
+    icon: 'color-palette-outline',
+    color: '#A8324A',
+    src: 'THK06:219',
+    from: 'rang',
+    fromNote: 'p. 219 prints this as rang1. rang2, eight lines below it, is "possible".',
   },
   // zhimâra is glossed "number, issue". Only the counting sense is meant here;
   // the other is the issue of a periodical.
