@@ -8,12 +8,15 @@
 // Sources. The Kurmanji column is the wording already shipped in the app under
 // KMR_POLICY, which sets requireCitation: false. It is existing product copy
 // lifted character-for-character out of the render sites, not a new claim about
-// the language, so it carries no locator. The Sorani column is entirely
-// PENDING: every slot must arrive as an attested form with a THK06 page
-// locator in `src`, never as a guess or a machine translation.
+// the language, so it carries no locator. The Sorani column is a file of its
+// own, ./ckb/chrome.ts, because it is not a column of wording but a column of
+// decisions: each slot there declares itself cited, authored or pending, and a
+// pending one says what was searched for and why nothing was taken.
 //
 // This file imports nothing from data/tracks.ts. The dependency runs one way:
-// tracks.ts reads the chrome tables, chrome.ts knows no track ids.
+// tracks.ts reads the chrome tables, chrome.ts knows no track ids. It does not
+// import ./ckb/chrome.ts either, for the same reason: the Sorani table reads
+// the shape from here, not the other way round.
 
 /**
  * One piece of taught chrome: the wording, and where it came from. `text: null`
@@ -264,107 +267,6 @@ export const KMR_CHROME: TaughtChrome = {
   badge_combo_master: { text: 'Şer-Komboyê', src: null },
   badge_first_story: { text: 'Çîrokxwîn', src: null },
   badge_all_stories: { text: 'Qehremanê Çîrokan', src: null },
-};
-
-// Nothing authored yet. Filling a slot means replacing PENDING with an attested
-// form and its THK06 locator; CKB_POLICY.requireCitation makes the locator
-// non-optional, so wording cannot enter ahead of its source.
-export const CKB_CHROME: TaughtChrome = {
-  homeGreetMorning: PENDING,
-  homeGreetAfternoon: PENDING,
-  homeGreetEvening: PENDING,
-  homeGreetNight: PENDING,
-  homeContinueKicker: PENDING,
-  homeAllDoneKicker: PENDING,
-  homeAllDoneTitle: PENDING,
-  homeEmptyKicker: PENDING,
-  homeEmptyTitle: PENDING,
-  homeReviewKicker: PENDING,
-  streakDayNoun: PENDING,
-  goalMetPraise: PENDING,
-  feedbackCorrect: PENDING,
-  feedbackWrong: PENDING,
-  congratsTitle: PENDING,
-  coachKicker: PENDING,
-  exChooseKicker: PENDING,
-  exTranslateKicker: PENDING,
-  exMatchKicker: PENDING,
-  exTrueFalseKicker: PENDING,
-  exFillKicker: PENDING,
-  exWriteKicker: PENDING,
-  trueLabel: PENDING,
-  falseLabel: PENDING,
-  encourage1: PENDING,
-  encourage2: PENDING,
-  encourage3: PENDING,
-  encourage4: PENDING,
-  encourage5: PENDING,
-  encourage6: PENDING,
-  encourage7: PENDING,
-  lessonNotFoundTitle: PENDING,
-  lessonComingSoonTitle: PENDING,
-  comboKicker: PENDING,
-  spellingLabel: PENDING,
-  correctAnswerLabel: PENDING,
-  continueCta: PENDING,
-  vocabHeader: PENDING,
-  reviewDoneTitle: PENDING,
-  noWordsTitle: PENDING,
-  cardTaughtLabel: PENDING,
-  genderM: PENDING,
-  genderF: PENDING,
-  knowPrompt: PENDING,
-  rapidFireTitle: PENDING,
-  timeUpTitle: PENDING,
-  storiesHeader: PENDING,
-  levelBeginner: PENDING,
-  levelIntermediate: PENDING,
-  levelAdvanced: PENDING,
-  questionsNoun: PENDING,
-  storyRead: PENDING,
-  storyReadCta: PENDING,
-  storyNotFoundTitle: PENDING,
-  comprehensionKicker: PENDING,
-  unitNotFoundTitle: PENDING,
-  storyDoneTitle: PENDING,
-  onbTitle1: PENDING,
-  onbTitle2: PENDING,
-  onbTitle3: PENDING,
-  onbTitle4: PENDING,
-  onbTitle5: PENDING,
-  onbFlashLabel: PENDING,
-  onbSampleWord: PENDING,
-  onbStoryBefore: PENDING,
-  onbStoryWord: PENDING,
-  onbStoryAfter: PENDING,
-  onbStreakLabel: PENDING,
-  onbStartCta: PENDING,
-  welcome: PENDING,
-  avatarSun: PENDING,
-  avatarFlame: PENDING,
-  avatarMountain: PENDING,
-  avatarWheat: PENDING,
-  avatarTulip: PENDING,
-  avatarStar: PENDING,
-  avatarHeart: PENDING,
-  avatarBook: PENDING,
-  appSystem: PENDING,
-  appLight: PENDING,
-  appDark: PENDING,
-  learnerNoun: PENDING,
-  taughtName: PENDING,
-  badge_first_lesson: PENDING,
-  badge_ten_lessons: PENDING,
-  badge_all_lessons: PENDING,
-  badge_streak_3: PENDING,
-  badge_streak_7: PENDING,
-  badge_streak_30: PENDING,
-  badge_vocab_10_mastered: PENDING,
-  badge_vocab_50_mastered: PENDING,
-  badge_perfect_lesson: PENDING,
-  badge_combo_master: PENDING,
-  badge_first_story: PENDING,
-  badge_all_stories: PENDING,
 };
 
 /**

@@ -24,7 +24,8 @@
 // does not exist in Node.
 
 import { readFileSync } from 'fs';
-import { CKB_CHROME, KMR_CHROME } from '../src/data/chrome';
+import { KMR_CHROME } from '../src/data/chrome';
+import { CKB_AUTHORED_CHROME_KEYS, CKB_CHROME, CKB_CHROME_SLOTS, isCitedChrome } from '../src/data/ckb/chrome';
 import { CKB_COURSES, CKB_TITLES, isCitedTitle } from '../src/data/ckb/courses';
 import { REVIEW_TITLE_KU } from '../src/data/ckb/units/review';
 import { CKB_GLOSS_PROVENANCE, CKB_VOCABULARY, CKB_VOCAB_THEMES, isCitedTheme } from '../src/data/ckb/vocabulary';
@@ -89,7 +90,7 @@ import {
   V1_GLOBAL_KEYS,
   V1_PROGRESS,
 } from './content-selfcheck.fixture';
-import { THACKSTON_TO_HAWAR, toHawar } from './thackston-latin';
+import { THACKSTON_TO_HAWAR, stripStress, toHawar } from './thackston-latin';
 
 const failures: string[] = [];
 let total = 0;
@@ -152,23 +153,31 @@ const corpusErrors = validateContent();
 check('shipped corpus has no content errors', corpusErrors.length === 0, corpusErrors.join(' | '));
 
 // Wiring the Sorani track into validateContentDetailed() put two notes into the
-// shipped run and one of them has since gone quiet. Every ckb chrome slot is
-// still pending, which is a note while the track is in progress and 95 errors
-// the day it calls itself complete. The lessons without exercises were the same
-// bargain until all forty were authored, and then TRACK-01 stopped speaking
-// altogether rather than reporting 40 of 40: checkLessonCoverage says what a
-// track is still missing, and an in-progress track missing no lesson gives it
-// nothing to say. The note that remains is spelled out in full rather than
-// counted, so a second one cannot slip in behind it unread.
-const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] = [
-  {
-    rule: 'CHROME-02',
-    message:
-      '[CHROME-02] Track "ckb" is in progress: 0 of 95 chrome slots authored (95 pending). ' +
-      'Pending slots are not errors until the track is complete, and a filled slot is still ' +
-      'only checked for spelling and provenance, never for meaning.',
-  },
-];
+// shipped run and one of them has since gone quiet. The lessons without
+// exercises were a note until all forty were authored, and then TRACK-01 stopped
+// speaking altogether rather than reporting 40 of 40: checkLessonCoverage says
+// what a track is still missing, and an in-progress track missing no lesson
+// gives it nothing to say. CHROME-02 is on the same footing, so the expectation
+// below is a list of one while any slot is pending and a list of none after
+// that, and it never asserts a count of its own: this file used to spell out
+// "0 of 95 chrome slots authored", which the first slot authored made a lie.
+// The sentence around the numbers is still spelled out in full, because that is
+// the part authoring must not change and a second note must not hide behind.
+const ckbChromeTotal = Object.keys(CKB_CHROME).length;
+const ckbChromePending = Object.values(CKB_CHROME).filter((slot) => slot.text === null).length;
+const EXPECTED_CORPUS_NOTES: { rule: string; message: string }[] =
+  ckbChromePending === 0
+    ? []
+    : [
+        {
+          rule: 'CHROME-02',
+          message:
+            `[CHROME-02] Track "ckb" is in progress: ${ckbChromeTotal - ckbChromePending} of ${ckbChromeTotal} ` +
+            `chrome slots filled (${ckbChromePending} pending). ` +
+            'Pending slots are not errors until the track is complete, and a filled slot is still ' +
+            'only checked for spelling and provenance, never for meaning.',
+        },
+      ];
 const corpusNotes = validateContentDetailed().filter((i) => i.severity === 'info');
 check(
   'shipped corpus raises exactly the expected notes, word for word',
@@ -661,7 +670,14 @@ check(
 // checkChrome is what turns that into a failure here instead of on a screen.
 const kmrChromeKeys = Object.keys(KMR_CHROME).sort();
 const ckbChromeKeys = Object.keys(CKB_CHROME).sort();
-check('the chrome tables declare at least one slot', kmrChromeKeys.length > 0, String(kmrChromeKeys.length));
+// Both sides, because parity between two empty tables is a pass that means
+// nothing, and the Sorani table is now built by a mapping rather than written
+// out key by key, so it is the side that could come back empty.
+check(
+  'both chrome tables declare at least one slot',
+  kmrChromeKeys.length > 0 && ckbChromeKeys.length > 0,
+  `kmr ${kmrChromeKeys.length}, ckb ${ckbChromeKeys.length}`,
+);
 check(
   'both tracks declare the identical slot set',
   kmrChromeKeys.length === ckbChromeKeys.length && kmrChromeKeys.join(',') === ckbChromeKeys.join(','),
@@ -676,11 +692,153 @@ check('every Kurmanji slot carries a string', unfilledKmr.length === 0, unfilled
 const kmrChromeIssues = checkChrome(KMR_CHROME, KMR_POLICY);
 check('the Kurmanji table raises nothing under KMR_POLICY', kmrChromeIssues.length === 0, summarise(kmrChromeIssues));
 
-const ckbChromeIssues = checkChrome(CKB_CHROME, CKB_POLICY);
+const ckbChromeIssues = checkChrome(CKB_CHROME, CKB_POLICY, CKB_AUTHORED_CHROME_KEYS);
 check(
-  'the Sorani table raises exactly one CHROME-02 note',
-  ckbChromeIssues.length === 1 && ckbChromeIssues[0].severity === 'info' && ckbChromeIssues[0].rule === 'CHROME-02',
+  'the Sorani table raises no chrome error under CKB_POLICY',
+  ckbChromeIssues.every((i) => i.severity === 'info'),
   summarise(ckbChromeIssues),
+);
+// Not "exactly one CHROME-02 note": that was true while every slot was pending
+// and stops being true the day the last one is filled, at which point checkChrome
+// has nothing to say and an assertion demanding a note would fail on a finished
+// table. What holds either way is that any note it does raise is that one.
+check(
+  'and any note it does raise is a single CHROME-02, counted off the table itself',
+  ckbChromeIssues.length === EXPECTED_CORPUS_NOTES.length &&
+    ckbChromeIssues.every((i) => i.rule === 'CHROME-02'),
+  `${ckbChromeIssues.length} issue(s), expected ${EXPECTED_CORPUS_NOTES.length}`,
+);
+
+// The three origins partition the table: every slot is cited, authored or
+// pending, and the count each state holds is read off the data. Asserting the
+// partition rather than the numbers is the point — a slot moving from pending to
+// cited is authoring working, and must not fail a check.
+const ckbChromeRows = Object.entries(CKB_CHROME_SLOTS);
+const ckbCitedSlots = ckbChromeRows.filter(([, row]) => row.origin === 'cited');
+const ckbAuthoredSlots = ckbChromeRows.filter(([, row]) => row.origin === 'authored');
+const ckbPendingSlots = ckbChromeRows.filter(([, row]) => row.origin === 'pending');
+check(
+  'every Sorani chrome slot declares one of the three origins, and the three add up to the table',
+  ckbCitedSlots.length + ckbAuthoredSlots.length + ckbPendingSlots.length === ckbChromeRows.length &&
+    ckbChromeRows.length === ckbChromeTotal,
+  `${ckbCitedSlots.length} cited, ${ckbAuthoredSlots.length} authored, ${ckbPendingSlots.length} pending, ` +
+    `${ckbChromeRows.length} rows`,
+);
+check(
+  'and each of the three states is actually occupied, so the partition is not asserted over an empty set',
+  ckbCitedSlots.length > 0 && ckbAuthoredSlots.length > 0 && ckbPendingSlots.length > 0,
+  `${ckbCitedSlots.length}/${ckbAuthoredSlots.length}/${ckbPendingSlots.length}`,
+);
+
+// The union in ckb/chrome.ts is what stops a pending slot holding a src or an
+// authored one masquerading as cited, but a union is erased at runtime, so the
+// shipped rows are read here as objects: the discriminant has to agree with
+// which keys are actually there. Same assertion the theme labels get.
+const chromeKeyDrift = ckbChromeRows.filter(([, row]) => {
+  const keys = Object.keys(row);
+  const hasCitation = keys.includes('src') && keys.includes('from');
+  if (row.origin === 'cited') return !hasCitation || keys.includes('note') || keys.includes('reason');
+  if (row.origin === 'authored') return hasCitation || !keys.includes('note') || keys.includes('reason');
+  return hasCitation || keys.includes('note') || !keys.includes('reason');
+}).map(([key]) => key);
+check(
+  'every chrome row holds the keys its origin admits and none of the other arms\u2019, so the discriminant survives erasure',
+  chromeKeyDrift.length === 0,
+  chromeKeyDrift.join(',') || 'none',
+);
+
+// The three states, held to what each one promises about its text: a cited or
+// authored slot says something, a pending slot says nothing at all rather than
+// an empty string that would read as a filled slot with nothing in it.
+const chromeTextDrift = ckbChromeRows.filter(([, row]) =>
+  row.origin === 'pending' ? row.text !== null || row.reason.trim() === '' : row.text.trim() === '',
+).map(([key]) => key);
+check(
+  'a pending slot carries a null text and a stated reason, and a filled slot carries a non-empty string',
+  chromeTextDrift.length === 0,
+  chromeTextDrift.join(',') || 'none',
+);
+
+// The resolved table the app reads is the union put through one mapping, so the
+// two cannot disagree about which slots are filled or which carry a page.
+const chromeResolveDrift = ckbChromeRows.filter(([key, row]) => {
+  const slot = CKB_CHROME[key as keyof typeof CKB_CHROME];
+  if (row.origin === 'pending') return slot.text !== null || slot.src !== null;
+  if (row.origin === 'authored') return slot.text !== row.text || slot.src !== null;
+  return slot.text !== row.text || slot.src !== row.src;
+}).map(([key]) => key);
+check(
+  'the resolved CKB_CHROME agrees with the union it is built from, slot for slot',
+  chromeResolveDrift.length === 0,
+  chromeResolveDrift.join(',') || 'none',
+);
+
+// Every cited chrome slot is derived, not typed, the same rule the vocabulary
+// answers to: text is `from` with its stress marks stripped and the pp. 88 to 89
+// table run over it. Two of them carry an acute, which is why stripStress is in
+// the path at all.
+for (const [key, row] of ckbCitedSlots) {
+  if (!isCitedChrome(row)) continue;
+  let converted = '';
+  let conversionThrow = '';
+  try {
+    converted = toHawar(stripStress(row.from));
+  } catch (err) {
+    conversionThrow = err instanceof Error ? err.message : String(err);
+  }
+  check(
+    `chrome slot "${key}" ${row.text} is what the p. 88 table makes of ${row.from}`,
+    conversionThrow === '' && converted === row.text,
+    conversionThrow || converted,
+  );
+}
+
+// stripStress is load-bearing rather than decorative, shown from both sides: the
+// acute has no row in the conversion table, so the unstripped string throws, and
+// stripping it changes nothing about a form that never carried one.
+const accented = ckbCitedSlots.filter(([, row]) => isCitedChrome(row) && stripStress(row.from) !== row.from);
+check(
+  'at least one cited slot copies an acute off the page, so the stripping is exercised',
+  accented.length > 0,
+  accented.map(([key]) => key).join(',') || 'none',
+);
+for (const [key, row] of accented) {
+  if (!isCitedChrome(row)) continue;
+  let thrown = '';
+  try {
+    toHawar(row.from);
+  } catch (err) {
+    thrown = err instanceof Error ? err.message : String(err);
+  }
+  check(
+    `chrome slot "${key}" would throw on its unstripped ${row.from}, so the acute is not a letter the table has`,
+    thrown.startsWith('toHawar: no conversion-table row'),
+    thrown || 'nothing was thrown',
+  );
+}
+const strippedUntouched = CKB_VOCABULARY.filter((w) => stripStress(w.from) !== w.from).map((w) => w.id);
+check(
+  'and stripStress leaves every one of the 255 vocabulary transcriptions exactly as it found them',
+  strippedUntouched.length === 0,
+  strippedUntouched.join(',') || 'none',
+);
+
+// The authored keys the validator is handed are the authored rows and nothing
+// else, so the citation exemption cannot quietly widen to cover a cited slot
+// that lost its src.
+const exemptDrift = [...CKB_AUTHORED_CHROME_KEYS].filter(
+  (key) => CKB_CHROME_SLOTS[key as keyof typeof CKB_CHROME_SLOTS]?.origin !== 'authored',
+);
+check(
+  'the citation exemption covers the authored slots and only those',
+  exemptDrift.length === 0 && CKB_AUTHORED_CHROME_KEYS.size === ckbAuthoredSlots.length,
+  `${CKB_AUTHORED_CHROME_KEYS.size} exempt, ${ckbAuthoredSlots.length} authored, drift ${exemptDrift.join(',') || 'none'}`,
+);
+const unexempted = checkChrome(CKB_CHROME, CKB_POLICY);
+check(
+  'and without it every authored slot raises SRC-01, which is what the exemption is standing in front of',
+  unexempted.filter((i) => i.rule === 'SRC-01').length === ckbAuthoredSlots.length,
+  summarise(unexempted.filter((i) => i.rule === 'SRC-01')),
 );
 
 const noChrome = checkChrome({}, KMR_POLICY);

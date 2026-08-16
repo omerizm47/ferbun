@@ -14,7 +14,8 @@
 // Script is a stored field and is never inferred from the id, so an
 // Arabic-script Sorani is a second script on the same track id.
 
-import { CKB_CHROME, KMR_CHROME, TaughtChrome } from './chrome';
+import { KMR_CHROME, TaughtChrome } from './chrome';
+import { CKB_CHROME } from './ckb/chrome';
 import {
   CKB_COURSES,
   getCkbCourseById,

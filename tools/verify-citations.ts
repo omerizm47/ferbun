@@ -21,13 +21,21 @@
 // can fail ends in a non-zero exit with the command that fixes it. There is no
 // path through this file that reports success without having read a page.
 //
-// Two kinds of row have no page to read: a vocab theme whose labelOrigin is
-// authored, because no headword in the glossary names the class it labels, and a
+// Three kinds of row have no page to read. A vocab theme whose labelOrigin is
+// authored, because no headword in the glossary names the class it labels; a
 // course, unit or lesson title whose titleOrigin is authored, because it is a
-// phrase composed for this app out of headwords cited elsewhere. Those are not
-// counted as checked and not counted as failed. They are listed by name with
-// their note and counted in the closing line, so a reader sees how many strings
-// this script did not open the book for instead of assuming none.
+// phrase composed for this app out of headwords cited elsewhere; and a chrome
+// slot whose origin is authored, on the same footing. Those are not counted as
+// checked and not counted as failed. They are listed by name with their note and
+// counted in the closing line, so a reader sees how many strings this script did
+// not open the book for instead of assuming none.
+//
+// A chrome slot has a fourth state the other two do not: pending, a slot left
+// empty on purpose because the volume gives no word for it. There is no string
+// to look for and none is claimed, but a pending slot is not nothing either, so
+// it gets a bucket and a line of its own rather than being dropped. Cited,
+// authored and pending together are every slot in the table, and the closing
+// line adds them up, so no state is silently unchecked.
 //
 // Two entries in four print something other than their `from`, and both cases
 // are handled by generating candidates mechanically rather than by hand:
@@ -43,9 +51,15 @@
 // the text layer says which headword a ~ belongs to. Those four are reported
 // under their own heading, with the string found and the entry's own fromNote,
 // so they are read by a human rather than passed over in a total.
+//
+// One `from` in the corpus carries an accent this script must not touch: the
+// acute Thackston writes as a stress mark (pp. 3 and 4). It is stripped on
+// conversion, in tools/thackston-latin.ts, and never on the way to the page,
+// because the page prints it. bínûsa on p. 39 is the case to watch.
 
 import { spawnSync } from 'child_process';
 import { existsSync } from 'fs';
+import { CKB_CHROME_SLOTS } from '../src/data/ckb/chrome';
 import { CKB_TITLES, isCitedTitle } from '../src/data/ckb/courses';
 import { CKB_VOCABULARY, CKB_VOCAB_THEMES, isCitedTheme } from '../src/data/ckb/vocabulary';
 
@@ -72,14 +86,15 @@ interface Target {
 
 const PAGE_LOCATOR = /^THK06:(\d{1,3})$/;
 
-function collectTargets(): { targets: Target[]; rejected: string[]; skipped: string[] } {
+function collectTargets(): { targets: Target[]; rejected: string[]; skipped: string[]; pending: string[] } {
   const targets: Target[] = [];
   const rejected: string[] = [];
-  // Theme labels and course-tree titles the data marks authored: there is no
-  // page to open, because the label names a class no headword names or the title
-  // is a phrase composed for this app. They are listed and counted, not dropped,
-  // so the total below is read against a stated number of exemptions rather than
-  // against an assumption that everything was checked.
+  const chromeRows = Object.entries(CKB_CHROME_SLOTS);
+  // Theme labels, course-tree titles and chrome slots the data marks authored:
+  // there is no page to open, because the label names a class no headword names,
+  // or the title and the slot are composed for this app. They are listed and
+  // counted, not dropped, so the total below is read against a stated number of
+  // exemptions rather than against an assumption that everything was checked.
   const skipped = [
     ...CKB_VOCAB_THEMES.filter((t) => !isCitedTheme(t)).map(
       (t) => `vocab theme "${t.id}": labelKu ${t.labelKu} is authored, not cited. ${t.labelNote}`,
@@ -87,7 +102,16 @@ function collectTargets(): { targets: Target[]; rejected: string[]; skipped: str
     ...CKB_TITLES.flatMap((t) =>
       isCitedTitle(t.origin) ? [] : [`${t.id}: titleKu ${t.titleKu} is authored, not cited. ${t.origin.titleNote}`],
     ),
+    ...chromeRows.flatMap(([key, slot]) =>
+      slot.origin === 'authored' ? [`chrome slot "${key}": ${slot.text} is authored, not cited. ${slot.note}`] : [],
+    ),
   ];
+  // The third state, and the reason chrome needed one: a slot deliberately left
+  // empty. Nothing is claimed of a page here, so nothing is opened, but the
+  // decision is printed with its reason so a blank is read rather than assumed.
+  const pending = chromeRows.flatMap(([key, slot]) =>
+    slot.origin === 'pending' ? [`chrome slot "${key}": left empty. ${slot.reason}`] : [],
+  );
 
   const rows = [
     ...CKB_VOCABULARY.map((w) => ({ id: w.id, from: w.from, fromNote: w.fromNote, taught: w.wordKu, src: w.src })),
@@ -103,6 +127,11 @@ function collectTargets(): { targets: Target[]; rejected: string[]; skipped: str
         ? [{ id: t.id, from: t.origin.from, fromNote: t.origin.fromNote, taught: t.titleKu, src: t.origin.src }]
         : [],
     ),
+    ...chromeRows.flatMap(([key, slot]) =>
+      slot.origin === 'cited'
+        ? [{ id: `chrome slot "${key}"`, from: slot.from, fromNote: slot.fromNote, taught: slot.text, src: slot.src }]
+        : [],
+    ),
   ];
 
   for (const row of rows) {
@@ -114,7 +143,7 @@ function collectTargets(): { targets: Target[]; rejected: string[]; skipped: str
     targets.push({ ...row, page: Number(page[1]) });
   }
 
-  return { targets, rejected, skipped };
+  return { targets, rejected, skipped, pending };
 }
 
 const LETTER = /\p{L}/u;
@@ -201,7 +230,7 @@ function extract(pages: number[]): Extraction | string {
 }
 
 function run(): number {
-  const { targets, rejected, skipped } = collectTargets();
+  const { targets, rejected, skipped, pending } = collectTargets();
 
   if (targets.length === 0) {
     console.error('verify-citations: no Sorani entry carries a single-page THK06 citation. Nothing was checked.');
@@ -279,8 +308,13 @@ function run(): number {
   }
 
   if (skipped.length > 0) {
-    console.log(`\nskipped, ${skipped.length} authored label(s) and title(s). No page claims these, so none was opened:`);
+    console.log(`\nskipped, ${skipped.length} authored string(s). No page claims these, so none was opened:`);
     for (const line of skipped) console.log(`  ${line}`);
+  }
+
+  if (pending.length > 0) {
+    console.log(`\npending, ${pending.length} chrome slot(s) left empty on purpose. Nothing is claimed and nothing was opened:`);
+    for (const line of pending) console.log(`  ${line}`);
   }
 
   if (judgement.length > 0) {
@@ -305,7 +339,8 @@ function run(): number {
   console.log(
     `\nverify-citations: ${checked} of ${targets.length} entries found on their cited page ` +
       `(${verbatim} printed verbatim, ${judgement.length} matched under a rule a human's fromNote licenses), ` +
-      `${skipped.length} authored label(s) and title(s) skipped as uncitable.`,
+      `${skipped.length} authored string(s) skipped as uncitable, ${pending.length} chrome slot(s) pending. ` +
+      `${targets.length + skipped.length + pending.length} taught strings accounted for, none silently unchecked.`,
   );
   return 0;
 }

@@ -29,10 +29,18 @@
 //  - guest: mîwân (p. 208, a bare "guest") over mewân (p. 207, "guest; ~dâr"),
 //    the closer cognate of Kurmanji mêvan. mîwân was taken because its line
 //    carries the gloss and nothing else.
-//  - yes: are (p. 164) over báłe (p. 168), also "yes". báłe is printed with an
-//    acute accent, which is a stress mark and not a letter the p. 88 table
-//    converts, so the printed string cannot go through the converter at all and
-//    the entry could only be typed by hand.
+//  - yes: are (p. 164) over báłe (p. 168), also "yes". This one was decided on
+//    a bad ground and is recorded here rather than quietly re-decided. The
+//    reason first given was that báłe is printed with an acute the p. 88 table
+//    has no row for, so the printed string could not go through the converter
+//    and the entry could only have been typed by hand. The acute is a stress
+//    mark, not a letter: pp. 3 and 4 settle it, and tools/thackston-latin.ts
+//    now strips it before conversion, which makes báłe convert as cleanly as
+//    anything else here, to bellê. So the mechanical objection is gone and
+//    nothing about it left this slot empty: the slot is filled, and are stays
+//    the pick. What is left is a pure editorial choice between two bare "yes"
+//    headwords with nothing in the volume to break the tie, and a speaker may
+//    well prefer báłe.
 //  - no: na (p. 208, a bare "no") over nâ (p. 209, "no, oh no"). This is the
 //    entry in the file most likely to be pulled at review, and the reason is
 //    worth stating plainly: na converts to ne, which a Kurmanji reader reads as

@@ -13,7 +13,8 @@
 // All of it checks shape, legality and provenance only. Nothing here confirms
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
-import { CKB_CHROME, ChromeSlot, KMR_CHROME } from './chrome';
+import { ChromeSlot, KMR_CHROME } from './chrome';
+import { CKB_AUTHORED_CHROME_KEYS, CKB_CHROME } from './ckb/chrome';
 import { CKB_COURSES, CKB_TITLES, isCitedTitle } from './ckb/courses';
 import { CKB_VOCABULARY, CKB_VOCAB_THEMES, getCkbVocabByTheme, isCitedTheme } from './ckb/vocabulary';
 import { courses } from './courses';
@@ -174,7 +175,17 @@ export function checkDuplicateIds(ids: string[], what: string): ContentIssue[] {
  * nothing more. Whether the wording is right is a question only a speaker of
  * the language can answer.
  */
-export function checkChrome(slots: Record<string, ChromeSlot>, policy: TrackPolicy): ContentIssue[] {
+export function checkChrome(
+  slots: Record<string, ChromeSlot>,
+  policy: TrackPolicy,
+  /**
+   * Slots whose wording is authored for this app out of parts cited elsewhere,
+   * so no page can be demanded of them. Same exemption CKB_AUTHORED_LABEL_POLICY
+   * grants a theme label and a course title, named per slot rather than per
+   * track because a chrome table holds all three states at once.
+   */
+  citationExempt: ReadonlySet<string> = new Set(),
+): ContentIssue[] {
   // Object.entries, never `slots[key]`: a bare index on an object literal
   // resolves toString and every other Object.prototype member as a slot.
   const entries = Object.entries(slots);
@@ -208,7 +219,7 @@ export function checkChrome(slots: Record<string, ChromeSlot>, policy: TrackPoli
       }
     }
 
-    if (policy.requireCitation) {
+    if (policy.requireCitation && !citationExempt.has(key)) {
       if (!slot.src || slot.src.trim() === '') {
         issues.push({
           severity: 'error',
@@ -247,7 +258,7 @@ export function checkChrome(slots: Record<string, ChromeSlot>, policy: TrackPoli
   issues.push({
     severity: 'info',
     rule: 'CHROME-02',
-    message: `[CHROME-02] Track "${policy.id}" is in progress: ${entries.length - pending.length} of ${entries.length} chrome slots authored (${pending.length} pending). Pending slots are not errors until the track is complete, and a filled slot is still only checked for spelling and provenance, never for meaning.`,
+    message: `[CHROME-02] Track "${policy.id}" is in progress: ${entries.length - pending.length} of ${entries.length} chrome slots filled (${pending.length} pending). Pending slots are not errors until the track is complete, and a filled slot is still only checked for spelling and provenance, never for meaning.`,
   });
   return issues;
 }
@@ -526,8 +537,11 @@ export function validateContentDetailed(): ContentIssue[] {
   }
 
   // --- Taught chrome, each table under its own track's policy ---
+  // The Sorani call passes the authored keys, which is the one thing that table
+  // needs and the Kurmanji one does not: a slot composed out of cited parts has
+  // no page of its own, and SRC-01 would otherwise read it as a missing one.
   problems.push(...checkChrome(KMR_CHROME, KMR_POLICY));
-  problems.push(...checkChrome(CKB_CHROME, CKB_POLICY));
+  problems.push(...checkChrome(CKB_CHROME, CKB_POLICY, CKB_AUTHORED_CHROME_KEYS));
 
   // --- Sorani corpus ---
   // Read from the module directly and never through getTrack('ckb'): tracks.ts
