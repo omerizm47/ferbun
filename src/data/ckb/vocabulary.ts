@@ -1,6 +1,7 @@
-// Fêrbûn: the Sorani vocabulary barrel. Fourteen themes so far: greetings,
-// family, body, home, clothing, food, nature, animals, description, numbers,
-// time, verbs, emotions and places, one file each under ./vocab.
+// Fêrbûn: the Sorani vocabulary barrel. All seventeen themes the Kurmanji track
+// has: greetings, family, body, home, clothing, food, nature, animals,
+// description, numbers, time, verbs, emotions, places, education, culture and
+// function, one file each under ./vocab.
 // Source: Thackston, W. M., "Sorani Kurdish: A Reference Grammar with Selected
 // Readings", declared as THK06 in src/data/sources.ts.
 //
@@ -23,10 +24,13 @@ import type { VocabTheme } from '../vocabulary';
 import { CKB_ANIMALS } from './vocab/animals';
 import { CKB_BODY } from './vocab/body';
 import { CKB_CLOTHING } from './vocab/clothing';
+import { CKB_CULTURE } from './vocab/culture';
 import { CKB_DESCRIPTION } from './vocab/description';
+import { CKB_EDUCATION } from './vocab/education';
 import { CKB_EMOTIONS } from './vocab/emotions';
 import { CKB_FAMILY } from './vocab/family';
 import { CKB_FOOD } from './vocab/food';
+import { CKB_FUNCTION } from './vocab/function';
 import { CKB_GREETINGS } from './vocab/greetings';
 import { CKB_HOME } from './vocab/home';
 import { CKB_NATURE } from './vocab/nature';
@@ -115,12 +119,15 @@ export const CKB_VOCABULARY: SoraniVocabWord[] = [
   ...CKB_VERBS,
   ...CKB_EMOTIONS,
   ...CKB_PLACES,
+  ...CKB_EDUCATION,
+  ...CKB_CULTURE,
+  ...CKB_FUNCTION,
 ];
 
 // id, icon and color match the Kurmanji themes, so the two Words screens read
 // as the same screen in two languages. labelKu is the only taught string here,
-// which is why it is the only part of a row that carries a locator, and the one
-// row whose label no headword can carry says so in labelOrigin instead.
+// which is why it is the only part of a row that carries a locator, and the two
+// rows whose label no headword can carry say so in labelOrigin instead.
 export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
   // słâw is the same headword ./vocab/greetings.ts teaches for "greetings", and
   // the only entry in the glossary glossed that way. It is the label for a
@@ -276,8 +283,8 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     from: 'kât',
     fromNote: 'p. 195 prints this as kât1. kât2, five lines below it, is "back of the neck".',
   },
-  // The one authored label in the table. Everything about it except the
-  // citation is held to the same rules as the ten above, and the self-check
+  // The first authored label in the table. Everything about it except the
+  // citation is held to the same rules as the cited rows, and the self-check
   // proves that by running both policies over an uncitable label.
   {
     id: 'verbs',
@@ -326,6 +333,68 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelOrigin: 'cited',
     src: 'THK06:193',
     from: 'je',
+  },
+  // The education half of "Education & Work", not the work half. Both are
+  // citable, which is unusual: kâr (p. 195) is a bare headword and would be the
+  // cleaner citation, but it names only the work and ./vocab/education.ts
+  // already teaches it as a card inside the theme. zânyârî is the half the
+  // English, the Turkish and the Kurmanji Perwerde all lead with, and
+  // Thackston's own example settles that his Sorani uses it institutionally:
+  // "wazârat i zânyârî Ministry of Education".
+  {
+    id: 'education',
+    label: 'Education & Work',
+    labelKu: 'zanyarî',
+    labelTr: 'Eğitim & İş',
+    icon: 'school-outline',
+    color: '#7A3B5E',
+    labelOrigin: 'cited',
+    src: 'THK06:238',
+    from: 'zânyârî',
+    fromNote:
+      'p. 238 prints this as the tilde sub-entry ~yârî under the headword zân|â "learned", whose bar marks ' +
+      'zân as the base: "~yârî knowledge, education: wazârat i ~ Ministry of Education". The ~yâr on the ' +
+      'line above it is "learned, erudite", and ./vocab/education.ts reads that entry\'s ~istga the same way.',
+  },
+  // kaltur is a bare one-word entry, "culture". Two rivals carry the sense and
+  // neither can be the label: farhang (p. 183, "culture") converts to ferheng,
+  // which in Kurmanji is a dictionary, the same trap lash sets for the body
+  // theme above; and adab (p. 163) is "literature, culture", whose first sense
+  // ./vocab/culture.ts already teaches as adabiyât. The Kurdish half of
+  // "Kurdish Culture" is not in the label: no headword names it, and kurdî
+  // (p. 202) is a card inside the theme.
+  {
+    id: 'culture',
+    label: 'Kurdish Culture',
+    labelKu: 'keltur',
+    labelTr: 'Kürt Kültürü',
+    icon: 'flag-outline',
+    color: '#C4521C',
+    labelOrigin: 'cited',
+    src: 'THK06:194',
+    from: 'kaltur',
+  },
+  // The second authored label, and the harder of the two: this theme's class is
+  // one the glossary labels other words with instead of naming.
+  {
+    id: 'function',
+    label: 'Function Words',
+    labelKu: 'amrraz',
+    labelTr: 'İşlev Kelimeleri',
+    icon: 'text-outline',
+    color: '#5B6470',
+    labelOrigin: 'authored',
+    labelNote:
+      'No headword in the glossary is glossed "particle" or "conjunction". "Particle" appears six times and ' +
+      'every one of them is Thackston labelling a Sorani word: ay and ây "O (vocative particle)", âyâ ' +
+      '"interrogative particle", bâ1 "hortatory particle", da1 "particle occurring with imperative", and ' +
+      'zarra (p. 238), "particle, atom", which is the physics sense. "Conjunction" appears only inside his ' +
+      'glosses, and "preposition" only where he files the postpositions -awa (p. 165) and \'dâ (p. 179). ' +
+      'wisha and wâzha (p. 236) are "word", any word, and rezmân (p. 220) is "grammar", the subject rather ' +
+      'than the class. The class term is âmřâz, which the glossary carries at p. 166 as a common noun, ' +
+      '"instrument, implement, tool", so the grammatical sense is authored for this app exactly as labelTr ' +
+      'is. The taught string is the p. 88 table run over his âmřâz, ř and all, and no speaker has confirmed ' +
+      'either the term or the ř.',
   },
 ];
 

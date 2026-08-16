@@ -40,7 +40,7 @@ import {
   validateContent,
   validateContentDetailed,
 } from '../src/data/validate';
-import { vocabulary } from '../src/data/vocabulary';
+import { VOCAB_THEMES, vocabulary } from '../src/data/vocabulary';
 import {
   PROGRESS_BACKUP_KEY,
   PROGRESS_SCHEMA_VERSION,
@@ -219,6 +219,24 @@ check(
 // rather than throwing, so a screen rendering it gets an empty state instead of
 // a crash. The vocabulary is authored and is checked below.
 const ckbContent = ckb.content;
+
+// The vocab-theme accessor used to be probed with the id of a theme the Sorani
+// track had not been authored for yet, and that line moved twice, from
+// greetings and from time, then would have gone quietly vacuous when the last
+// three themes landed and no unauthored theme was left to name. So it names no
+// theme now. The id is derived: a Kurmanji theme with no Sorani counterpart if
+// one is ever added, and otherwise a string the id syntax of this data never
+// produces. The assertion under it fails if that id is a real Sorani theme, so
+// the probe below cannot pass by asking about something that exists.
+const ckbMissingTheme =
+  VOCAB_THEMES.map((t) => t.id).find((id) => !CKB_VOCAB_THEMES.some((theme) => theme.id === id)) ??
+  'no-such-theme (all 17 Kurmanji themes have a Sorani counterpart)';
+check(
+  `the empty-accessor probe asks for "${ckbMissingTheme}", which is not a Sorani vocab theme`,
+  !CKB_VOCAB_THEMES.some((theme) => theme.id === ckbMissingTheme),
+  ckbMissingTheme,
+);
+
 let ckbEmpty = false;
 let ckbThrew = '';
 try {
@@ -230,9 +248,7 @@ try {
     ckbContent.getLessonById('l1_1') === undefined &&
     ckbContent.getTotalLessons() === 0 &&
     ckbContent.getStoryById('s1') === undefined &&
-    // A theme the Kurmanji track has and the Sorani one has not been authored
-    // for yet. It moves as themes land: time held this line until it did.
-    ckbContent.getVocabByTheme('education').length === 0 &&
+    ckbContent.getVocabByTheme(ckbMissingTheme).length === 0 &&
     ckbContent.getVocabById('v1') === undefined &&
     ckbContent.getExercisesForLesson('l1_1').length === 0 &&
     ckbContent.getOrderedExercisesForLesson('l1_1').length === 0 &&
@@ -1052,8 +1068,10 @@ check(
   authoredIllegal.map((t) => t.labelKu).join(',') || 'none',
 );
 check(
-  'and the corpus holds an authored label to say that of, with every other theme still cited, so the assertion above is not vacuous',
-  ckbAuthoredThemes.length === 1 && ckbCitedThemes.length === CKB_VOCAB_THEMES.length - 1,
+  'and the corpus holds an authored label to say that of, and cited ones beside it, so the assertion above is not vacuous',
+  ckbAuthoredThemes.length > 0 &&
+    ckbCitedThemes.length > 0 &&
+    ckbAuthoredThemes.length + ckbCitedThemes.length === CKB_VOCAB_THEMES.length,
   `${ckbAuthoredThemes.length} authored, ${ckbCitedThemes.length} cited`,
 );
 const authoredUnexplained = ckbAuthoredThemes.filter((t) => t.labelNote.trim() === '');
