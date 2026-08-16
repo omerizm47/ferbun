@@ -12,7 +12,7 @@
 // that a translation is correct, idiomatic or current: that needs a speaker.
 
 import { CKB_CHROME, ChromeSlot, KMR_CHROME } from './chrome';
-import { CKB_VOCABULARY, CKB_VOCAB_THEMES, getCkbVocabByTheme } from './ckb/vocabulary';
+import { CKB_VOCABULARY, CKB_VOCAB_THEMES, getCkbVocabByTheme, isCitedTheme } from './ckb/vocabulary';
 import { courses } from './courses';
 import { getExercisesForLesson } from './exercises';
 import { SORANI_LATIN, checkOrthography, OrthographySpec } from './orthography';
@@ -68,6 +68,13 @@ export const CKB_POLICY: TrackPolicy = {
   requireCitation: true,
   requireBothGlosses: true,
 };
+
+// The single exemption from CKB_POLICY, written as a policy of its own so it
+// stays exactly one rule wide: a vocab theme label naming a class the glossary
+// has no headword for is authored like its Turkish label and has no page to
+// cite. It is still spelled in the p. 88 alphabet and still glossed twice,
+// because those two fields are copied from CKB_POLICY rather than restated.
+export const CKB_AUTHORED_LABEL_POLICY: TrackPolicy = { ...CKB_POLICY, requireCitation: false };
 
 // Called from validateContentDetailed() over the Sorani corpus, and covered
 // rule by rule by the fixtures in tools/content-selfcheck.fixture.ts.
@@ -392,14 +399,22 @@ export function validateContentDetailed(): ContentIssue[] {
     glossTr: word.wordTr,
   }));
 
+  // Split by labelOrigin, not by whether a src happens to be there: an authored
+  // label cannot hold one, and a cited label that lost one has to keep failing.
+  const ckbAuthoredLabels: CitedEntry[] = [];
+
   for (const theme of CKB_VOCAB_THEMES) {
-    ckbEntries.push({
+    const label: CitedEntry = {
       id: `ckb vocab theme "${theme.id}"`,
       taught: { labelKu: theme.labelKu },
-      src: theme.src,
       glossEn: theme.label,
       glossTr: theme.labelTr,
-    });
+    };
+    if (isCitedTheme(theme)) {
+      ckbEntries.push({ ...label, src: theme.src });
+    } else {
+      ckbAuthoredLabels.push(label);
+    }
     // A registered theme with no words is a tab that opens on nothing, which is
     // a defect while the track is in progress as much as after it is finished.
     if (getCkbVocabByTheme(theme.id).length === 0) {
@@ -408,6 +423,7 @@ export function validateContentDetailed(): ContentIssue[] {
   }
 
   problems.push(...checkCitedEntries(ckbEntries, CKB_POLICY));
+  problems.push(...checkCitedEntries(ckbAuthoredLabels, CKB_AUTHORED_LABEL_POLICY));
 
   return problems;
 }

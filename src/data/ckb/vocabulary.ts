@@ -1,6 +1,6 @@
-// Fêrbûn: the Sorani vocabulary barrel. Ten themes so far: greetings, family,
-// body, home, clothing, food, nature, animals, description and numbers, one
-// file each under ./vocab.
+// Fêrbûn: the Sorani vocabulary barrel. Eleven themes so far: greetings,
+// family, body, home, clothing, food, nature, animals, description, numbers and
+// verbs, one file each under ./vocab.
 // Source: Thackston, W. M., "Sorani Kurdish: A Reference Grammar with Selected
 // Readings", declared as THK06 in src/data/sources.ts.
 //
@@ -30,6 +30,7 @@ import { CKB_GREETINGS } from './vocab/greetings';
 import { CKB_HOME } from './vocab/home';
 import { CKB_NATURE } from './vocab/nature';
 import { CKB_NUMBERS } from './vocab/numbers';
+import { CKB_VERBS } from './vocab/verbs';
 
 /** A Kurmanji VocabWord plus the locator CKB_POLICY.requireCitation demands. */
 export interface SoraniVocabWord extends VocabWord {
@@ -46,12 +47,36 @@ export interface SoraniVocabWord extends VocabWord {
   fromNote?: string;
 }
 
-/** A VocabTheme plus the locator for `labelKu`, the taught half of the label. */
-export interface SoraniVocabTheme extends VocabTheme {
+/** A VocabTheme whose `labelKu` is a headword Thackston prints, carrying the locator for it. */
+export interface CitedVocabTheme extends VocabTheme {
+  labelOrigin: 'cited';
   src: string;
   from: string;
   fromNote?: string;
 }
+
+/**
+ * A VocabTheme whose `labelKu` names a class the glossary has no headword for,
+ * so the label is authored for this app exactly as `labelTr` is. The three
+ * citation fields are declared `never` rather than left off, so an authored
+ * label cannot be given one: `{ labelOrigin: 'authored', src: 'THK06:163' }` is
+ * a type error, not a comment someone has to notice.
+ * This covers navigation chrome only. A vocabulary entry has no such variant.
+ */
+export interface AuthoredVocabTheme extends VocabTheme {
+  labelOrigin: 'authored';
+  /** Which headwords were considered and why none of them can carry this label. */
+  labelNote: string;
+  src?: never;
+  from?: never;
+  fromNote?: never;
+}
+
+/** Cited or authored, never both and never neither: `labelOrigin` fixes which fields the row may hold. */
+export type SoraniVocabTheme = CitedVocabTheme | AuthoredVocabTheme;
+
+/** Narrows to the cited half, so a consumer reading `src` or `from` has to say which rows it means. */
+export const isCitedTheme = (theme: SoraniVocabTheme): theme is CitedVocabTheme => theme.labelOrigin === 'cited';
 
 export const CKB_GLOSS_PROVENANCE =
   'Each Sorani form and its English gloss come from Thackston, "Sorani Kurdish: A Reference ' +
@@ -59,8 +84,14 @@ export const CKB_GLOSS_PROVENANCE =
   'is not transcribed by hand: the entry stores Thackston\'s transcription verbatim in its from ' +
   'field, and wordKu is that string put through his conversion table at THK06:88. The Turkish ' +
   'gloss is not his: it is a translation of that English gloss, authored for this app, and it ' +
-  'carries no locator, because Thackston glosses in English only. No native speaker has reviewed ' +
-  'any of it, neither the forms nor the glosses.';
+  'carries no locator, because Thackston glosses in English only. One kind of taught string is ' +
+  'exempt from the citation, and the exemption is declared in the data rather than left to a ' +
+  'reader: a vocab theme whose labelOrigin is authored names a class no headword in the glossary ' +
+  'names, so its labelKu is authored for this app on the same footing as its Turkish label, holds ' +
+  'no src and no from, and says in its labelNote which headwords were rejected. It is still ' +
+  'spelled in the THK06:88 alphabet, and the exemption reaches labels only: every vocabulary ' +
+  'entry carries a page. No native speaker has reviewed any of it, neither the forms nor the ' +
+  'glosses.';
 
 // A fresh array rather than the theme arrays themselves, so adding the next
 // theme is one spread and no caller can mutate a theme file through this
@@ -77,11 +108,13 @@ export const CKB_VOCABULARY: SoraniVocabWord[] = [
   ...CKB_ANIMALS,
   ...CKB_DESCRIPTION,
   ...CKB_NUMBERS,
+  ...CKB_VERBS,
 ];
 
 // id, icon and color match the Kurmanji themes, so the two Words screens read
 // as the same screen in two languages. labelKu is the only taught string here,
-// which is why it is the only part of a row that carries a locator.
+// which is why it is the only part of a row that carries a locator, and the one
+// row whose label no headword can carry says so in labelOrigin instead.
 export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
   // słâw is the same headword ./vocab/greetings.ts teaches for "greetings", and
   // the only entry in the glossary glossed that way. It is the label for a
@@ -94,6 +127,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Selamlaşma & Sosyal',
     icon: 'chatbubble-outline',
     color: '#D2693E',
+    labelOrigin: 'cited',
     src: 'THK06:228',
     from: 'słâw',
   },
@@ -104,6 +138,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Aile & İnsanlar',
     icon: 'people-outline',
     color: '#1F8A4C',
+    labelOrigin: 'cited',
     src: 'THK06:171',
     from: 'binamâła',
     fromNote: 'p. 171 prints this as the tilde sub-entry ~amâł(a) under the headword bin, with the final a optional.',
@@ -119,6 +154,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Vücut & Sağlık',
     icon: 'body-outline',
     color: '#C1432E',
+    labelOrigin: 'cited',
     src: 'THK06:203',
     from: 'lash',
   },
@@ -132,6 +168,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Ev & Eşyalar',
     icon: 'home-outline',
     color: '#8A5A38',
+    labelOrigin: 'cited',
     src: 'THK06:206',
     from: 'mâł',
   },
@@ -145,6 +182,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Giysiler',
     icon: 'shirt-outline',
     color: '#A8743C',
+    labelOrigin: 'cited',
     src: 'THK06:193',
     from: 'jil',
   },
@@ -158,6 +196,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Yiyecek & İçecek',
     icon: 'restaurant-outline',
     color: '#D99A1C',
+    labelOrigin: 'cited',
     src: 'THK06:199',
     from: 'khorâk',
   },
@@ -170,6 +209,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Doğa & Hava',
     icon: 'leaf-outline',
     color: '#6B8E4E',
+    labelOrigin: 'cited',
     src: 'THK06:228',
     from: 'sirusht',
   },
@@ -183,6 +223,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Hayvanlar',
     icon: 'paw-outline',
     color: '#B06A3B',
+    labelOrigin: 'cited',
     src: 'THK06:193',
     from: 'jânawar',
   },
@@ -196,6 +237,7 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Renkler & Niteleme',
     icon: 'color-palette-outline',
     color: '#A8324A',
+    labelOrigin: 'cited',
     src: 'THK06:219',
     from: 'rang',
     fromNote: 'p. 219 prints this as rang1. rang2, eight lines below it, is "possible".',
@@ -209,8 +251,29 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     labelTr: 'Sayılar',
     icon: 'calculator-outline',
     color: '#355C8A',
+    labelOrigin: 'cited',
     src: 'THK06:239',
     from: 'zhimâra',
+  },
+  // The one authored label in the table. Everything about it except the
+  // citation is held to the same rules as the ten above, and the self-check
+  // proves that by running both policies over an uncitable label.
+  {
+    id: 'verbs',
+    label: 'Core Verbs',
+    labelKu: 'kirdar',
+    labelTr: 'Temel Fiiller',
+    icon: 'flash-outline',
+    color: '#E85D00',
+    labelOrigin: 'authored',
+    labelNote:
+      'No headword in the glossary is glossed "verb". The only verb in the volume is in the p. 163 ' +
+      'abbreviation key, where v.i., v.p. and v.t. expand to verb intransitive, passive and transitive, ' +
+      'which glosses Thackston\'s own abbreviations and not a Sorani word. kâr (p. 195) is "work, thing" ' +
+      'and kirda (p. 201) is "act"; neither names the class a theme label has to name. kirdar is the ' +
+      'Sorani grammatical term, built on the kirdin this theme teaches, and it is authored for this app ' +
+      'exactly as labelTr is: it is spelled as the p. 88 table would render Thackston\'s kirdâr, and no ' +
+      'speaker has confirmed it.',
   },
 ];
 

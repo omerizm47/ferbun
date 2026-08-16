@@ -21,6 +21,12 @@
 // can fail ends in a non-zero exit with the command that fixes it. There is no
 // path through this file that reports success without having read a page.
 //
+// One kind of row has no page to read: a vocab theme whose labelOrigin is
+// authored, because no headword in the glossary names the class it labels. Those
+// are not counted as checked and not counted as failed. They are listed by name
+// with their labelNote and counted in the closing line, so a reader sees how
+// many strings this script did not open the book for instead of assuming none.
+//
 // Two entries in four print something other than their `from`, and both cases
 // are handled by generating candidates mechanically rather than by hand:
 //   * the furtive i (THK06:163). bâwk is printed bâwik, the i italicised. The
@@ -38,7 +44,7 @@
 
 import { spawnSync } from 'child_process';
 import { existsSync } from 'fs';
-import { CKB_VOCABULARY, CKB_VOCAB_THEMES } from '../src/data/ckb/vocabulary';
+import { CKB_VOCABULARY, CKB_VOCAB_THEMES, isCitedTheme } from '../src/data/ckb/vocabulary';
 
 const PDF = 'docs/sources/thackston-sorani-grammar.pdf';
 const EXTRACTOR = 'tools/pdf-page-text.py';
@@ -63,13 +69,20 @@ interface Target {
 
 const PAGE_LOCATOR = /^THK06:(\d{1,3})$/;
 
-function collectTargets(): { targets: Target[]; rejected: string[] } {
+function collectTargets(): { targets: Target[]; rejected: string[]; skipped: string[] } {
   const targets: Target[] = [];
   const rejected: string[] = [];
+  // Theme labels the data marks authored: there is no page to open, because no
+  // headword in the glossary names the class. They are listed and counted, not
+  // dropped, so the total below is read against a stated number of exemptions
+  // rather than against an assumption that everything was checked.
+  const skipped = CKB_VOCAB_THEMES.filter((t) => !isCitedTheme(t)).map(
+    (t) => `vocab theme "${t.id}": labelKu ${t.labelKu} is authored, not cited. ${t.labelNote}`,
+  );
 
   const rows = [
     ...CKB_VOCABULARY.map((w) => ({ id: w.id, from: w.from, fromNote: w.fromNote, taught: w.wordKu, src: w.src })),
-    ...CKB_VOCAB_THEMES.map((t) => ({
+    ...CKB_VOCAB_THEMES.filter(isCitedTheme).map((t) => ({
       id: `vocab theme "${t.id}"`,
       from: t.from,
       fromNote: t.fromNote,
@@ -87,7 +100,7 @@ function collectTargets(): { targets: Target[]; rejected: string[] } {
     targets.push({ ...row, page: Number(page[1]) });
   }
 
-  return { targets, rejected };
+  return { targets, rejected, skipped };
 }
 
 const LETTER = /\p{L}/u;
@@ -174,7 +187,7 @@ function extract(pages: number[]): Extraction | string {
 }
 
 function run(): number {
-  const { targets, rejected } = collectTargets();
+  const { targets, rejected, skipped } = collectTargets();
 
   if (targets.length === 0) {
     console.error('verify-citations: no Sorani entry carries a single-page THK06 citation. Nothing was checked.');
@@ -251,6 +264,11 @@ function run(): number {
     failures.push(...rejected);
   }
 
+  if (skipped.length > 0) {
+    console.log(`\nskipped, ${skipped.length} authored theme label(s). No page claims these, so none was opened:`);
+    for (const line of skipped) console.log(`  ${line}`);
+  }
+
   if (judgement.length > 0) {
     console.log(
       '\nmatched under a rule, so the reading is a human\u2019s and not this script\u2019s.\n' +
@@ -272,7 +290,8 @@ function run(): number {
 
   console.log(
     `\nverify-citations: ${checked} of ${targets.length} entries found on their cited page ` +
-      `(${verbatim} printed verbatim, ${judgement.length} matched under a rule a human's fromNote licenses).`,
+      `(${verbatim} printed verbatim, ${judgement.length} matched under a rule a human's fromNote licenses), ` +
+      `${skipped.length} authored theme label(s) skipped as uncitable.`,
   );
   return 0;
 }

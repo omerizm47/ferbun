@@ -9,8 +9,10 @@
 // itself complete holds an unauthored one, that no id repeats inside the Sorani
 // corpus, that every Sorani spelling is the conversion table's output on the
 // transcription its entry stores, that the corpus's own provenance claim still
-// matches the corpus, and that the v1→v2 progress migration carries a real
-// user's stored blob across without touching a single global.
+// matches the corpus, that the one label the glossary cannot cite is exempt
+// from the citation rule and from nothing else, and that the v1→v2 progress
+// migration carries a real user's stored blob across without touching a single
+// global.
 // What no assertion here can do is open the book. `npm run verify-citations`
 // does that, and is a separate script because it needs a PDF this repository
 // does not carry.
@@ -21,12 +23,13 @@
 
 import { readFileSync } from 'fs';
 import { CKB_CHROME, KMR_CHROME } from '../src/data/chrome';
-import { CKB_GLOSS_PROVENANCE, CKB_VOCABULARY, CKB_VOCAB_THEMES } from '../src/data/ckb/vocabulary';
+import { CKB_GLOSS_PROVENANCE, CKB_VOCABULARY, CKB_VOCAB_THEMES, isCitedTheme } from '../src/data/ckb/vocabulary';
 import { DIGRAPH_MINIMAL_PAIRS, SORANI_LATIN, checkOrthography, foldDiacritics } from '../src/data/orthography';
 import { ALL_BADGES } from '../src/data/badges';
 import { SOURCES } from '../src/data/sources';
 import { TrackId, getTrack, isTrackId } from '../src/data/tracks';
 import {
+  CKB_AUTHORED_LABEL_POLICY,
   CKB_POLICY,
   ContentIssue,
   KMR_POLICY,
@@ -931,14 +934,18 @@ check(
 // 16. Every shipped Sorani spelling is derived rather than typed. Each entry
 // stores Thackston's transcription verbatim in `from`, and wordKu has to be
 // exactly what the converter above makes of that string, so anyone holding the
-// cited page can reproduce the form instead of trusting it.
+// cited page can reproduce the form instead of trusting it. An authored theme
+// label has no `from` to derive it from and is held to the alphabet instead, a
+// few assertions below.
+const ckbCitedThemes = CKB_VOCAB_THEMES.filter(isCitedTheme);
+const ckbAuthoredThemes = CKB_VOCAB_THEMES.filter((t) => !isCitedTheme(t));
 const ckbDerived = [
   ...CKB_VOCABULARY.map((w) => ({ id: w.id, field: 'wordKu', from: w.from, taught: w.wordKu })),
-  ...CKB_VOCAB_THEMES.map((t) => ({ id: `vocab theme "${t.id}"`, field: 'labelKu', from: t.from, taught: t.labelKu })),
+  ...ckbCitedThemes.map((t) => ({ id: `vocab theme "${t.id}"`, field: 'labelKu', from: t.from, taught: t.labelKu })),
 ];
 check(
-  'every Sorani word and theme carries a from',
-  ckbDerived.length === CKB_VOCABULARY.length + CKB_VOCAB_THEMES.length &&
+  'every Sorani word and every cited theme label carries a from',
+  ckbDerived.length === CKB_VOCABULARY.length + ckbCitedThemes.length &&
     ckbDerived.every((row) => row.from.trim() !== ''),
   `${ckbDerived.filter((row) => row.from.trim() !== '').length} of ${ckbDerived.length}`,
 );
@@ -989,11 +996,11 @@ check(
   CKB_GLOSS_PROVENANCE.includes(SOURCES.THK06.title) && CKB_GLOSS_PROVENANCE.includes(sourceSurname),
   `title ${CKB_GLOSS_PROVENANCE.includes(SOURCES.THK06.title)}, author ${CKB_GLOSS_PROVENANCE.includes(sourceSurname)}`,
 );
-const citedSourceIds = [...CKB_VOCABULARY.map((w) => w.src), ...CKB_VOCAB_THEMES.map((t) => t.src)].map((src) =>
+const citedSourceIds = [...CKB_VOCABULARY.map((w) => w.src), ...ckbCitedThemes.map((t) => t.src)].map((src) =>
   src.slice(0, src.indexOf(':')),
 );
 check(
-  'every Sorani entry cites that source and no other, which is what the claim asserts of all of them and not of most',
+  'every cited Sorani entry cites that source and no other, which is what the claim asserts of all of them and not of most',
   citedSourceIds.length === ckbDerived.length && citedSourceIds.every((id) => id === SOURCES.THK06.id),
   [...new Set(citedSourceIds)].join(',') || 'none',
 );
@@ -1002,13 +1009,91 @@ check(
   CKB_GLOSS_PROVENANCE.includes('THK06:88') &&
     THACKSTON_TO_HAWAR.every((row) => row.src === 'THK06:88' || row.src === 'THK06:89'),
 );
-const locatorKeys = [...CKB_VOCABULARY, ...CKB_VOCAB_THEMES].flatMap((entry) =>
+const locatorKeys = [...CKB_VOCABULARY, ...ckbCitedThemes].flatMap((entry) =>
   Object.keys(entry).filter((key) => /src|cite|locator/i.test(key)),
 );
 check(
   'and "the Turkish gloss carries no locator" holds as a shape: one src per entry, and no second locator field anywhere in the corpus',
   locatorKeys.length === ckbDerived.length && locatorKeys.every((key) => key === 'src'),
   [...new Set(locatorKeys)].join(',') || 'none',
+);
+
+// 18. The one exemption the claim declares, held to the data on both sides.
+// The union in ckb/vocabulary.ts is what stops an authored label carrying a
+// citation, but a union is erased at runtime, so the shipped rows are read here
+// as objects: the discriminant has to agree with which keys are actually there.
+check(
+  'the claim states the authored-label exemption in the terms the data uses for it',
+  ['labelOrigin', 'authored', 'labelNote', 'no src'].every((phrase) => CKB_GLOSS_PROVENANCE.includes(phrase)),
+  CKB_GLOSS_PROVENANCE.slice(CKB_GLOSS_PROVENANCE.indexOf('One kind')),
+);
+const themeKeyDrift = CKB_VOCAB_THEMES.filter((theme) => {
+  const keys = Object.keys(theme);
+  const cited = keys.includes('src') && keys.includes('from');
+  const authored = keys.includes('labelNote');
+  return isCitedTheme(theme) ? !cited || authored : cited || !authored;
+}).map((t) => t.id);
+check(
+  'every theme row holds the keys its labelOrigin admits and none of the other variant\u2019s, so the discriminant survives erasure',
+  themeKeyDrift.length === 0,
+  themeKeyDrift.join(',') || 'none',
+);
+check(
+  'no vocabulary entry is authored: the exemption reaches labels only, and a word without a src is not expressible',
+  CKB_VOCABULARY.every((w) => typeof w.src === 'string' && w.src.trim() !== '' && w.from.trim() !== ''),
+  `${CKB_VOCABULARY.filter((w) => w.src.trim() !== '').length} of ${CKB_VOCABULARY.length} words cite a page`,
+);
+const authoredIllegal = ckbAuthoredThemes.filter((t) => checkOrthography(t.labelKu, SORANI_LATIN).length > 0);
+check(
+  'an authored label is still spelled in the p. 88 alphabet: only the citation is lifted, never the spelling',
+  authoredIllegal.length === 0,
+  authoredIllegal.map((t) => t.labelKu).join(',') || 'none',
+);
+check(
+  'and the corpus holds an authored label to say that of, with every other theme still cited, so the assertion above is not vacuous',
+  ckbAuthoredThemes.length === 1 && ckbCitedThemes.length === CKB_VOCAB_THEMES.length - 1,
+  `${ckbAuthoredThemes.length} authored, ${ckbCitedThemes.length} cited`,
+);
+const authoredUnexplained = ckbAuthoredThemes.filter((t) => t.labelNote.trim() === '');
+check(
+  'and each authored label says in its labelNote why no headword can carry it',
+  authoredUnexplained.length === 0,
+  authoredUnexplained.map((t) => t.id).join(',') || 'none',
+);
+// The exemption is one rule wide, shown by running both policies over the same
+// uncitable label: SRC-01 is the only difference between the two verdicts.
+const authoredLabelEntry = {
+  id: 'fx-authored-label',
+  taught: { labelKu: 'karr' },
+  glossEn: 'Core Verbs',
+  glossTr: 'Temel Fiiller',
+};
+const authoredUnderCkbPolicy = checkCitedEntries([authoredLabelEntry], CKB_POLICY);
+const authoredUnderExemption = checkCitedEntries([authoredLabelEntry], CKB_AUTHORED_LABEL_POLICY);
+check(
+  'CKB_POLICY still fires SRC-01 on a label with no src, so the requirement was lifted by the policy and not weakened in the rule',
+  authoredUnderCkbPolicy.length === 1 && authoredUnderCkbPolicy[0].rule === 'SRC-01',
+  summarise(authoredUnderCkbPolicy),
+);
+check(
+  'and CKB_AUTHORED_LABEL_POLICY passes that same label, differing from CKB_POLICY in requireCitation and nothing else',
+  authoredUnderExemption.length === 0 &&
+    (Object.keys(CKB_POLICY) as (keyof typeof CKB_POLICY)[]).every(
+      (key) => key === 'requireCitation' || CKB_AUTHORED_LABEL_POLICY[key] === CKB_POLICY[key],
+    ) &&
+    CKB_AUTHORED_LABEL_POLICY.requireCitation === false,
+  summarise(authoredUnderExemption),
+);
+const authoredStillGraded = checkCitedEntries(
+  [{ id: 'fx-authored-illegal', taught: { labelKu: 'k\u00E2r' }, glossEn: 'Core Verbs' }],
+  CKB_AUTHORED_LABEL_POLICY,
+);
+check(
+  'an authored label spelled outside the alphabet or missing a gloss still fails under it, so the exemption is not a way past ORTH or GLOSS',
+  authoredStillGraded.length === 2 &&
+    authoredStillGraded.some((i) => i.rule === 'ORTH-01') &&
+    authoredStillGraded.some((i) => i.rule === 'GLOSS-01'),
+  summarise(authoredStillGraded),
 );
 
 if (failures.length > 0) {
