@@ -384,7 +384,7 @@ export const MINIMAL_PAIR_TRANSCRIPTIONS = [
 // book, so the expected form is this project's reading of the conversion table,
 // not a second witness to it. Weaker than CONVERSION_GOLD and kept apart from
 // it for that reason. They exist because these are the rows the paired material
-// never exercises: gh, j, zh and ayn.
+// never exercises: gh, j, zh, ayn and the h with dot below.
 export const CONVERSION_UNWITNESSED = [
   { thackston: 'jw\u00E2n', hawar: 'cwan', src: 'THK06:193', gloss: 'pretty, beautiful' },
   { thackston: 'zhin', hawar: 'jin', src: 'THK06:96', gloss: 'wife' },
@@ -395,6 +395,9 @@ export const CONVERSION_UNWITNESSED = [
   { thackston: 'ma\u2018n\u00E2', hawar: 'mena', src: 'THK06:4', gloss: 'meaning' },
   { thackston: '\u2018arab', hawar: 'ereb', src: 'THK06:4', gloss: 'Arab' },
   { thackston: '\u0159oysht', hawar: 'rroy\u015Ft', src: 'THK06:3', gloss: 'he went' },
+  // The one word in the shipped corpus that reaches the derived h-with-dot-below
+  // row. p. 17 sets it against the digit: "7 ḥawt".
+  { thackston: '\u1E25awt', hawar: 'hewt', src: 'THK06:17', gloss: 'seven' },
 ];
 
 // Rows no word above exercises. Each is asserted only by converting the source
@@ -404,9 +407,6 @@ export const ROWS_WITHOUT_A_SAMPLE = ['d', 'f', 'k', 'q', '\u00FB', 'v'];
 
 /** Characters the conversion table has no row for, which must throw. */
 export const UNMAPPED_INPUT = [
-  // Thackston's pharyngeal ḥ, p. 2. The conversion table has no row for it, so
-  // whether a word takes h or ḥ is a reading decision and not a mapping one.
-  { text: '\u1E25', why: 'h with dot below, U+1E25' },
   // tanaká 'tin can', p. 3, carrying the stress accent the table does not have.
   { text: 'tanak\u00E1', why: 'a with acute, U+00E1' },
   // An all-capitals run: the H cannot open a word, so no capitalised row applies.

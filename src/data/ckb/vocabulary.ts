@@ -1,4 +1,5 @@
-// Fêrbûn: the Sorani vocabulary barrel. One theme so far, family.
+// Fêrbûn: the Sorani vocabulary barrel. Three themes so far: family, body and
+// numbers, one file each under ./vocab.
 // Source: Thackston, W. M., "Sorani Kurdish: A Reference Grammar with Selected
 // Readings", declared as THK06 in src/data/sources.ts.
 //
@@ -18,7 +19,9 @@
 
 import type { VocabWord } from '../types';
 import type { VocabTheme } from '../vocabulary';
+import { CKB_BODY } from './vocab/body';
 import { CKB_FAMILY } from './vocab/family';
+import { CKB_NUMBERS } from './vocab/numbers';
 
 /** A Kurmanji VocabWord plus the locator CKB_POLICY.requireCitation demands. */
 export interface SoraniVocabWord extends VocabWord {
@@ -31,7 +34,7 @@ export interface SoraniVocabWord extends VocabWord {
    * spelling is reproducible from the page rather than trusted.
    */
   from: string;
-  /** Why the cited page prints something other than `from`. Absent when it prints `from` itself. */
+  /** Why the cited page prints something other than `from`, or how the taught form was derived where the table alone does not show it. */
   fromNote?: string;
 }
 
@@ -51,13 +54,15 @@ export const CKB_GLOSS_PROVENANCE =
   'carries no locator, because Thackston glosses in English only. No native speaker has reviewed ' +
   'any of it, neither the forms nor the glosses.';
 
-// A fresh array rather than CKB_FAMILY itself, so adding the second theme is one
-// spread and no caller can mutate a theme file through this export.
-export const CKB_VOCABULARY: SoraniVocabWord[] = [...CKB_FAMILY];
+// A fresh array rather than the theme arrays themselves, so adding the next
+// theme is one spread and no caller can mutate a theme file through this
+// export. Theme order follows VOCAB_THEMES, so the two Words screens list the
+// themes they share in the same order.
+export const CKB_VOCABULARY: SoraniVocabWord[] = [...CKB_FAMILY, ...CKB_BODY, ...CKB_NUMBERS];
 
-// id, icon and color match the Kurmanji family theme, so the two Words screens
-// read as the same screen in two languages. labelKu is the only taught string
-// here, which is why it is the only part of the row that carries a locator.
+// id, icon and color match the Kurmanji themes, so the two Words screens read
+// as the same screen in two languages. labelKu is the only taught string here,
+// which is why it is the only part of a row that carries a locator.
 export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
   {
     id: 'family',
@@ -69,6 +74,32 @@ export const CKB_VOCAB_THEMES: SoraniVocabTheme[] = [
     src: 'THK06:171',
     from: 'binamâła',
     fromNote: 'p. 171 prints this as the tilde sub-entry ~amâł(a) under the headword bin, with the final a optional.',
+  },
+  // leş is the same headword ./vocab/body.ts teaches for "body", and the same
+  // caveat applies to it as a label: Thackston's lash converts to leş, which in
+  // Kurmanji means a carcass. A speaker has to confirm it before this label is
+  // shown to anyone.
+  {
+    id: 'body',
+    label: 'Body & Health',
+    labelKu: 'leş',
+    labelTr: 'Vücut & Sağlık',
+    icon: 'body-outline',
+    color: '#C1432E',
+    src: 'THK06:203',
+    from: 'lash',
+  },
+  // zhimâra is glossed "number, issue". Only the counting sense is meant here;
+  // the other is the issue of a periodical.
+  {
+    id: 'numbers',
+    label: 'Numbers',
+    labelKu: 'jimare',
+    labelTr: 'Sayılar',
+    icon: 'calculator-outline',
+    color: '#355C8A',
+    src: 'THK06:239',
+    from: 'zhimâra',
   },
 ];
 

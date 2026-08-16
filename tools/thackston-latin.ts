@@ -1,7 +1,10 @@
 // Fêrbûn: Thackston's Sorani transcription into the Kurmanji Latin alphabet.
 // The mapping is his own, "Conversion Table for the Sorani and Kurmanji
 // Alphabets", which runs over the page break: a through v on p. 88, w through
-// ayn on p. 89. Every row below carries the page it is printed on.
+// ayn on p. 89. Every row below carries the page that settles it. For all but
+// one that is the page the row is printed on. The exception is the h with dot
+// below, which the table has no line of its own for and which is read off the
+// Arabic column of the line it does print; the row says so where it sits.
 //
 // This lives under tools/ because nothing in the running app converts anything.
 // The app ships the output; a converter reachable from the bundle would invite
@@ -35,6 +38,16 @@ export const THACKSTON_TO_HAWAR: readonly ThackstonRow[] = [
   { from: 'g', to: 'g', src: 'THK06:88' },
   { from: 'gh', to: 'x', src: 'THK06:88' },
   { from: 'h', to: 'h', src: 'THK06:88' },
+  // Derived through the Arabic column of the row above rather than printed as a
+  // row of its own. That cell holds two letters, U+062D ARABIC LETTER HAH and
+  // U+0647 ARABIC LETTER HEH, and the table sends both to Kurmanji h. Thackston
+  // transcribes U+062D as this character: the alphabet chart at p. 4 sets the
+  // letter against the transcription directly, the letter-shapes table at p. 6
+  // heads its row with it, and p. 2 says it "is a voiceless pharyngeal
+  // fricative, IPA [ħ], like the Arabic [U+062D]; otherwise it is not
+  // distinguished from h". So the letter this stands for is one the h row
+  // already routes to h, and the conversion is the table's, not a guess.
+  { from: '\u1E25', to: 'h', src: 'THK06:88' },
   { from: 'i', to: 'i', src: 'THK06:88' },
   { from: '\u00EE', to: '\u00EE', src: 'THK06:88' },
   { from: 'j', to: 'c', src: 'THK06:88' },

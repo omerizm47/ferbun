@@ -696,8 +696,20 @@ check(
 const tableSources = THACKSTON_TO_HAWAR.map((row) => row.from);
 check(
   'the conversion table holds one row per Thackston character, none repeated',
-  THACKSTON_TO_HAWAR.length === 35 && new Set(tableSources).size === 35,
+  THACKSTON_TO_HAWAR.length === 36 && new Set(tableSources).size === 36,
   `${THACKSTON_TO_HAWAR.length} rows, ${new Set(tableSources).size} distinct`,
+);
+
+// The one row the table does not print. It is in the exported array like every
+// other row rather than hidden inside toHawar, so it is read and doubted the
+// same way, and it has to land where the printed h row lands, since that is the
+// whole of its licence: p. 88's h row routes both Arabic letters in its cell to
+// h, and p. 4 pairs the second of them with this character.
+const dotUnderH = THACKSTON_TO_HAWAR.find((row) => row.from === '\u1E25');
+check(
+  'the h with dot below is a row of the exported table, sent to h off p. 88 like the h row it is read from',
+  dotUnderH?.to === 'h' && dotUnderH.src === 'THK06:88' && toHawar('\u1E25') === toHawar('h'),
+  dotUnderH ? `${dotUnderH.from} to ${dotUnderH.to} ${dotUnderH.src}` : 'no row',
 );
 
 const illegalTargets = THACKSTON_TO_HAWAR.filter(
@@ -986,7 +998,7 @@ check(
   [...new Set(citedSourceIds)].join(',') || 'none',
 );
 check(
-  'the claim names the conversion table the spellings are derived through, and every row of that table is printed there or overleaf',
+  'the claim names the conversion table the spellings are derived through, and every row of that table is settled by that page or overleaf',
   CKB_GLOSS_PROVENANCE.includes('THK06:88') &&
     THACKSTON_TO_HAWAR.every((row) => row.src === 'THK06:88' || row.src === 'THK06:89'),
 );
